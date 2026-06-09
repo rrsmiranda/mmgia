@@ -1,0 +1,6 @@
+{
+  "name": "MMGIA",
+  "description": "Modelo de Maturidade em Governança de Inteligência Artificial com o Design System Premium ScrewWind (Cosmic Gold & Steel)",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
