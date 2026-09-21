@@ -88,7 +88,7 @@ export default function Methodology() {
           
           {/* Main Title Header */}
           <div className="text-center md:text-left max-w-2xl" id="methodology-general-header">
-            <span className="font-mono text-[10px] uppercase font-bold text-brand-accent">metodologia_oficial</span>
+            <span className="font-mono text-[10px] uppercase font-bold text-brand-accent">Metodologia Oficial</span>
             <h2 className="text-3xl font-extrabold text-slate-950 tracking-tight mt-1.5 font-sans">
               Modelo de Maturidade em Governança de IA (MMGIA)
             </h2>
@@ -100,7 +100,7 @@ export default function Methodology() {
           {/* SECTION: SOBRE */}
           <section id="sobre" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
             <div className="space-y-2">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">// pilar_essência</span>
+              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Fundamento</span>
               <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">O que é o MMGIA?</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-light">
                 O MMGIA é uma régua de conformidade autoaplicável formulada com o intuito de democratizar a governança ética e cibernética de sistemas algorítmicos. O modelo serve de diagnóstico preventivo guiando equipes na formulação de portarias jurídicas e de blindagens contra vieses.
@@ -128,7 +128,7 @@ export default function Methodology() {
           {/* SECTION: NIVEIS */}
           <section id="niveis" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
             <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">// níveis_de_maturidade</span>
+              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Níveis de Maturidade</span>
               <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Os 5 Níveis de Maturidade</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-light">
                 As pontuações consolidadas categorizam a instituição dentro de uma métrica de responsabilidade civil algorítmica dividida em 5 estágios.
@@ -172,7 +172,7 @@ export default function Methodology() {
           {/* SECTION: DIMENSOES */}
           <section id="dimensoes" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
             <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">// dretrizes_e_diretórios</span>
+              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Dimensões e Práticas</span>
               <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Dimensões e práticas Mapeadas</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-light">
                 Expandir os painéis dos 5 pilares para visualizar detalhadamente os direcionamentos técnicos e as correspondentes prioridades de nível.
@@ -212,6 +212,9 @@ export default function Methodology() {
                             </div>
                             <h4 className="font-sans font-extrabold text-xs text-slate-950">{p.name}</h4>
                             <p className="text-[11px] text-slate-500 leading-relaxed font-light">{p.description}</p>
+                            <p className="text-[10px] text-slate-500 font-sans bg-slate-50 p-2 border border-slate-100">
+                              <strong className="text-slate-700">Critério de verificação:</strong> {p.criterion}
+                            </p>
                             <p className="text-[10px] text-slate-400 font-mono bg-slate-50 p-2 border border-slate-100">
                               <strong className="text-brand-accent">Artefato chave:</strong> {p.evidence}
                             </p>
@@ -256,7 +259,7 @@ export default function Methodology() {
           {/* SECTION: REGULATORIO */}
           <section id="regulatorio" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
             <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">// consonância_legal</span>
+              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Consonância Legal</span>
               <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Alinhamento Regulatório Trilateral</h3>
               <p className="text-xs text-slate-500 leading-relaxed font-light">
                 O MMGIA foi pavimentado sob a correspondência cruzada de normas legais vigentes no Brasil e marcos internacionais recomendados de conformidade.

@@ -45,7 +45,6 @@ export default function Questionnaire({
 }: QuestionnaireProps) {
   const [activeDimension, setActiveDimension] = useState<DimensionId>('gov');
   const [currentPracticeIndex, setCurrentPracticeIndex] = useState(0);
-  const [showEvidence, setShowEvidence] = useState(false);
   const [latestSavedId, setLatestSavedId] = useState<string | null>(null);
 
   // Filter practices to current active dimension
@@ -73,44 +72,6 @@ export default function Questionnaire({
   const totalAnswered = LIST_PRACTICES.filter(p => !!answers[p.id]).length;
   const progressPercent = Math.round((totalAnswered / totalPractices) * 100);
 
-  // Calculate scores per dimension
-  const getDimensionScore = (dimId: DimensionId) => {
-    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-    const answered = dimPractices.filter(p => !!answers[p.id]);
-    if (answered.length === 0) return 0.0;
-
-    const sum = answered.reduce((acc, p) => {
-      const val = answers[p.id];
-      const weight = val === 'N' ? 0 : val === 'P' ? 1 : val === 'L' ? 2 : 3;
-      return acc + weight;
-    }, 0);
-
-    return sum / answered.length; // Max score level: 3.00
-  };
-
-  // Calculate global score
-  const getGlobalScore = () => {
-    const answeredList = LIST_PRACTICES.filter(p => !!answers[p.id]);
-    if (answeredList.length === 0) return 0.0;
-
-    const sum = answeredList.reduce((acc, p) => {
-      const val = answers[p.id];
-      const weight = val === 'N' ? 0 : val === 'P' ? 1 : val === 'L' ? 2 : 3;
-      return acc + weight;
-    }, 0);
-
-    return sum / answeredList.length;
-  };
-
-  const globalScore = getGlobalScore();
-
-  const getMaturityLevelName = (score: number) => {
-    if (score < 0.5) return 'Nível 1 · Iniciado';
-    if (score < 1.5) return 'Nível 2 · Gerenciado';
-    if (score < 2.3) return 'Nível 3 · Definido';
-    if (score < 2.8) return 'Nível 4 · Quantificado';
-    return 'Nível 5 · Otimizado';
-  };
 
   const handleSelectLevel = (level: ScoreLevel) => {
     if (currentPractice) {
@@ -380,6 +341,16 @@ export default function Questionnaire({
                     <p className={`text-sm leading-relaxed font-normal ${theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}`}>
                       {currentPractice.description}
                     </p>
+                  </div>
+
+                  {/* Verification Criterion */}
+                  <div className={`p-4 rounded-2xl border text-xs leading-relaxed ${
+                    theme === 'dark'
+                      ? 'bg-slate-900/40 border-slate-800 text-slate-210'
+                      : 'bg-white border-slate-205 text-slate-700'
+                  }`}>
+                    <span className="font-bold font-mono text-[10px] uppercase tracking-wider text-slate-400 block mb-1">Critério de Verificação</span>
+                    <p className="leading-relaxed font-normal font-sans text-xs">{currentPractice.criterion}</p>
                   </div>
 
                   {/* Legal Alignment Pill */}

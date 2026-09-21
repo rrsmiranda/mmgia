@@ -643,7 +643,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               
               <div className="flex justify-between items-center text-xs">
                 <div className="space-y-0.5">
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight font-sans">Correlação Trilateral de Base Legal</h3>
+                  <h3 className="text-lg font-bold text-slate-900 tracking-tight font-sans">Alinhamento Trilateral de Base Legal</h3>
                   <p className="text-xs text-slate-500">Instrua o modelo vinculando as 45 práticas às normativas constitucionais, senado ou ISO.</p>
                 </div>
 
@@ -653,7 +653,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   className="px-5 py-3 bg-brand-primary hover:brightness-110 text-white font-sans text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
                 >
                   <Plus className="w-4.5 h-4.5" />
-                  Nova Correlação Legal
+                  Novo Alinhamento Legal
                 </button>
               </div>
 

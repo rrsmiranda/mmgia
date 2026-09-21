@@ -97,7 +97,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <div className="lg:col-span-6 text-left">
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur">
               <span className="h-2 w-2 rounded-full bg-[#12B76A]"></span>
-              <span className="font-mono text-[11px] font-bold uppercase tracking-[.22em] text-white/80">modelo_maturidade_ia · enia 2026–2029</span>
+              <span className="font-mono text-[11px] font-bold uppercase tracking-[.22em] text-white/80">Modelo de Maturidade em IA · ENIA 2026–2029</span>
             </div>
             
             <h1 className="max-w-4xl text-5xl font-black tracking-[-0.055em] sm:text-6xl lg:text-7xl leading-[1.05]">
@@ -346,7 +346,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-5">
                   <div className="flex items-end justify-between font-mono">
-                    <span className="text-sm text-white/50">score_global</span>
+                    <span className="text-sm text-white/50">Score Global</span>
                     <span className="text-5xl font-black">1.82</span>
                   </div>
                   <div className="mt-4 h-2 rounded-full bg-white/10">
@@ -534,7 +534,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
         <div className="mx-auto grid max-w-7xl gap-14 lg:grid-cols-12 lg:items-center">
           <div className="lg:col-span-5 text-left">
             <p className="font-mono text-xs font-black uppercase tracking-[.25em] text-[#006494]">Metodologia</p>
-            <h2 className="mt-4 text-4xl font-black tracking-[-.04em] sm:text-5xl">Score ponderado com rigor acadêmico.</h2>
+            <h2 className="mt-4 text-4xl font-black tracking-[-.04em] sm:text-5xl">Score ponderado por eixo estratégico.</h2>
             <p className="mt-5 text-lg leading-8 text-[#667085]">O score global é a média ponderada dos scores das 5 dimensões, onde cada dimensão é a média das respostas NPLF das suas 9 práticas.</p>
             <ul className="mt-8 grid gap-4 text-sm leading-6 text-[#667085]">
               <li className="flex gap-3">
@@ -620,7 +620,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           </div>
           <div className="order-1 lg:order-2 lg:col-span-4 lg:col-start-9 text-left">
             <p className="font-mono text-xs font-black uppercase tracking-[.25em] text-[#12B76A]">Alinhamento regulatório</p>
-            <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-[#101828]">Correlação com 5 marcos normativos.</h2>
+            <h2 className="mt-4 text-4xl font-black tracking-[-.04em] text-[#101828]">Alinhamento com 5 marcos normativos.</h2>
             <p className="mt-5 text-lg leading-8 text-[#667085]">Cada uma das 45 práticas é mapeada para artigos e cláusulas específicos das normas aplicáveis. O relatório mostra onde a organização está conforme e onde precisa evoluir.</p>
           </div>
         </div>

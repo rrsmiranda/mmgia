@@ -98,7 +98,7 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
       <div className="w-full max-w-md bg-white border border-slate-100 p-8 rounded-3xl shadow-sm text-center space-y-6" id="edit-box-card">
         
         <div>
-          <span className="font-mono text-[9px] uppercase font-bold text-brand-accent tracking-widest block">// recuperar_diagnóstico</span>
+          <span className="font-mono text-[9px] uppercase font-bold text-brand-accent tracking-widest block">Recuperar Diagnóstico</span>
           <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight mt-1.5">
             Editar Avaliação Existente
           </h3>

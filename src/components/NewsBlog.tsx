@@ -54,7 +54,7 @@ export default function NewsBlog() {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-brand-accent animate-pulse"></span>
-            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-slate-400">curadoria_diária_editorial</span>
+            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-slate-400">Curadoria Editorial Diária</span>
           </div>
           <h2 className="text-2xl font-extrabold text-slate-950 tracking-tight">
             Notícias de Regulamentação e IA

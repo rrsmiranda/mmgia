@@ -9,14 +9,11 @@ import {
   Check,
   CheckCircle,
   FileText,
-  TrendingUp,
   Download,
   RotateCcw,
   RefreshCw,
   Compass,
-  AlertOctagon,
   Sparkles,
-  Search,
   BookOpen,
   Info,
   X,
@@ -25,18 +22,14 @@ import {
   Award,
   CheckSquare,
   Printer,
-  ChevronDown,
-  ChevronUp,
   HelpCircle,
-  Shield,
   FileCheck,
   Eye
 } from 'lucide-react';
 
-const CheckCircle2 = CheckCircle;
-const ListTodo = CheckSquare;
 
 import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '../types';
+import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getSectorBenchmarks, getPeerAverageGlobal } from '../lib/scoring';
 import RadarChart from './RadarChart';
 
 interface ResultProps {
@@ -63,124 +56,17 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Score Calculus
-  const getDimensionScore = (dimId: DimensionId) => {
-    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-    const answered = dimPractices.filter(p => !!answers[p.id]);
-    if (answered.length === 0) return 0.0;
-
-    const sum = answered.reduce((acc, p) => {
-      const val = answers[p.id];
-      const weight = val === 'N' ? 0 : val === 'P' ? 1 : val === 'L' ? 2 : 3;
-      return acc + weight;
-    }, 0);
-
-    return sum / answered.length;
-  };
-
-  // Weighted score according to page 27 and 28 of methodology
-  const getGlobalScore = () => {
-    const govScore = getDimensionScore('gov');
-    const tecScore = getDimensionScore('tec');
-    const segScore = getDimensionScore('seg');
-    const eduScore = getDimensionScore('edu');
-    const ecoScore = getDimensionScore('eco');
-
-    return (
-      govScore * 0.25 +
-      tecScore * 0.20 +
-      segScore * 0.25 +
-      eduScore * 0.15 +
-      ecoScore * 0.15
-    );
-  };
-
-  const globalScore = getGlobalScore();
+  // Score Calculus (ver src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
+  const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
+  const globalScore = getGlobalScore(answers);
   const progressPercentage = Math.round((globalScore / 3) * 100);
-
-  // Exact levels and interpretations from pg 2, 3 and 28 of the methodology
-  const getMaturityLevel = (score: number) => {
-    if (score < 0.5) return {
-      num: 0,
-      label: 'Inexistente',
-      bg: 'bg-red-500',
-      text: 'text-red-650',
-      risk: 'Risco Crítico',
-      desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
-      risco: 'Neste nível, a organização opera em estado de total desconhecimento e descontrole quanto às atividades de IA. A ausência completa de governança expõe a organização a um nível de risco crítico. A proliferação de Shadow AI — o uso de ferramentas e sistemas de IA por funcionários sem aprovação ou supervisão formais — é inevitável, criando pontos cegos significativos para a segurança e a gestão.'
-    };
-    if (score < 1.0) return {
-      num: 1,
-      label: 'Inicial',
-      bg: 'bg-sky-500',
-      text: 'text-sky-650',
-      risk: 'Risco Crítico / Alto',
-      desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
-      risco: 'No nível Inicial, a organização começa a ter bolsões de atividade de IA, mas de forma desorganizada. O nível de risco permanece crítico, pois não há uma abordagem sistemática para a gestão. A dependência de "heróis" cria um ponto único de falha; o conhecimento não é institucionalizado e se perde com a saída desses indivíduos.'
-    };
-    if (score < 1.5) return {
-      num: 2,
-      label: 'Gerenciado',
-      bg: 'bg-cyan-500',
-      text: 'text-cyan-650',
-      risk: 'Risco Alto',
-      desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
-      risco: 'Neste estágio, a governança é predominantemente reativa, sempre um passo atrás das capacidades tecnológicas. Embora existam práticas básicas de gestão, a sua aplicação inconsistente em silos organizacionais cria lacunas perigosas. O nível de risco é alto, pois a ausência de uma estrutura de governança centralizada e uniforme implica que as regras aplicadas a um projeto podem ser completamente diferentes das de outro projeto.'
-    };
-    if (score < 2.0) return {
-      num: 3,
-      label: 'Definido',
-      bg: 'bg-blue-600',
-      text: 'text-blue-650',
-      risk: 'Risco Moderado',
-      desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
-      risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o caos dos níveis anteriores, reduzindo o risco para um nível moderado. A organização agora possui uma base sólida para a governança. No entanto, um risco fundamental neste estágio é a rigidez das regras estáticas perante a velocidade da evolução tecnológica.'
-    };
-    if (score < 2.5) return {
-      num: 4,
-      label: 'Gerenciado Quantitativamente',
-      bg: 'bg-emerald-600',
-      text: 'text-emerald-650',
-      risk: 'Risco Baixo',
-      desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
-      risco: 'Neste nível, a governança deixa de basear-se em suposições e passa a ser orientada por dados, reduzindo o risco. O monitoramento contínuo substitui as revisões periódicas. O principal risco neste estágio é a complacência e o foco exclusivo em métricas numéricas simples que ignoram aspectos éticos complexos.'
-    };
-    return {
-      num: 5,
-      label: 'Otimizado',
-      bg: 'bg-indigo-700',
-      text: 'text-indigo-650',
-      risk: 'Risco Otimizado / Mínimo',
-      desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
-      risco: 'No nível mais alto de maturidade, a governança de IA se torna inteligente, adaptativa e totalmente integrada à estratégia de negócio, trazendo um exponencial diferencial competitivo. O risco residual é a de eventuais disrupções globais de regulação ou infraestrutura técnica onde reações refinadas demandam extrema flexibilidade.'
-    };
-  };
-
   const levelInfo = getMaturityLevel(globalScore);
+  // Nível por eixo (leitura complementar): mesma tabela de conversão aplicada ao score de cada dimensão
+  const dimensionLevels = getAllDimensionLevels(answers);
 
   // peer average coordinates based on sectoral metadata
-  const getSectorBenchmarks = (sector: string) => {
-    const isSectorStrong = ['Financeiro', 'Tecnologia'].includes(sector);
-    const scale = isSectorStrong ? 1.25 : 0.88;
-    return {
-      gov: 1.45 * scale,
-      tec: 1.38 * scale,
-      seg: 1.52 * scale,
-      edu: 1.10 * scale,
-      eco: 1.22 * scale,
-    };
-  };
-
   const sectorBenchmarks = getSectorBenchmarks(metadata.setor || 'Saúde');
-  const peerAverageGlobal = (Object.values(sectorBenchmarks).reduce((a, b) => a + b, 0) / 5);
-
-  const currentScores: Record<DimensionId, number> = {
-    gov: getDimensionScore('gov'),
-    tec: getDimensionScore('tec'),
-    seg: getDimensionScore('seg'),
-    edu: getDimensionScore('edu'),
-    eco: getDimensionScore('eco'),
-  };
+  const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
 
   // Identify gaps: practices with 'N' or 'P' score levels
   const gaps = LIST_PRACTICES.filter((practice) => {
@@ -192,25 +78,14 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     ? gaps
     : gaps.filter(g => g.dimensionId === gapFilter);
 
-  // Generate tactical recommendations
-  const getGapRecommendation = (id: string) => {
-    const dict: Record<string, { action: string; effort: 'Baixo' | 'Médio' | 'Alto' }> = {
-      '1.1': { action: 'Elaborar minuta inicial de termos éticos e encaminhar para aprovação da mesa diretiva.', effort: 'Baixo' },
-      '1.2': { action: 'Vincular representantes jurídicos, de proteção de dados e TI para formalizar um Comitê via portaria.', effort: 'Médio' },
-      '1.3': { action: 'Criar uma planilha simples compartilhada listando todo modelo em uso regulamentando o acesso.', effort: 'Baixo' },
-      '1.4': { action: 'Proceder a testes sistemáticos de bias nos algoritmos de triagem que decidem concessão.', effort: 'Alto' },
-      '1.5': { action: 'Adicionar parágrafo de responsabilidade civil algorítmica no plano interno de cargos técnicos.', effort: 'Médio' },
-      '2.1': { action: 'Integrar relatórios logs automáticos no pipeline de treinamento para verificar a proveniência.', effort: 'Médio' },
-      '2.2': { action: 'Criar scripts redundantes de higienização de nulos e duplicidades na esteira PostgreSQL.', effort: 'Baixo' },
-      '3.1': { action: 'Rever as bases legais de consentimento com o DPO para evitar sanções e multas da ANPD.', effort: 'Médio' },
-      '3.2': { action: 'Realizar blindagens sanitárias nos campos de entrada que recebem dados do cidadão em LLMs.', effort: 'Médio' },
-      '4.1': { action: 'Cofinanciar as trilhas básicas online do Enap ou Senai para capacitação massiva da equipe.', effort: 'Baixo' },
-      '4.2': { action: 'Iniciar imersões em conformação de vieses demográficos de IA para cientistas de dados.', effort: 'Médio' },
-      '5.1': { action: 'Estruturar acordos de inovação aberta com entidades e laboratórios do ecossistema e prefeituras.', effort: 'Médio' },
-      '5.2': { action: 'Formar repositório público de pesos seletivo para fins acadêmicos.', effort: 'Baixo' },
-    };
-
-    return dict[id] || { action: 'Readequar controles internos, reunindo documentação técnica e implementando revisões humanas contínuas.', effort: 'Médio' };
+  // Generate tactical recommendations directly from the practice's official verification criterion
+  const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
+    const practice = LIST_PRACTICES.find(p => p.id === id);
+    if (!practice) {
+      return { action: 'Readequar controles internos, reunindo documentação técnica e implementando revisões humanas contínuas.', effort: 'Médio' };
+    }
+    const effort: 'Baixo' | 'Médio' | 'Alto' = practice.level <= 2 ? 'Baixo' : practice.level === 3 ? 'Médio' : 'Alto';
+    return { action: practice.criterion, effort };
   };
 
   // Mock download dispatches
@@ -356,28 +231,28 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               </h4>
 
               <div className="space-y-4 bg-slate-900 text-slate-200 p-5 rounded-2xl border border-slate-800 shadow-inner">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#1D9E75] block font-bold">equacao_ponderada_ativa</span>
+                <span className="font-mono text-[9px] uppercase tracking-widest text-[#1D9E75] block font-bold">Equação Ponderada Ativa</span>
                 
                 {/* Visual equation terms */}
                 <div className="space-y-2.5 font-mono text-[11px]">
                   <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Governança e Inteligência (gov):</span>
+                    <span>Governança (gov):</span>
                     <span className="text-slate-100">{currentScores.gov.toFixed(2)} × 0.25 = <strong className="text-white">{(currentScores.gov * 0.25).toFixed(3)}</strong></span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Aspectos Tecnológicos (tec):</span>
+                    <span>Tecnologia (tec):</span>
                     <span className="text-slate-100">{currentScores.tec.toFixed(2)} × 0.20 = <strong className="text-white">{(currentScores.tec * 0.20).toFixed(3)}</strong></span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Segurança e Privacidade (seg):</span>
+                    <span>Segurança (seg):</span>
                     <span className="text-slate-100">{currentScores.seg.toFixed(2)} × 0.25 = <strong className="text-white">{(currentScores.seg * 0.25).toFixed(3)}</strong></span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Educação e Capacitação (edu):</span>
+                    <span>Educação (edu):</span>
                     <span className="text-slate-100">{currentScores.edu.toFixed(2)} × 0.15 = <strong className="text-white">{(currentScores.edu * 0.15).toFixed(3)}</strong></span>
                   </div>
                   <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Ecossistema e Parcerias (eco):</span>
+                    <span>Ecossistema (eco):</span>
                     <span className="text-slate-100">{currentScores.eco.toFixed(2)} × 0.15 = <strong className="text-white">{(currentScores.eco * 0.15).toFixed(3)}</strong></span>
                   </div>
                   
@@ -552,13 +427,19 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               const info = DIMENSIONS[key];
               const score = currentScores[key];
               const percent = (score / 3) * 100;
+              const dimLevel = dimensionLevels[key];
 
               return (
                 <div key={key} className="space-y-1.5 flex flex-col">
                   <div className="flex justify-between items-center text-xs font-mono font-bold">
                     <span className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>{info.name}</span>
-                    <span className={info.textColor}>
-                      {score.toFixed(2)} <span className="text-slate-400 font-light">/ 3.00</span>
+                    <span className="flex items-center gap-2">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${dimLevel.bg} text-white`}>
+                        Nível {dimLevel.num} · {dimLevel.label}
+                      </span>
+                      <span className={info.textColor}>
+                        {score.toFixed(2)} <span className="text-slate-400 font-light">/ 3.00</span>
+                      </span>
                     </span>
                   </div>
                   {/* Progress Bar Container with red target marks at 2.00 (Level 3 defined) */}
@@ -1105,7 +986,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                       </thead>
                       <tbody className="divide-y divide-slate-100 font-sans">
                         {[
-                          { name: '1. Governança e Inteligência', score: currentScores.gov, weight: '25%', contribution: (currentScores.gov * 0.25) },
+                          { name: '1. Governança e Arcabouço Regulatório', score: currentScores.gov, weight: '25%', contribution: (currentScores.gov * 0.25) },
                           { name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação', score: currentScores.tec, weight: '20%', contribution: (currentScores.tec * 0.20) },
                           { name: '3. Segurança, Confiança e Proteção da Sociedade', score: currentScores.seg, weight: '25%', contribution: (currentScores.seg * 0.25) },
                           { name: '4. Educação, Capacitação e Cultura Organizacional', score: currentScores.edu, weight: '15%', contribution: (currentScores.edu * 0.15) },

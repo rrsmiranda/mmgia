@@ -29,7 +29,7 @@ const Grid = LuLayoutGrid as any;
 const FileCheck2 = LuFileCheck2 as any;
 const Database = LuDatabase as any;
 import BrazilMap from './BrazilMap';
-import { DIMENSIONS, SEED_HISTORICAL_RECORDS, DimensionId } from '../types';
+import { DIMENSIONS, DimensionId } from '../types';
 
 interface PublicPanelProps {
   onChangeTab: (tab: string) => void;
@@ -64,7 +64,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-brand-accent animate-pulse"></span>
-            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-slate-400">dados_consolidados_br</span>
+            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-slate-400">Dados Consolidados · Brasil</span>
           </div>
           <h2 className="text-2xl font-extrabold text-slate-950 tracking-tight">
             Painel Nacional de Maturidade em IA
@@ -120,7 +120,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
           />
 
           <div className="bg-slate-950 text-slate-300 p-5 rounded-3xl" id="map-state-insights">
-            <h4 className="font-mono text-[9px] uppercase font-bold text-brand-accent tracking-wider mb-2">dados_estado_foco</h4>
+            <h4 className="font-mono text-[9px] uppercase font-bold text-brand-accent tracking-wider mb-2">Dados do Estado em Foco</h4>
             <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl text-xs">
               <span className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-brand-accent" />

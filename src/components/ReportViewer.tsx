@@ -14,16 +14,14 @@ import {
   ZoomOut,
   Download,
   Info,
-  Award,
-  BookOpen,
   ArrowLeft,
   ShieldCheck,
   CheckCircle,
-  HelpCircle,
   Copy,
   Check
 } from 'lucide-react';
-import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '../types';
+import { ScoreLevel, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '../types';
+import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '../lib/scoring';
 
 interface ReportViewerProps {
   answers: Record<string, ScoreLevel>;
@@ -38,116 +36,15 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
   const [copiedHtml, setCopiedHtml] = useState<boolean>(false);
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
 
-  // Score Calculations
-  const getDimensionScore = (dimId: DimensionId) => {
-    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-    const answered = dimPractices.filter(p => !!answers[p.id]);
-    if (answered.length === 0) return 0.0;
-
-    const sum = answered.reduce((acc, p) => {
-      const val = answers[p.id];
-      const weight = val === 'N' ? 0 : val === 'P' ? 1 : val === 'L' ? 2 : 3;
-      return acc + weight;
-    }, 0);
-
-    return sum / answered.length;
-  };
-
-  const currentScores: Record<DimensionId, number> = {
-    gov: getDimensionScore('gov'),
-    tec: getDimensionScore('tec'),
-    seg: getDimensionScore('seg'),
-    edu: getDimensionScore('edu'),
-    eco: getDimensionScore('eco'),
-  };
-
-  const getGlobalScore = () => {
-    return (
-      currentScores.gov * 0.25 +
-      currentScores.tec * 0.20 +
-      currentScores.seg * 0.25 +
-      currentScores.edu * 0.15 +
-      currentScores.eco * 0.15
-    );
-  };
-
-  const globalScore = getGlobalScore();
+  // Score Calculations (ver src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
+  const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
+  const globalScore = getGlobalScore(answers);
   const progressPercentage = Math.round((globalScore / 3) * 100);
-
-  const getMaturityLevel = (score: number) => {
-    if (score < 0.5) return {
-      num: 0,
-      label: 'Inexistente',
-      bg: 'bg-red-500',
-      text: 'text-red-700',
-      risk: 'Risco Crítico',
-      desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
-      risco: 'Neste nível, a organização opera em estado de total desconhecimento e descontrole quanto às atividades de IA. A ausência completa de governança expõe a organização a um nível de risco crítico. A proliferação de Shadow AI — o uso de ferramentas e sistemas de IA por funcionários sem aprovação ou supervisão formais — é inevitável, criando pontos cegos significativos para a segurança.'
-    };
-    if (score < 1.0) return {
-      num: 1,
-      label: 'Inicial',
-      bg: 'bg-sky-500',
-      text: 'text-sky-700',
-      risk: 'Risco Crítico / Alto',
-      desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
-      risco: 'No nível Inicial, a organização começa a ter bolsões de atividade de IA, mas de forma desorganizada. O nível de risco permanece crítico, pois não há uma abordagem sistemática para a gestão. A dependência de "heróis" cria um ponto único de falha; o conhecimento não é institucionalizado.'
-    };
-    if (score < 1.5) return {
-      num: 2,
-      label: 'Gerenciado',
-      bg: 'bg-cyan-500',
-      text: 'text-cyan-700',
-      risk: 'Risco Alto',
-      desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
-      risco: 'Neste estágio, a governança é predominantemente reativa. Embora existam práticas básicas de gestão, a sua aplicação inconsistente em silos organizacionais cria lacunas perigosas. O nível de risco é alto, pois as regras de um projeto podem ser diferentes das de outros.'
-    };
-    if (score < 2.0) return {
-      num: 3,
-      label: 'Definido',
-      bg: 'bg-blue-600',
-      text: 'text-blue-700',
-      risk: 'Risco Moderado',
-      desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
-      risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o caos, reduzindo o risco para um nível moderado. A organização possui base sólida, mas deve mitigar a rigidez perante a evolução das ferramentas.'
-    };
-    if (score < 2.5) return {
-      num: 4,
-      label: 'Gerenciado Quantitativamente',
-      bg: 'bg-emerald-600',
-      text: 'text-emerald-700',
-      risk: 'Risco Baixo',
-      desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
-      risco: 'A governança orientada por dados minimiza erros operacionais. O monitoramento contínuo substitui as revisões periódicas. Recomenda-se evitar a complacência e acompanhar aspectos qualitativos éticos de forma atenta.'
-    };
-    return {
-      num: 5,
-      label: 'Otimizado',
-      bg: 'bg-indigo-700',
-      text: 'text-indigo-700',
-      risk: 'Risco Otimizado / Mínimo',
-      desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
-      risco: 'No nível máximo de maturidade, a governança de IA se torna totalmente inteligente e integrada à estratégia da entidade. O risco operacional é otimizado e focado em responder continuamente às transformações éticas da tecnologia.'
-    };
-  };
-
   const levelInfo = getMaturityLevel(globalScore);
+  const dimensionLevels = getAllDimensionLevels(answers);
 
   // Sector stats benchmarks
-  const getSectorBenchmarks = (sector: string) => {
-    const isSectorStrong = ['Financeiro', 'Tecnologia'].includes(sector);
-    const scale = isSectorStrong ? 1.25 : 0.88;
-    return {
-      gov: 1.45 * scale,
-      tec: 1.38 * scale,
-      seg: 1.52 * scale,
-      edu: 1.10 * scale,
-      eco: 1.22 * scale,
-    };
-  };
-
-  const sectorBenchmarks = getSectorBenchmarks(metadata.setor || 'Saúde');
-  const peerAverageGlobal = (Object.values(sectorBenchmarks).reduce((a, b) => a + b, 0) / 5);
+  const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
 
   // Gaps calculation (unmet criteria)
   const gaps = LIST_PRACTICES.filter((practice) => {
@@ -443,44 +340,51 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
               <tr style="background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; font-family: monospace; font-size: 9px; color: #64748b; text-transform: uppercase;">
                 <th style="padding: 12px;">Eixo de Maturidade</th>
                 <th style="padding: 12px; text-align: center;">Pontuação</th>
+                <th style="padding: 12px; text-align: center;">Nível do Eixo</th>
                 <th style="padding: 12px; text-align: center;">Peso</th>
                 <th style="padding: 12px; text-align: right;">Contribuição Ponderada</th>
               </tr>
             </thead>
             <tbody style="color: #334155;">
               <tr style="border-bottom: 1px solid #f1f5f9;">
-                <td style="padding: 12px; font-weight: bold; color: #0f172a;">1. Governança e Inteligência</td>
+                <td style="padding: 12px; font-weight: bold; color: #0f172a;">1. Governança e Arcabouço Regulatório</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">${currentScores.gov.toFixed(2)} / 3.00</td>
+                <td style="padding: 12px; text-align: center; font-family: monospace;">Nível ${dimensionLevels.gov.num} · ${dimensionLevels.gov.label}</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">25%</td>
                 <td style="padding: 12px; text-align: right; font-family: monospace;">+${(currentScores.gov * 0.25).toFixed(3)}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 12px; font-weight: bold; color: #0f172a;">2. Desenvolvimento Tecnológico, Pesquisa e Inovação</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">${currentScores.tec.toFixed(2)} / 3.00</td>
+                <td style="padding: 12px; text-align: center; font-family: monospace;">Nível ${dimensionLevels.tec.num} · ${dimensionLevels.tec.label}</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">20%</td>
                 <td style="padding: 12px; text-align: right; font-family: monospace;">+${(currentScores.tec * 0.20).toFixed(3)}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 12px; font-weight: bold; color: #0f172a;">3. Segurança, Confiança e Proteção da Sociedade</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">${currentScores.seg.toFixed(2)} / 3.00</td>
+                <td style="padding: 12px; text-align: center; font-family: monospace;">Nível ${dimensionLevels.seg.num} · ${dimensionLevels.seg.label}</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">25%</td>
                 <td style="padding: 12px; text-align: right; font-family: monospace;">+${(currentScores.seg * 0.25).toFixed(3)}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 12px; font-weight: bold; color: #0f172a;">4. Educação, Capacitação e Cultura Organizacional</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">${currentScores.edu.toFixed(2)} / 3.00</td>
+                <td style="padding: 12px; text-align: center; font-family: monospace;">Nível ${dimensionLevels.edu.num} · ${dimensionLevels.edu.label}</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">15%</td>
                 <td style="padding: 12px; text-align: right; font-family: monospace;">+${(currentScores.edu * 0.15).toFixed(3)}</td>
               </tr>
               <tr style="border-bottom: 1px solid #f1f5f9;">
                 <td style="padding: 12px; font-weight: bold; color: #0f172a;">5. Cooperação e Inserção no Ecossistema</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">${currentScores.eco.toFixed(2)} / 3.00</td>
+                <td style="padding: 12px; text-align: center; font-family: monospace;">Nível ${dimensionLevels.eco.num} · ${dimensionLevels.eco.label}</td>
                 <td style="padding: 12px; text-align: center; font-family: monospace;">15%</td>
                 <td style="padding: 12px; text-align: right; font-family: monospace;">+${(currentScores.eco * 0.15).toFixed(3)}</td>
               </tr>
               <tr style="background-color: #f8fafc; font-weight: bold; font-family: monospace; border-top: 1px solid #e2e8f0;">
                 <td style="padding: 12px; text-transform: uppercase; font-size: 9px; color: #64748b;">Média Ponderada Global Acumulada</td>
                 <td style="padding: 12px; text-align: center;">${globalScore.toFixed(2)}</td>
+                <td style="padding: 12px; text-align: center;">—</td>
                 <td style="padding: 12px; text-align: center;">100%</td>
                 <td style="padding: 12px; text-align: right; color: #0C3D6E; font-size: 13px; font-weight: 950;">${globalScore.toFixed(3)}</td>
               </tr>
@@ -1156,21 +1060,23 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
                     <tr className="bg-slate-50 text-slate-500 font-mono text-[8px] uppercase border-b border-slate-200">
                       <th className="p-3">Eixo de Maturidade</th>
                       <th className="p-3 text-center">Pontuação</th>
+                      <th className="p-3 text-center">Nível do Eixo</th>
                       <th className="p-3 text-center">Peso</th>
                       <th className="p-3 text-right">Contribuição Ponderada</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-sans">
                     {[
-                      { name: '1. Governança e Inteligência', score: currentScores.gov, weight: '25%', contribution: (currentScores.gov * 0.25) },
-                      { name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação', score: currentScores.tec, weight: '20%', contribution: (currentScores.tec * 0.20) },
-                      { name: '3. Segurança, Confiança e Proteção da Sociedade', score: currentScores.seg, weight: '25%', contribution: (currentScores.seg * 0.25) },
-                      { name: '4. Educação, Capacitação e Cultura Organizacional', score: currentScores.edu, weight: '15%', contribution: (currentScores.edu * 0.15) },
-                      { name: '5. Cooperação e Inserção no Ecossistema', score: currentScores.eco, weight: '15%', contribution: (currentScores.eco * 0.15) },
+                      { dimId: 'gov' as DimensionId, name: '1. Governança e Arcabouço Regulatório', score: currentScores.gov, weight: '25%', contribution: (currentScores.gov * 0.25) },
+                      { dimId: 'tec' as DimensionId, name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação', score: currentScores.tec, weight: '20%', contribution: (currentScores.tec * 0.20) },
+                      { dimId: 'seg' as DimensionId, name: '3. Segurança, Confiança e Proteção da Sociedade', score: currentScores.seg, weight: '25%', contribution: (currentScores.seg * 0.25) },
+                      { dimId: 'edu' as DimensionId, name: '4. Educação, Capacitação e Cultura Organizacional', score: currentScores.edu, weight: '15%', contribution: (currentScores.edu * 0.15) },
+                      { dimId: 'eco' as DimensionId, name: '5. Cooperação e Inserção no Ecossistema', score: currentScores.eco, weight: '15%', contribution: (currentScores.eco * 0.15) },
                     ].map((row, idx) => (
                       <tr key={idx} className="hover:bg-slate-50/50">
                         <td className="p-3 font-semibold text-slate-900">{row.name}</td>
                         <td className="p-3 text-center font-mono font-bold text-slate-700">{row.score.toFixed(2)} / 3.00</td>
+                        <td className="p-3 text-center font-mono text-slate-550">Nível {dimensionLevels[row.dimId].num} · {dimensionLevels[row.dimId].label}</td>
                         <td className="p-3 text-center font-mono text-slate-550">{row.weight}</td>
                         <td className="p-3 text-right font-mono font-bold text-slate-900">+{row.contribution.toFixed(3)}</td>
                       </tr>
@@ -1178,6 +1084,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
                     <tr className="bg-slate-50 border-t border-slate-200 text-xs font-bold font-mono">
                       <td className="p-3 uppercase text-[8.5px] text-slate-500">Média Ponderada Global Acumulada</td>
                       <td className="p-3 text-center">{globalScore.toFixed(2)}</td>
+                      <td className="p-3 text-center">—</td>
                       <td className="p-3 text-center">100%</td>
                       <td className="p-3 text-right text-[#0C3D6E] underline font-black">{globalScore.toFixed(3)}</td>
                     </tr>

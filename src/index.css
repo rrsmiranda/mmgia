@@ -41,6 +41,55 @@
   --color-mm-amber2: #1B98E0;
   --color-mm-red: #F04438;
   --color-mm-violet: #7A5AF8;
+
+  /* ----------------------------------------------------------------------
+   * Intermediate shades used across the UI that are NOT part of Tailwind's
+   * default scale (50,100…900,950). Without these definitions the classes
+   * (e.g. text-slate-650, bg-slate-850, border-slate-150) produced NO color
+   * and silently fell back to inherited tones. Each value below is the
+   * interpolated midpoint between the two adjacent default shades, so the
+   * intended subtle tone now renders as designed.
+   * -------------------------------------------------------------------- */
+  --color-slate-105: #eff3f8;
+  --color-slate-150: #e9eef4;
+  --color-slate-205: #e1e7ef;
+  --color-slate-210: #e0e6ee;
+  --color-slate-250: #d6dee8;
+  --color-slate-350: #afbccc;
+  --color-slate-405: #93a2b7;
+  --color-slate-450: #7c8ba1;
+  --color-slate-505: #63738a;
+  --color-slate-511: #62718a;
+  --color-slate-520: #606f86;
+  --color-slate-530: #5d6b81;
+  --color-slate-550: #55647a;
+  --color-slate-650: #3d4b5f;
+  --color-slate-705: #324050;
+  --color-slate-805: #1d2839;
+  --color-slate-850: #162032;
+  --color-slate-905: #0e1525;
+
+  --color-red-105: #fde3e3;
+  --color-red-650: #ca2121;
+
+  --color-sky-55: #f2faff;
+  --color-sky-650: #0276b4;
+
+  --color-emerald-150: #bcf6da;
+  --color-emerald-250: #8aedc3;
+  --color-emerald-650: #048760;
+
+  --color-cyan-650: #0b82a1;
+
+  --color-blue-250: #a9d0fd;
+  --color-blue-650: #2158e1;
+
+  --color-indigo-650: #493fd7;
+  --color-indigo-805: #362fa1;
+
+  --color-teal-405: #2cd3be;
+
+  --color-purple-650: #882adc;
 }
 
 /* Background utilities matching model precisely */

@@ -71,7 +71,7 @@ export default function OpenData() {
       
       {/* Header section title */}
       <div className="max-w-7xl mx-auto mb-10 text-center md:text-left">
-        <span className="font-mono text-[10px] uppercase font-bold text-[#1D9E75]">opendata_repository</span>
+        <span className="font-mono text-[10px] uppercase font-bold text-[#1D9E75]">Repositório de Dados Abertos</span>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight mt-1.5 font-sans">
           Dados Abertos e Microdados
         </h2>
