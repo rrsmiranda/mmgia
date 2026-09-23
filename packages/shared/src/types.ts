@@ -10,9 +10,13 @@ export interface Dimension {
   name: string;
   shortName: string;
   description: string;
+  /** Cor categórica da dimensão — sempre var(--dim-<id>), nunca hex. */
   color: string;
+  /** @deprecated usa classes Tailwind arbitrárias (bg-[#...]); nas telas migradas, use DimensionBadge/DimensionTag do design system. Remover ao final da Fase 4. */
   textColor: string;
+  /** @deprecated ver textColor. */
   bgColor: string;
+  /** @deprecated ver textColor. */
   borderBg: string;
 }
 
@@ -64,7 +68,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
     name: 'Governança e Arcabouço Regulatório',
     shortName: 'Governança',
     description: 'Desenvolver uma cultura de governança de IA clara, flexível e baseada em risco, que promova a inovação ética e responsável, assegurando a proteção da organização e da sociedade.',
-    color: '#0C3D6E',
+    color: 'var(--dim-gov)',
     textColor: 'text-[#0C3D6E]',
     bgColor: 'bg-[#0E2A4A]',
     borderBg: 'border-[#0C3D6E]',
@@ -74,7 +78,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
     name: 'Desenvolvimento Tecnológico, Pesquisa e Inovação',
     shortName: 'Tecnologia',
     description: 'Impulsionar a capacidade organizacional para pesquisar, desenvolver, adquirir e aplicar tecnologias de IA de ponta, visando à competitividade e à autonomia tecnológica.',
-    color: '#1D9E75',
+    color: 'var(--dim-tec)',
     textColor: 'text-[#1D9E75]',
     bgColor: 'bg-[#124234]',
     borderBg: 'border-[#1D9E75]',
@@ -84,7 +88,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
     name: 'Segurança, Confiança e Proteção da Sociedade',
     shortName: 'Segurança',
     description: 'Assegurar que a IA seja utilizada de forma segura, confiável e justa, protegendo os dados, os sistemas e os direitos dos indivíduos contra danos, vieses e usos maliciosos.',
-    color: '#E74C3C',
+    color: 'var(--dim-seg)',
     textColor: 'text-[#E74C3C]',
     bgColor: 'bg-[#401815]',
     borderBg: 'border-[#E74C3C]',
@@ -94,7 +98,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
     name: 'Educação, Capacitação e Cultura Organizacional',
     shortName: 'Educação',
     description: 'Preparar a força de trabalho e a cultura da organização para as transformações impulsionadas pela IA, promovendo o letramento digital, a ética, a colaboração humano-máquina e a retenção de talentos.',
-    color: '#8E44AD',
+    color: 'var(--dim-edu)',
     textColor: 'text-[#8E44AD]',
     bgColor: 'bg-[#2E183B]',
     borderBg: 'border-[#8E44AD]',
@@ -104,7 +108,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
     name: 'Cooperação e Inserção no Ecossistema',
     shortName: 'Ecossistema',
     description: 'Posicionar a organização como um ator relevante e influente no ecossistema de IA, por meio da colaboração com outras entidades para impulsionar a inovação, definir padrões e influenciar o mercado.',
-    color: '#E67E22',
+    color: 'var(--dim-eco)',
     textColor: 'text-[#E67E22]',
     bgColor: 'bg-[#422612]',
     borderBg: 'border-[#E67E22]',

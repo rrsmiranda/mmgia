@@ -76,7 +76,9 @@ export function getGlobalScore(answers: Record<string, ScoreLevel>): number {
 export interface MaturityLevelInfo {
   num: number;
   label: string;
+  /** @deprecated classe Tailwind arbitrária (bg-red-500 etc.) — mistura cor de status com cor ordinal. Nas telas migradas, use LevelBadge/LevelMeter (rampa level-0…5) em vez deste campo. Remover ao final da Fase 4. */
   bg: string;
+  /** @deprecated ver bg. */
   text: string;
   risk: string;
   desc: string;
