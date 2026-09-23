@@ -76,10 +76,6 @@ export function getGlobalScore(answers: Record<string, ScoreLevel>): number {
 export interface MaturityLevelInfo {
   num: number;
   label: string;
-  /** @deprecated classe Tailwind arbitrária (bg-red-500 etc.) — mistura cor de status com cor ordinal. Nas telas migradas, use LevelBadge/LevelMeter (rampa level-0…5) em vez deste campo. Remover ao final da Fase 4. */
-  bg: string;
-  /** @deprecated ver bg. */
-  text: string;
   risk: string;
   desc: string;
   risco: string;
@@ -90,8 +86,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   if (score < 0.5) return {
     num: 0,
     label: 'Inexistente',
-    bg: 'bg-red-500',
-    text: 'text-red-650',
     risk: 'Risco Crítico',
     desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
     risco: 'Neste nível, a organização opera em estado de total desconhecimento e descontrole quanto às atividades de IA. A ausência completa de governança expõe a organização a um nível de risco crítico. A proliferação de Shadow AI — o uso de ferramentas e sistemas de IA por funcionários sem aprovação ou supervisão formais — é inevitável, criando pontos cegos significativos para a segurança e a gestão.'
@@ -99,8 +93,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   if (score < 1.0) return {
     num: 1,
     label: 'Inicial',
-    bg: 'bg-sky-500',
-    text: 'text-sky-650',
     risk: 'Risco Crítico / Alto',
     desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
     risco: 'No nível Inicial, a organização começa a ter bolsões de atividade de IA, mas de forma desorganizada. O nível de risco permanece crítico, pois não há uma abordagem sistemática para a gestão. A dependência de "heróis" cria um ponto único de falha; o conhecimento não é institucionalizado e se perde com a saída desses indivíduos.'
@@ -108,8 +100,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   if (score < 1.5) return {
     num: 2,
     label: 'Gerenciado',
-    bg: 'bg-cyan-500',
-    text: 'text-cyan-650',
     risk: 'Risco Alto',
     desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
     risco: 'Neste estágio, a governança é predominantemente reativa, sempre um passo atrás das capacidades tecnológicas. Embora existam práticas básicas de gestão, a sua aplicação inconsistente em silos organizacionais cria lacunas perigosas. O nível de risco é alto, pois a ausência de uma estrutura de governança centralizada e uniforme implica que as regras aplicadas a um projeto podem ser completamente diferentes das de outro projeto.'
@@ -117,8 +107,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   if (score < 2.0) return {
     num: 3,
     label: 'Definido',
-    bg: 'bg-blue-600',
-    text: 'text-blue-650',
     risk: 'Risco Moderado',
     desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
     risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o caos dos níveis anteriores, reduzindo o risco para um nível moderado. A organização agora possui uma base sólida para a governança. No entanto, um risco fundamental neste estágio é a rigidez das regras estáticas perante a velocidade da evolução tecnológica.'
@@ -126,8 +114,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   if (score < 2.5) return {
     num: 4,
     label: 'Gerenciado Quantitativamente',
-    bg: 'bg-emerald-600',
-    text: 'text-emerald-650',
     risk: 'Risco Baixo',
     desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
     risco: 'Neste nível, a governança deixa de basear-se em suposições e passa a ser orientada por dados, reduzindo o risco. O monitoramento contínuo substitui as revisões periódicas. O principal risco neste estágio é a complacência e o foco exclusivo em métricas numéricas simples que ignoram aspectos éticos complexos.'
@@ -135,8 +121,6 @@ export function getMaturityLevel(score: number): MaturityLevelInfo {
   return {
     num: 5,
     label: 'Otimizado',
-    bg: 'bg-indigo-700',
-    text: 'text-indigo-650',
     risk: 'Risco Otimizado / Mínimo',
     desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
     risco: 'No nível mais alto de maturidade, a governança de IA se torna inteligente, adaptativa e totalmente integrada à estratégia de negócio, trazendo um exponencial diferencial competitivo. O risco residual é a de eventuais disrupções globais de regulação ou infraestrutura técnica onde reações refinadas demandam extrema flexibilidade.'
