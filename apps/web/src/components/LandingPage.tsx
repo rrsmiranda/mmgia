@@ -97,7 +97,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
   return (
     <DsRoot>
       {/* HERO */}
-      <section className="mg-hero" id="home-hero" style={{ paddingTop: 120 }}>
+      <section className="mg-hero" id="home-hero">
         <Page>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center', paddingBlock: 64 }}>
             <div>

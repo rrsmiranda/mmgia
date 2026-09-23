@@ -64,16 +64,7 @@ export default function Header({
   };
 
   return (
-    <header id="site-header" className="mg-root" style={{ position: 'fixed', insetInline: 0, top: 0, zIndex: 50 }}>
-      {/* Barra institucional */}
-      <div className="mg-govbar">
-        <div>
-          <strong>MMGIA</strong>
-          <span className="sep" aria-hidden="true" />
-          <span className="mg-hide-tablet">Diagnóstico de código aberto alinhado à ENIA 2026-2029</span>
-        </div>
-      </div>
-
+    <header id="site-header" className="mg-root" style={{ position: 'sticky', top: 0, zIndex: 50 }}>
       {/* Cabeçalho principal */}
       <div className="mg-header">
         <div>
