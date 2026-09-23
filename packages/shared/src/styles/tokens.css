@@ -24,21 +24,6 @@
   --color-dim: #667085;
   --color-bd: rgba(27, 152, 224, 0.08);
 
-  --color-mm-graphite: #13293D;
-  --color-mm-graphite2: #1D334A;
-  --color-mm-slate: #344054;
-  --color-mm-muted: #667085;
-  --color-mm-line: #EAECF0;
-  --color-mm-panel: #E8F1F2;
-  --color-mm-paper: #FFFFFF;
-  --color-mm-blue: #006494;
-  --color-mm-cyan: #06AED4;
-  --color-mm-green: #12B76A;
-  --color-mm-amber: #247BA0;
-  --color-mm-amber2: #1B98E0;
-  --color-mm-red: #F04438;
-  --color-mm-violet: #7A5AF8;
-
   /* ----------------------------------------------------------------------
    * Intermediate shades used across the UI that are NOT part of Tailwind's
    * default scale (50,100…900,950). Without these definitions the classes

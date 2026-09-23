@@ -3,36 +3,53 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Star, Target } from 'lucide-react';
-import {
-  LuDownload,
-  LuFilter,
-  LuEye,
-  LuTrendingUp,
-  LuMapPin,
-  LuFlame,
-  LuChartLine,
-  LuLayoutGrid,
-  LuFileCheck2,
-  LuDatabase
-} from 'react-icons/lu';
-
-const Download = LuDownload as any;
-const Filter = LuFilter as any;
-const Eye = LuEye as any;
-const TrendingUp = LuTrendingUp as any;
-const MapPin = LuMapPin as any;
-const Flame = LuFlame as any;
-const LineIcon = LuChartLine as any;
-const Grid = LuLayoutGrid as any;
-const FileCheck2 = LuFileCheck2 as any;
-const Database = LuDatabase as any;
+import { useState } from 'react';
+import { Database, LineChart, LayoutGrid, MapPin } from 'lucide-react';
 import BrazilMap from './BrazilMap';
-import { DIMENSIONS, DimensionId } from '@mmgia/shared/types';
+import { DimensionId } from '@mmgia/shared/types';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  DataTable,
+  DimensionBars,
+  Field,
+  InsightCard,
+  KpiCard,
+  Page,
+  DsRoot,
+  Select,
+  formatNumber,
+} from '@mmgia/shared/design-system';
 
 interface PublicPanelProps {
   onChangeTab: (tab: string) => void;
+}
+
+// Médias mockadas — dado ilustrativo até o painel ter volume real de submissões agregadas.
+const DIMENSION_AVERAGES: Record<DimensionId, number> = { gov: 1.34, tec: 1.48, seg: 1.52, edu: 1.10, eco: 1.25 };
+
+const TREND_DATA = [
+  { m: 'Jul25', score: 1.10 }, { m: 'Ago25', score: 1.15 }, { m: 'Set25', score: 1.18 }, { m: 'Out25', score: 1.25 },
+  { m: 'Nov25', score: 1.21 }, { m: 'Dez25', score: 1.28 }, { m: 'Jan26', score: 1.32 }, { m: 'Fev26', score: 1.30 },
+  { m: 'Mar26', score: 1.36 }, { m: 'Abr26', score: 1.40 }, { m: 'Mai26', score: 1.42 }, { m: 'Jun26', score: 1.42 },
+];
+
+interface SectorRow { setor: string; amostras: number; score: number }
+const SECTOR_RANKING: SectorRow[] = [
+  { setor: 'Tecnologia', amostras: 412, score: 1.88 },
+  { setor: 'Financeiro', amostras: 380, score: 1.77 },
+  { setor: 'Governo Federal', amostras: 512, score: 1.54 },
+  { setor: 'Educação', amostras: 185, score: 1.35 },
+  { setor: 'Agronegócio', amostras: 110, score: 1.12 },
+  { setor: 'Saúde', amostras: 144, score: 1.08 },
+];
+
+function scoreStatus(score: number) {
+  if (score >= 1.6) return 'var(--status-good)';
+  if (score >= 1.3) return 'var(--status-attention)';
+  return 'var(--status-critical)';
 }
 
 export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
@@ -40,294 +57,157 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
   const [porteFilter, setPorteFilter] = useState('Todos');
   const [selectedUf, setSelectedUf] = useState<string>('DF');
 
-  // SVG Line Chart coordinates for 12 months (mocked beautifully)
-  const lineChartData = [
-    { m: 'Jul25', score: 1.10 },
-    { m: 'Ago25', score: 1.15 },
-    { m: 'Set25', score: 1.18 },
-    { m: 'Out25', score: 1.25 },
-    { m: 'Nov25', score: 1.21 },
-    { m: 'Dez25', score: 1.28 },
-    { m: 'Jan26', score: 1.32 },
-    { m: 'Fev26', score: 1.30 },
-    { m: 'Mar26', score: 1.36 },
-    { m: 'Abr26', score: 1.40 },
-    { m: 'Mai26', score: 1.42 },
-    { m: 'Jun26', score: 1.42 },
-  ];
+  const ufScoreLabel = selectedUf === 'DF' ? '2,12 / 3 (Nível 3)' : selectedUf === 'SP' ? '1,89 / 3 (Nível 2)' : '1,38 / 3 (Nível 2)';
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-28 pb-20 px-6 font-sans select-none" id="public-panel-root">
-      
-      {/* 1. HEADER INFO & FILTERS */}
-      <div className="max-w-7xl mx-auto mb-8 bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6" id="public-panel-filters-bar">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-brand-accent animate-pulse"></span>
-            <span className="font-mono text-[10px] uppercase font-bold tracking-wider text-slate-400">Dados Consolidados · Brasil</span>
-          </div>
-          <h2 className="text-2xl font-extrabold text-slate-950 tracking-tight">
-            Painel Nacional de Maturidade em IA
-          </h2>
-          <p className="text-xs text-slate-500 font-sans">
-            Dados agregados em tempo real obedecendo à k-anonimidade ≥ 5 (segurança de sigilo estatístico).
-          </p>
-        </div>
-
-        {/* Dropdowns row */}
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto" id="filters-dropdowns">
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-xs font-mono">
-            <Filter className="w-3.5 h-3.5 text-slate-500" />
-            <span className="text-slate-400">Setor:</span>
-            <select
-              value={sectorFilter}
-              onChange={(e) => setSectorFilter(e.target.value)}
-              className="bg-transparent font-bold focus:outline-none focus:ring-0 text-slate-700 font-sans"
-            >
-              <option value="Todos">Todos</option>
-              <option value="Financeiro">Financeiro</option>
-              <option value="Saúde">Saúde</option>
-              <option value="Gov. federal">Gov. Federal</option>
-              <option value="Tecnologia">Tecnologia</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2 text-xs font-mono">
-            <span className="text-slate-400">Porte:</span>
-            <select
-              value={porteFilter}
-              onChange={(e) => setPorteFilter(e.target.value)}
-              className="bg-transparent font-bold focus:outline-none focus:ring-0 text-slate-700 font-sans"
-            >
-              <option value="Todos">Todos</option>
-              <option value="Micro">Micro</option>
-              <option value="Pequena">Pequena</option>
-              <option value="Média">Média</option>
-              <option value="Grande">Grande</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* LEFT COLUMN: THE MAP */}
-        <div className="lg:col-span-5 space-y-6">
-          <BrazilMap 
-            onSelectState={(uf) => setSelectedUf(uf)} 
-            selectedState={selectedUf}
-            theme="light"
-          />
-
-          <div className="bg-slate-950 text-slate-300 p-5 rounded-3xl" id="map-state-insights">
-            <h4 className="font-mono text-[9px] uppercase font-bold text-brand-accent tracking-wider mb-2">Dados do Estado em Foco</h4>
-            <div className="flex justify-between items-center bg-white/5 border border-white/10 p-3 rounded-2xl text-xs">
-              <span className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-brand-accent" />
-                <strong className="text-white">{selectedUf}</strong>
-              </span>
-              <span className="font-mono text-emerald-400 font-bold">
-                {selectedUf === 'DF' ? '2.12 / 3.00 (Nível 3)' : selectedUf === 'SP' ? '1.89 / 3.00 (Nível 2)' : '1.38 / 3.00 (Nível 2)'}
-              </span>
+    <DsRoot>
+      <Page>
+        {/* FILTROS */}
+        <Card style={{ marginBottom: 24 }} id="public-panel-filters-bar">
+          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+            <div>
+              <p className="mg-eyebrow">Dados consolidados · Brasil</p>
+              <h1 className="mg-h3" style={{ marginTop: 4 }}>Painel Nacional de Maturidade em IA</h1>
+              <p className="mg-small mg-muted" style={{ marginTop: 4 }}>
+                Dados agregados obedecendo à k-anonimidade ≥ 5 (sigilo estatístico).
+              </p>
             </div>
-            <p className="text-[11px] text-slate-400 leading-normal mt-3 font-light">
-              Os índices mostram picos de letramento técnico e comitivas coordenadas de segurança sob conformidade com a LGPD.
-            </p>
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN: CORE DASHBOARD KPI & SUB-MODULES */}
-        <div className="lg:col-span-7 space-y-8">
-          
-          {/* 3. KPI Counters block */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" id="panel-kpis">
-            {[
-              { label: 'Score Médio Brasil', val: '1.42', highlight: 'text-brand-primary' },
-              { label: 'Nível Modal', val: 'Nível 2', highlight: 'text-amber-600' },
-              { label: 'Avaliações Ativas', val: '1.847', highlight: 'text-slate-900' },
-              { label: 'Pilar Mais Crítico', val: 'Edu', highlight: 'text-red-500' },
-            ].map((kpi) => (
-              <div key={kpi.label} className="bg-white border border-slate-100 p-5 rounded-2xl shadow-xs text-center space-y-1">
-                <span className="text-[32px] font-mono font-black tracking-tight block leading-none">{kpi.val}</span>
-                <span className="font-mono text-[9px] uppercase font-bold text-slate-400 block tracking-wider leading-snug">{kpi.label}</span>
+            <div className="mg-row" style={{ gap: 12, flexWrap: 'wrap' }} id="filters-dropdowns">
+              <Field label="Setor">
+                {({ id }) => (
+                  <Select id={id} value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value)}>
+                    <option value="Todos">Todos</option>
+                    <option value="Financeiro">Financeiro</option>
+                    <option value="Saúde">Saúde</option>
+                    <option value="Gov. federal">Gov. federal</option>
+                    <option value="Tecnologia">Tecnologia</option>
+                  </Select>
+                )}
+              </Field>
+              <Field label="Porte">
+                {({ id }) => (
+                  <Select id={id} value={porteFilter} onChange={(e) => setPorteFilter(e.target.value)}>
+                    <option value="Todos">Todos</option>
+                    <option value="Micro">Micro</option>
+                    <option value="Pequena">Pequena</option>
+                    <option value="Média">Média</option>
+                    <option value="Grande">Grande</option>
+                  </Select>
+                )}
+              </Field>
+            </div>
+          </div>
+        </Card>
+
+        <div className="mg-grid" style={{ ['--cols-d' as string]: '420px 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
+          {/* MAPA */}
+          <div className="mg-stack" style={{ gap: 16 }}>
+            <BrazilMap onSelectState={(uf) => setSelectedUf(uf)} selectedState={selectedUf} theme="light" />
+
+            <Card style={{ background: 'var(--ink)', color: 'var(--on-ink)' }} id="map-state-insights">
+              <p className="mg-eyebrow" style={{ color: 'var(--on-ink-accent)' }}>Dados do estado em foco</p>
+              <div className="mg-row" style={{ justifyContent: 'space-between', marginTop: 12, padding: 12, background: 'var(--ink-raised)', borderRadius: 'var(--radius-lg)' }}>
+                <span className="mg-row" style={{ gap: 8 }}>
+                  <MapPin className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--on-ink-accent)' }} />
+                  <strong>{selectedUf}</strong>
+                </span>
+                <span className="mg-code" style={{ color: 'var(--on-ink-accent)', fontWeight: 700 }}>{ufScoreLabel}</span>
               </div>
-            ))}
+              <p className="mg-small" style={{ marginTop: 12, color: 'var(--on-ink-muted)' }}>
+                Os índices mostram picos de letramento técnico e comitivas coordenadas de segurança sob conformidade com a LGPD.
+              </p>
+            </Card>
           </div>
 
-          {/* 3. Insight Highlights Advice */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4" id="panel-advice">
-            <div className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-1 text-red-900">
-              <span className="flex items-center gap-1 font-mono text-[9px] uppercase font-bold text-red-800">
-                <Flame className="w-3.5 h-3.5 text-red-600 animate-pulse" />
-                Ponto Crítico
-              </span>
-              <p className="font-bold text-xs font-sans">Educação algorítmica: 1.10</p>
-              <p className="text-[10px] text-red-700 leading-normal font-light">
+          {/* PAINEL PRINCIPAL */}
+          <div className="mg-stack" style={{ gap: 24 }}>
+            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12 }} id="panel-kpis">
+              <KpiCard label="Score médio Brasil" value={formatNumber(1.42)} />
+              <KpiCard label="Nível modal" value="Nível 2" />
+              <KpiCard label="Avaliações ativas" value="1.847" />
+              <KpiCard label="Pilar mais crítico" value="Edu" />
+            </div>
+
+            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="panel-advice">
+              <InsightCard status="critical" label="Ponto crítico" title="Educação algorítmica: 1,10">
                 Servidores públicos e colaboradores registram baixas em imersões éticas formais.
-              </p>
-            </div>
-
-            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 space-y-1 text-emerald-900">
-              <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase font-bold text-emerald-800">
-                <Star className="w-3.5 h-3.5 text-emerald-600 fill-emerald-500/20 shrink-0" />
-                Destaque Nacional
-              </span>
-              <p className="font-bold text-xs font-sans">Aspectos de Segurança: 1.52</p>
-              <p className="text-[10px] text-emerald-700 leading-normal font-light">
+              </InsightCard>
+              <InsightCard status="good" label="Destaque nacional" title="Aspectos de segurança: 1,52">
                 Iniciativas de proteção e adequação à LGPD puxam os índices para cima.
-              </p>
-            </div>
-
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-1 text-blue-900">
-              <span className="flex items-center gap-1.5 font-mono text-[9px] uppercase font-bold text-blue-800">
-                <Target className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                Rumo ao Nível 3
-              </span>
-              <p className="font-bold text-xs font-sans">Diferença para Meta: 0.58 pts</p>
-              <p className="text-[10px] text-blue-700 leading-normal font-light">
+              </InsightCard>
+              <InsightCard status="attention" label="Rumo ao Nível 3" title="Diferença para meta: 0,58 pts">
                 Basta formalizar comitês e inventários estruturados nas organizações de nível 2.
-              </p>
-            </div>
-          </div>
-
-          {/* Dimension average score bars */}
-          <div className="bg-white border border-slate-100/90 rounded-3xl p-6 shadow-sm space-y-4" id="panel-dimension-averages">
-            <h4 className="text-sm font-semibold uppercase font-mono tracking-wider text-brand-primary">Médias Consolidadas por Pilar</h4>
-            
-            <div className="space-y-3.5">
-              {(Object.keys(DIMENSIONS) as DimensionId[]).map((key) => {
-                const info = DIMENSIONS[key];
-                // mock average scores
-                const score = key === 'gov' ? 1.34 : key === 'tec' ? 1.48 : key === 'seg' ? 1.52 : key === 'edu' ? 1.10 : 1.25;
-                const percent = (score / 3) * 100;
-
-                return (
-                  <div key={key} className="space-y-1">
-                    <div className="flex justify-between items-center text-xs font-mono font-bold">
-                      <span className="text-slate-700">{info.name}</span>
-                      <span className={info.textColor}>{score.toFixed(2)}</span>
-                    </div>
-                    <div className="bg-slate-100 h-2.5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
-                        style={{ backgroundColor: info.color, width: `${percent}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Beautiful SVG Historical Trend Line Chart */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-4" id="panel-trend-chart">
-            <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-              <div className="flex items-center gap-2 text-brand-primary">
-                <LineIcon className="w-5 h-5" />
-                <h4 className="text-sm font-semibold uppercase font-mono tracking-wider">Evolução Histórica (12 Meses)</h4>
-              </div>
-              <span className="font-mono text-[9px] uppercase text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-full font-bold">
-                Crescente (+14% YoY)
-              </span>
+              </InsightCard>
             </div>
 
-            {/* SVG Line representation */}
-            <div className="relative py-4">
-              <svg width="100%" height="110" viewBox="0 0 500 110" className="overflow-visible" id="trend-svg">
-                {/* Score baseline guides */}
-                <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(0,0,0,0.04)" strokeWidth="1" strokeDasharray="3 3By" />
-                <line x1="0" y1="56" x2="500" y2="56" stroke="rgba(0,0,0,0.04)" strokeWidth="1" strokeDasharray="3 3By" />
-                <line x1="0" y1="20" x2="500" y2="20" stroke="rgba(0,0,0,0.04)" strokeWidth="1" strokeDasharray="3 3By" />
+            <Card id="panel-dimension-averages">
+              <CardHeader title="Médias consolidadas por pilar" />
+              <CardBody>
+                <DimensionBars scores={DIMENSION_AVERAGES} goal />
+              </CardBody>
+            </Card>
 
-                {/* Score y label markers */}
-                <text x="5" y="16" fill="rgba(0,0,0,0.25)" fontSize="7" fontFamily="monospace">3.0 (Otimizado)</text>
-                <text x="5" y="52" fill="rgba(0,0,0,0.25)" fontSize="7" fontFamily="monospace">1.5 (Gerenciado)</text>
-                <text x="5" y="88" fill="rgba(0,0,0,0.25)" fontSize="7" fontFamily="monospace">0.5 (Iniciado)</text>
+            <Card id="panel-trend-chart">
+              <CardHeader
+                title={<span className="mg-row" style={{ gap: 8 }}><LineChart className="mg-ico mg-ico-sm" aria-hidden="true" />Evolução histórica (12 meses)</span>}
+                actions={<span className="mg-badge mg-badge--good">Crescente (+14% AoA)</span>}
+              />
+              <CardBody>
+                <svg width="100%" height="110" viewBox="0 0 500 110" className="overflow-visible" id="trend-svg">
+                  <line x1="0" y1="90" x2="500" y2="90" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="56" x2="500" y2="56" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="20" x2="500" y2="20" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
 
-                {/* Draw the line */}
-                <path
-                  d="M10,85 L50,82 L90,80 L130,75 L170,78 L210,72 L250,68 L290,70 L330,65 L370,61 L410,58 L450,58"
-                  fill="none"
-                  stroke="#1E3A8A"
-                  strokeWidth="2.5"
-                  className="stroke-linecap-round"
+                  <text x="5" y="16" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">3,0 (Otimizado)</text>
+                  <text x="5" y="52" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">1,5 (Gerenciado)</text>
+                  <text x="5" y="88" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">0,5 (Iniciado)</text>
+
+                  <path
+                    d="M10,85 L50,82 L90,80 L130,75 L170,78 L210,72 L250,68 L290,70 L330,65 L370,61 L410,58 L450,58"
+                    fill="none"
+                    stroke="var(--brand)"
+                    strokeWidth="2.5"
+                  />
+                  <circle cx="450" cy="58" r="4.5" fill="var(--brand-accent)" stroke="var(--surface-raised)" strokeWidth="1.5" />
+
+                  {TREND_DATA.map((d, i) => (
+                    <text key={d.m} x={10 + i * 40} y="104" fill="var(--text-muted)" fontSize="7.5" fontFamily="var(--mg-font-mono)" textAnchor="middle">
+                      {d.m}
+                    </text>
+                  ))}
+                </svg>
+              </CardBody>
+            </Card>
+
+            <Card id="panel-sector-rank">
+              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><LayoutGrid className="mg-ico mg-ico-sm" aria-hidden="true" />Médias por setor de atuação</span>} />
+              <CardBody>
+                <DataTable<SectorRow>
+                  caption="Score ponderado médio por setor econômico"
+                  rowKey={(r) => r.setor}
+                  columns={[
+                    { key: 'setor', header: 'Setor econômico', render: (r) => r.setor },
+                    { key: 'amostras', header: 'Amostras', numeric: true, render: (r) => `${r.amostras} avaliações` },
+                    { key: 'score', header: 'Score ponderado', numeric: true, render: (r) => (
+                      <span className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-pill)', background: scoreStatus(r.score), display: 'inline-block' }} />
+                        <strong>{formatNumber(r.score)}</strong>
+                      </span>
+                    ) },
+                  ]}
+                  rows={SECTOR_RANKING}
                 />
 
-                {/* Pulse dot on final coordinates */}
-                <circle cx="450" cy="58" r="4.5" fill="#1D9E75" stroke="#FFFFFF" strokeWidth="1.5" className="animate-ping" />
-                <circle cx="450" cy="58" r="4.5" fill="#1D9E75" stroke="#FFFFFF" strokeWidth="1.5" />
-
-                {/* Tick months text */}
-                {lineChartData.map((d, i) => (
-                  <text
-                    key={d.m}
-                    x={10 + i * 40}
-                    y="104"
-                    fill="rgba(0,0,0,0.4)"
-                    fontSize="7.5"
-                    fontFamily="monospace"
-                    textAnchor="middle"
-                  >
-                    {d.m}
-                  </text>
-                ))}
-              </svg>
-            </div>
-          </div>
-
-          {/* Sector Ratings Ranking Listing Table */}
-          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-sm space-y-4" id="panel-sector-rank">
-            <h4 className="text-sm font-semibold uppercase font-mono tracking-wider text-brand-primary flex items-center gap-2">
-              <Grid className="w-4 h-4" />
-              Médias por Setor de Atuação
-            </h4>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left font-mono text-[11px] text-slate-500">
-                <thead>
-                  <tr className="border-b border-slate-100 text-[10px] text-slate-400 font-bold">
-                    <th className="py-2.5">SETOR ECONÔMICO</th>
-                    <th className="py-2.5 text-center">AMOSTRAS</th>
-                    <th className="py-2.5 text-right font-black">SCORE PONDERADO</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50">
-                  {[
-                    { s: 'Tecnologia', c: '412', sc: 1.88, fill: 'bg-emerald-500' },
-                    { s: 'Financeiro', c: '380', sc: 1.77, fill: 'bg-sky-500' },
-                    { s: 'Governo Federal', c: '512', sc: 1.54, fill: 'bg-sky-500' },
-                    { s: 'Educação', c: '185', sc: 1.35, fill: 'bg-amber-500' },
-                    { s: 'Agronegócio', c: '110', sc: 1.12, fill: 'bg-amber-500' },
-                    { s: 'Saúde', c: '144', sc: 1.08, fill: 'bg-red-500' },
-                  ].map((row) => (
-                    <tr key={row.s} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="py-3 font-sans font-semibold text-slate-800">{row.s}</td>
-                      <td className="py-3 text-center">{row.c} avaliações</td>
-                      <td className="py-3 text-right flex items-center justify-end gap-2.5">
-                        <span className={`w-2 h-2 rounded-full ${row.fill}`}></span>
-                        <strong className="text-slate-900 font-bold">{row.sc.toFixed(2)}</strong>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="pt-4 border-t border-slate-50 flex flex-col sm:flex-row justify-between items-center gap-4" id="opendata-links">
-              <p className="text-[10px] text-slate-400 font-mono">
-                Deseja utilizar os microdados brutos? Baixe o dataset completo sob CC BY 4.0.
-              </p>
-              <button
-                onClick={() => onChangeTab('opendata')}
-                className="px-4.5 py-2.5 bg-brand-primary text-white hover:brightness-110 transition text-xs font-semibold tracking-wider font-sans cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-              >
-                <Database className="w-4 h-4 text-brand-accent animate-pulse" />
-                Acessar Área Open Data
-              </button>
-            </div>
+                <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }} id="opendata-links">
+                  <p className="mg-small mg-muted">Deseja utilizar os microdados brutos? Baixe o dataset completo sob CC BY 4.0.</p>
+                  <Button variant="primary" icon={Database} onClick={() => onChangeTab('opendata')}>Acessar área Open Data</Button>
+                </div>
+              </CardBody>
+            </Card>
           </div>
         </div>
-      </div>
-    </div>
+      </Page>
+    </DsRoot>
   );
 }

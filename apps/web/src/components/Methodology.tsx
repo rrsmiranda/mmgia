@@ -3,316 +3,233 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import {
-  LuListTodo,
-  LuSettings,
-  LuScale,
-  LuBrainCircuit,
-  LuLock,
-  LuCompass,
-  LuCircleCheck,
-  LuChevronDown,
-  LuChevronUp,
-  LuOctagonAlert,
-  LuCalculator,
-  LuShieldCheck,
-  LuBookOpen
-} from 'react-icons/lu';
-
-const ListTodo = LuListTodo as any;
-const Settings = LuSettings as any;
-const Scale = LuScale as any;
-const BrainCircuit = LuBrainCircuit as any;
-const Lock = LuLock as any;
-const Compass = LuCompass as any;
-const CheckCircle2 = LuCircleCheck as any;
-const ChevronDown = LuChevronDown as any;
-const ChevronUp = LuChevronUp as any;
-const AlertOctagon = LuOctagonAlert as any;
-const Calculator = LuCalculator as any;
-const ShieldCheck = LuShieldCheck as any;
-const BookOpen = LuBookOpen as any;
+import { useState } from 'react';
+import { Calculator, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shared/types';
+import {
+  Banner,
+  Card,
+  CardBody,
+  CardHeader,
+  DIMENSION_ORDER,
+  DataTable,
+  DimensionTag,
+  DsRoot,
+  LegalBadge,
+  Page,
+  formatNumber,
+} from '@mmgia/shared/design-system';
+
+const MENU_ITEMS = [
+  { id: 'sobre', label: 'Sobre o MMGIA' },
+  { id: 'niveis', label: 'Níveis de maturidade' },
+  { id: 'dimensoes', label: 'Dimensões (45 práticas)' },
+  { id: 'calculo', label: 'Fórmula de cálculo' },
+  { id: 'regulatorio', label: 'Alinhamento regulatório' },
+  { id: 'privacidade', label: 'Arquitetura de privacidade' },
+];
+
+interface LevelRow { num: string; label: string; desc: string; risk: string; status: 'critical' | 'attention' | 'good' }
+const LEVEL_ROWS: LevelRow[] = [
+  { num: 'Nível 1', label: 'Iniciado', desc: 'Práticas executadas de maneira ad-hoc, informal e dispersa, sem registro ou salvaguardas formalizadas.', risk: 'Risco alto', status: 'critical' },
+  { num: 'Nível 2', label: 'Gerenciado', desc: 'Políticas e comitês de ética já encontram-se estruturados. Inventários em andamento e relatórios de evidências em andamento.', risk: 'Risco moderado', status: 'attention' },
+  { num: 'Nível 3', label: 'Definido', desc: 'Processos padronizados e documentados em conformidade legal com a LGPD e termos ISO. Metas estabelecidas e cobradas.', risk: 'Risco controlado', status: 'attention' },
+  { num: 'Nível 4', label: 'Quantificado', desc: 'Métricas exatas de bias e drift de dados monitoradas em tempo real por painéis operatórios automáticos.', risk: 'Risco baixo', status: 'good' },
+  { num: 'Nível 5', label: 'Otimizado', desc: 'Plena auditoria terceirizada com reciclagem periódica de modelos e contribuições ativas no ecossistema de dados abertos.', risk: 'Mínimo / altamente seguro', status: 'good' },
+];
+
+interface RegRow { n: string; art: string; desc: string }
+const REGULATORY_ROWS: RegRow[] = [
+  { n: 'LGPD (Lei 13.709)', art: 'Art. 20, 37 e 46', desc: 'Direito a explicações de decisões 100% automatizadas, obrigatoriedade de relatórios de impacto e dever de criptografar checkpoints.' },
+  { n: 'PL 2338/2023 IA', art: 'Artigo 8º, 12 e 15', desc: 'Atribuição civil objetiva ao poluidor algorítmico, análise prévia de disparidades e Red Teaming de ataques.' },
+  { n: 'ISO/IEC 42001', art: 'Cláusula 5, 6, 8 e 9', desc: 'Desenvolvimento do Sistema de Gestão de IA integrado e auditoria independente periódica.' },
+  { n: 'NIST AI RMF 1.0', art: 'Framework Core 1.0', desc: 'Metodologias de gerenciamento de riscos organizando o mapeamento, identificação operacional e governança ética.' },
+];
 
 export default function Methodology() {
   const [activeSection, setActiveSection] = useState('niveis');
   const [expandedDim, setExpandedDim] = useState<DimensionId | null>('gov');
 
-  const menuItems = [
-    { id: 'sobre', label: 'Sobre o MMGIA' },
-    { id: 'niveis', label: 'Níveis de Maturidade' },
-    { id: 'dimensoes', label: 'Dimensões (45 Práticas)' },
-    { id: 'calculo', label: 'Fórmula de Cálculo' },
-    { id: 'regulatorio', label: 'Alinhamento Regulatório' },
-    { id: 'privacidade', label: 'Arquitetura de Privacidade' },
-  ];
-
   const handleMenuClick = (id: string) => {
     setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen pt-28 pb-20 px-6 font-sans select-none" id="methodology-root">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        
-        {/* LEFT COLUMN: STICKY SUBORDINATE NAVIGATION RAIL */}
-        <div className="lg:col-span-3 lg:sticky lg:top-24 space-y-4">
-          <div className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm space-y-3" id="methodology-nav-rail">
-            <h4 className="font-mono text-[9px] uppercase font-bold text-slate-400 tracking-wider">Índice Metodológico</h4>
-            <ul className="space-y-1">
-              {menuItems.map((item) => (
-                <li key={item.id}>
-                  <button
-                    onClick={() => handleMenuClick(item.id)}
-                    className={`w-full text-left font-sans text-xs font-semibold py-2.5 px-3 rounded-xl transition duration-150 cursor-pointer ${
-                      activeSection === item.id
-                        ? 'bg-slate-900 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: DETAILED RESPONSIVE EDITORIAL VIEWPORT */}
-        <div className="lg:col-span-9 space-y-12">
-          
-          {/* Main Title Header */}
-          <div className="text-center md:text-left max-w-2xl" id="methodology-general-header">
-            <span className="font-mono text-[10px] uppercase font-bold text-brand-accent">Metodologia Oficial</span>
-            <h2 className="text-3xl font-extrabold text-slate-950 tracking-tight mt-1.5 font-sans">
-              Modelo de Maturidade em Governança de IA (MMGIA)
-            </h2>
-            <p className="text-sm text-slate-500 mt-2 font-light">
-              Mapeamento de maturidade organizacional alinhado à Estratégia Nacional de Inteligência Artificial (ENIA 2026–2029).
-            </p>
-          </div>
-
-          {/* SECTION: SOBRE */}
-          <section id="sobre" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="space-y-2">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Fundamento</span>
-              <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">O que é o MMGIA?</h3>
-              <p className="text-xs text-slate-500 leading-relaxed font-light">
-                O MMGIA é uma régua de conformidade autoaplicável formulada com o intuito de democratizar a governança ética e cibernética de sistemas algorítmicos. O modelo serve de diagnóstico preventivo guiando equipes na formulação de portarias jurídicas e de blindagens contra vieses.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-              <div className="flex gap-2.5 items-start">
-                <CheckCircle2 className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="font-bold text-xs text-slate-800">Autoavaliação Direta</h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">Cálculos locais efetuados e processados instantaneamente dentro do seu navegador.</p>
-                </div>
-              </div>
-              <div className="flex gap-2.5 items-start">
-                <CheckCircle2 className="w-5 h-5 text-brand-accent shrink-0 mt-0.5" />
-                <div className="space-y-1">
-                  <h4 className="font-bold text-xs text-slate-800">Alinhamento Legislativo</h4>
-                  <p className="text-[11px] text-slate-400 leading-normal">Referenciais que cruzam artigos da LGPD do Brasil e principais normativas ISO/IEC europeias.</p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* SECTION: NIVEIS */}
-          <section id="niveis" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Níveis de Maturidade</span>
-              <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Os 5 Níveis de Maturidade</h3>
-              <p className="text-xs text-slate-500 leading-relaxed font-light">
-                As pontuações consolidadas categorizam a instituição dentro de uma métrica de responsabilidade civil algorítmica dividida em 5 estágios.
-              </p>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-100 rounded-2xl">
-              <table className="w-full text-left text-xs text-slate-500 font-mono">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] text-slate-400 font-bold">
-                    <th className="p-4 w-20">NÍVEL</th>
-                    <th className="p-4 w-32">NOME</th>
-                    <th className="p-4">DESCRIÇÃO OPERACIONAL</th>
-                    <th className="p-4 w-32 text-center">RISCO ESTIMADO</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-[11px]">
-                  {[
-                    { num: 'Nível 1', label: 'Iniciado', desc: 'Práticas executadas de maneira ad-hoc, informal e dispersa, sem registro ou salvaguardas formalizadas.', risk: 'Risco Alto', fill: 'text-red-500 bg-red-50' },
-                    { num: 'Nível 2', label: 'Gerenciado', desc: 'Políticas e comitês ética já encontram-se estruturados. Inventários em andamento e relatórios de evidências em andamento.', risk: 'Risco Moderado', fill: 'text-amber-600 bg-amber-50' },
-                    { num: 'Nível 3', label: 'Definido', desc: 'Processos padronizados e documentados em conformidade legal com a LGPD e termos ISO. Metas estabelecidas e cobradas.', risk: 'Risco Controlado', fill: 'text-sky-600 bg-sky-50' },
-                    { num: 'Nível 4', label: 'Quantificado', desc: 'Métricas exatas de bias e drift de dados monitoradas em tempo real por painéis operatórios automáticos.', risk: 'Risco Baixo', fill: 'text-emerald-600 bg-emerald-50' },
-                    { num: 'Nível 5', label: 'Otimizado', desc: 'Plena auditoria terceirizada com reciclagem periódica de modelos e contribuições ativas no ecossistema de dados abertos.', risk: 'Mínimo/Altamente Seguro', fill: 'text-emerald-700 bg-emerald-100 font-bold' },
-                  ].map((row) => (
-                    <tr key={row.num} className="hover:bg-slate-50/50">
-                      <td className="p-4 font-bold text-slate-800">{row.num}</td>
-                      <td className="p-4 font-sans font-bold text-slate-900">{row.label}</td>
-                      <td className="p-4 text-slate-500 leading-normal font-sans">{row.desc}</td>
-                      <td className="p-4 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[9px] uppercase font-bold ${row.fill}`}>
-                          {row.risk}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          {/* SECTION: DIMENSOES */}
-          <section id="dimensoes" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Dimensões e Práticas</span>
-              <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Dimensões e práticas Mapeadas</h3>
-              <p className="text-xs text-slate-500 leading-relaxed font-light">
-                Expandir os painéis dos 5 pilares para visualizar detalhadamente os direcionamentos técnicos e as correspondentes prioridades de nível.
-              </p>
-            </div>
-
-            <div className="space-y-3" id="methodology-accordions">
-              {(Object.keys(DIMENSIONS) as DimensionId[]).map((key) => {
-                const info = DIMENSIONS[key];
-                const isExpanded = expandedDim === key;
-
-                return (
-                  <div key={key} className="border border-slate-100 rounded-2xl overflow-hidden shadow-xs">
-                    <div
-                      onClick={() => setExpandedDim(isExpanded ? null : key)}
-                      className="p-4 flex justify-between items-center bg-slate-50/50 cursor-pointer hover:bg-slate-50 select-none"
+    <DsRoot>
+      <Page>
+        <div className="mg-grid" style={{ ['--cols-d' as string]: '260px 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start' }}>
+          {/* NAV RAIL */}
+          <nav aria-label="Índice metodológico" className="mg-only-desktop" style={{ position: 'sticky', top: 96 }}>
+            <Card>
+              <p className="mg-eyebrow">Índice metodológico</p>
+              <ul className="mg-stack" style={{ gap: 4, marginTop: 12, listStyle: 'none', padding: 0 }}>
+                {MENU_ITEMS.map((item) => (
+                  <li key={item.id}>
+                    <button
+                      onClick={() => handleMenuClick(item.id)}
+                      className="mg-btn mg-btn--ghost"
+                      style={{ width: '100%', justifyContent: 'flex-start', ...(activeSection === item.id ? { background: 'var(--brand)', color: 'var(--on-brand)' } : {}) }}
                     >
-                      <span className="font-sans font-bold text-xs text-slate-800 flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: info.color }}></span>
-                        {info.name}
-                      </span>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </nav>
+
+          {/* CONTEÚDO */}
+          <div className="mg-stack" style={{ gap: 32 }}>
+            <div>
+              <p className="mg-eyebrow">Metodologia oficial</p>
+              <h1 className="mg-h1" style={{ marginTop: 8, fontSize: 'var(--font-size-scale-up-06)' }}>Modelo de Maturidade em Governança de IA (MMGIA)</h1>
+              <p className="mg-lead" style={{ marginTop: 8 }}>
+                Mapeamento de maturidade organizacional alinhado à Estratégia Nacional de Inteligência Artificial (ENIA 2026–2029).
+              </p>
+            </div>
+
+            {/* SOBRE */}
+            <Card as="section" id="sobre" style={{ scrollMarginTop: 96 }}>
+              <CardHeader title="O que é o MMGIA?" />
+              <CardBody>
+                <p className="mg-small mg-muted">
+                  O MMGIA é uma régua de conformidade autoaplicável formulada com o intuito de democratizar a governança ética e cibernética de sistemas algorítmicos. O modelo serve de diagnóstico preventivo guiando equipes na formulação de portarias jurídicas e de blindagens contra vieses.
+                </p>
+                <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(2,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }}>
+                  <div className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}>
+                    <CheckCircle2 className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <p className="mg-title">Autoavaliação direta</p>
+                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Cálculos locais efetuados e processados instantaneamente dentro do seu navegador.</p>
                     </div>
-
-                    {isExpanded && (
-                      <div className="p-4 bg-white space-y-3.5 divide-y divide-slate-100" id={`dim-practices-expanded-${key}`}>
-                        {LIST_PRACTICES.filter(p => p.dimensionId === key).map((p) => (
-                          <div key={p.id} className="pt-3.5 first:pt-0 space-y-2">
-                            <div className="flex justify-between items-center font-mono text-[9px] font-bold">
-                              <span className="text-slate-400">PRÁTICA {p.id} (Requisito Nível {p.level})</span>
-                              {p.legalReference && (
-                                <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                  <BookOpen className="w-2.5 h-2.5" />
-                                  {p.legalReference}
-                                </span>
-                              )}
-                            </div>
-                            <h4 className="font-sans font-extrabold text-xs text-slate-950">{p.name}</h4>
-                            <p className="text-[11px] text-slate-500 leading-relaxed font-light">{p.description}</p>
-                            <p className="text-[10px] text-slate-500 font-sans bg-slate-50 p-2 border border-slate-100">
-                              <strong className="text-slate-700">Critério de verificação:</strong> {p.criterion}
-                            </p>
-                            <p className="text-[10px] text-slate-400 font-mono bg-slate-50 p-2 border border-slate-100">
-                              <strong className="text-brand-accent">Artefato chave:</strong> {p.evidence}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                );
-              })}
-            </div>
-          </section>
+                  <div className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}>
+                    <CheckCircle2 className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} />
+                    <div>
+                      <p className="mg-title">Alinhamento legislativo</p>
+                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Referenciais que cruzam artigos da LGPD do Brasil e principais normativas ISO/IEC europeias.</p>
+                    </div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
 
-          {/* SECTION: CALCULO */}
-          <section id="calculo" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="flex items-center gap-3 text-slate-950">
-              <Calculator className="w-6 h-6 text-brand-primary" />
-              <h3 className="text-xl font-extrabold font-sans tracking-tight">Fórmula de Cálculo do Score</h3>
-            </div>
-            
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-              O score final global do MMGIA é calculado por meio de médias ponderadas. Primeiro, é calculada a média simples de cada uma das 5 dimensões com base nas práticas respondidas (as práticas não respondidas recebem peso zero).
-            </p>
+            {/* NÍVEIS */}
+            <Card as="section" id="niveis" style={{ scrollMarginTop: 96 }}>
+              <CardHeader title="Os 5 níveis de maturidade" />
+              <CardBody>
+                <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
+                  As pontuações consolidadas categorizam a instituição dentro de uma métrica de responsabilidade civil algorítmica dividida em 5 estágios.
+                </p>
+                <DataTable<LevelRow>
+                  caption="Níveis de maturidade, descrição operacional e risco estimado"
+                  rowKey={(r) => r.num}
+                  columns={[
+                    { key: 'num', header: 'Nível', render: (r) => <strong>{r.num}</strong> },
+                    { key: 'label', header: 'Nome', render: (r) => r.label },
+                    { key: 'desc', header: 'Descrição operacional', render: (r) => r.desc },
+                    { key: 'risk', header: 'Risco estimado', render: (r) => <span className={`mg-badge mg-badge--${r.status}`}>{r.risk}</span> },
+                  ]}
+                  rows={LEVEL_ROWS}
+                />
+              </CardBody>
+            </Card>
 
-            <div className="bg-slate-950 text-emerald-400 p-6 rounded-2xl font-mono text-xs space-y-3" id="math-formula-box">
-              <p className="text-slate-500 font-bold">// EQUAÇÃO DE CÁLCULO GERAL:</p>
-              <div className="text-center py-4 bg-white/2 border border-white/5 text-sm sm:text-base text-white font-extrabold">
-                Score Global = (Média_Gov + Média_Tec + Média_Seg + Média_Edu + Média_Eco) / 5
+            {/* DIMENSÕES */}
+            <Card as="section" id="dimensoes" style={{ scrollMarginTop: 96 }} flush>
+              <div style={{ padding: 'var(--space-6)', paddingBottom: 0 }}>
+                <p className="mg-title">Dimensões e práticas mapeadas</p>
+                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
+                  Expanda os painéis dos 5 pilares para visualizar os direcionamentos técnicos e as prioridades de nível correspondentes.
+                </p>
               </div>
-              <p className="text-slate-400 text-[10px]">
-                Onde as respostas na escala NPLF correspondem aos seguintes pesos numéricos:
-              </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-[10px] text-white">
-                <div className="p-2 border border-white/5">Nulo (N) = 0.00</div>
-                <div className="p-2 border border-white/5">Parcial (P) = 1.00</div>
-                <div className="p-2 border border-white/5">Largo (L) = 2.00</div>
-                <div className="p-2 border border-white/5">Total (F) = 3.00</div>
+
+              <div className="mg-stack" style={{ gap: 12, padding: 'var(--space-6)' }} id="methodology-accordions">
+                {(DIMENSION_ORDER as DimensionId[]).map((key) => (
+                  <details key={key} className="mg-acc" open={key === 'gov'}>
+                    <summary>
+                      <DimensionTag dimension={key} />
+                      <span className="chev" aria-hidden="true">▾</span>
+                    </summary>
+                    {LIST_PRACTICES.filter((p) => p.dimensionId === key).map((p) => (
+                      <div key={p.id} className="mg-acc-item" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                        <div className="mg-row" style={{ justifyContent: 'space-between' }}>
+                          <span className="mg-code">Prática {p.id} · nível {p.level}</span>
+                          {p.legalReference && <LegalBadge>{p.legalReference}</LegalBadge>}
+                        </div>
+                        <p className="mg-title" style={{ marginTop: 6 }}>{p.name}</p>
+                        <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{p.description}</p>
+                        <p className="mg-small" style={{ marginTop: 8 }}><strong>Critério de verificação:</strong> {p.criterion}</p>
+                        <p className="mg-small mg-muted" style={{ marginTop: 4 }}><strong>Artefato chave:</strong> {p.evidence}</p>
+                      </div>
+                    ))}
+                  </details>
+                ))}
               </div>
-            </div>
-          </section>
+            </Card>
 
-          {/* SECTION: REGULATORIO */}
-          <section id="regulatorio" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="space-y-1">
-              <span className="font-mono text-[9px] uppercase font-bold text-brand-primary">Consonância Legal</span>
-              <h3 className="text-xl font-extrabold text-slate-950 font-sans tracking-tight">Alinhamento Regulatório Trilateral</h3>
-              <p className="text-xs text-slate-500 leading-relaxed font-light">
-                O MMGIA foi pavimentado sob a correspondência cruzada de normas legais vigentes no Brasil e marcos internacionais recomendados de conformidade.
-              </p>
-            </div>
+            {/* CÁLCULO */}
+            <Card as="section" id="calculo" style={{ scrollMarginTop: 96 }}>
+              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><Calculator className="mg-ico mg-ico-sm" aria-hidden="true" />Fórmula de cálculo do score</span>} />
+              <CardBody>
+                <p className="mg-small mg-muted">
+                  O score final global do MMGIA é calculado por meio de médias ponderadas. Primeiro, é calculada a média simples de cada uma das 5 dimensões com base nas práticas respondidas (as práticas não respondidas recebem peso zero).
+                </p>
 
-            <div className="overflow-x-auto border border-slate-100 rounded-2xl" id="regulatory-matrix">
-              <table className="w-full text-left text-xs text-slate-500 font-mono">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] text-slate-400 font-bold">
-                    <th className="p-4 w-32">NORMA / MARCO</th>
-                    <th className="p-4 w-40">ARTIGOS / CLÁUSULAS</th>
-                    <th className="p-4">IMPACTO E RELAÇÃO DE INTERFACE</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-[11px] font-sans">
-                  {[
-                    { n: 'LGPD (Lei 13.709)', art: 'Art. 20, 37 e 46', desc: 'Direito a explicações de decisões 100% automatizadas, obrigatoriedade de relatórios de impacto e dever de criptografar checkpoints.' },
-                    { n: 'PL 2338/2023 IA', art: 'Artigo 8º, 12 e 15', desc: 'Atribuição civil objetiva ao poluidor algorítmico, análise prévia de disparidades e Red Teaming de ataques.' },
-                    { n: 'ISO/IEC 42001', art: 'Cláusula 5, 6, 8 e 9', desc: 'Desenvolvimento do Sistema de Gestão de IA integrado e auditoria independente periódica.' },
-                    { n: 'NIST AI RMF 1.0', art: 'Framework Core 1.0', desc: 'Metodologias de gerenciamento de riscos organizando o mapeamento, identificação operacional e governança ética.' },
-                  ].map((row) => (
-                    <tr key={row.n} className="hover:bg-slate-50/50">
-                      <td className="p-4 font-mono font-bold text-slate-800">{row.n}</td>
-                      <td className="p-4 font-mono text-slate-600">{row.art}</td>
-                      <td className="p-4 text-slate-500 leading-normal font-light">{row.desc}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                <div style={{ marginTop: 16, padding: 24, background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 'var(--radius-lg)' }} id="math-formula-box">
+                  <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>// equação de cálculo geral</p>
+                  <div style={{ marginTop: 12, padding: 16, background: 'var(--ink-raised)', borderRadius: 'var(--radius-md)', textAlign: 'center', fontWeight: 800 }}>
+                    Score Global = (Média_Gov + Média_Tec + Média_Seg + Média_Edu + Média_Eco) / 5
+                  </div>
+                  <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>Onde as respostas na escala NPLF correspondem aos seguintes pesos numéricos:</p>
+                  <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 8, marginTop: 12 }}>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Nulo (N) = {formatNumber(0)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Parcial (P) = {formatNumber(1)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Larga (L) = {formatNumber(2)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Total (F) = {formatNumber(3)}</div>
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
 
-          {/* SECTION: PRIVACIDADE */}
-          <section id="privacidade" className="bg-white border border-slate-100 rounded-3xl p-8 space-y-6 scroll-mt-24 shadow-sm">
-            <div className="flex items-center gap-3 text-slate-950">
-              <ShieldCheck className="w-6 h-6 text-brand-accent-text text-brand-accent animate-pulse" />
-              <h3 className="text-xl font-extrabold font-sans tracking-tight">Arquitetura de Privacidade</h3>
-            </div>
+            {/* REGULATÓRIO */}
+            <Card as="section" id="regulatorio" style={{ scrollMarginTop: 96 }}>
+              <CardHeader title="Alinhamento regulatório trilateral" />
+              <CardBody>
+                <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
+                  O MMGIA foi construído sob a correspondência cruzada de normas legais vigentes no Brasil e marcos internacionais recomendados de conformidade.
+                </p>
+                <DataTable<RegRow>
+                  caption="Normas, artigos e impacto no modelo"
+                  rowKey={(r) => r.n}
+                  columns={[
+                    { key: 'n', header: 'Norma / marco', render: (r) => <strong>{r.n}</strong> },
+                    { key: 'art', header: 'Artigos / cláusulas', render: (r) => <span className="mg-code">{r.art}</span> },
+                    { key: 'desc', header: 'Impacto e relação de interface', render: (r) => r.desc },
+                  ]}
+                  rows={REGULATORY_ROWS}
+                />
+              </CardBody>
+            </Card>
 
-            <p className="text-xs text-slate-500 leading-relaxed font-light">
-               Todos os diagnósticos e seleções de conformidade de práticas são processados de forma isolada do servidor por padrão. O código hash de session é a única chave que vincula os itens em local storage.
-            </p>
-
-            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-2xl flex gap-3 text-emerald-950 text-xs">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 mt-1.5 animate-ping"></span>
-              <p>
-                Os microdados agregados jamais exportam nomes de prefeituras, e-mails das equipes ou coordenadas lógicas confidenciais de banco de dados.
-              </p>
-            </div>
-          </section>
+            {/* PRIVACIDADE */}
+            <Card as="section" id="privacidade" style={{ scrollMarginTop: 96 }}>
+              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldCheck className="mg-ico mg-ico-sm" aria-hidden="true" />Arquitetura de privacidade</span>} />
+              <CardBody>
+                <p className="mg-small mg-muted">
+                  Todos os diagnósticos e seleções de conformidade de práticas são processados de forma isolada do servidor por padrão. O código hash de sessão é a única chave que vincula os itens em local storage.
+                </p>
+                <div style={{ marginTop: 16 }}>
+                  <Banner tone="good" title="Sem microdados identificáveis">
+                    Os microdados agregados jamais exportam nomes de prefeituras, e-mails das equipes ou coordenadas lógicas confidenciais de banco de dados.
+                  </Banner>
+                </div>
+              </CardBody>
+            </Card>
+          </div>
         </div>
-      </div>
-    </div>
+      </Page>
+    </DsRoot>
   );
 }

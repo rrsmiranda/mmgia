@@ -3,15 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
-import { LuMenu, LuX, LuSun, LuMoon, LuClipboardList } from 'react-icons/lu';
-
-// Cast icons for React 19 safety
-const MenuIcon = LuMenu as any;
-const XIcon = LuX as any;
-const SunIcon = LuSun as any;
-const MoonIcon = LuMoon as any;
-const ClipboardListIcon = LuClipboardList as any;
+import { useState } from 'react';
+import { ClipboardList, Menu, Moon, Sun, X } from 'lucide-react';
+import { Button } from '@mmgia/shared/design-system';
 
 interface HeaderProps {
   currentTab: string;
@@ -22,6 +16,14 @@ interface HeaderProps {
   onToggleTheme: () => void;
 }
 
+const NAV_LINKS = [
+  { id: 'como', label: 'Como funciona' },
+  { id: 'dimensoes', label: 'Dimensões' },
+  { id: 'privacidade', label: 'Privacidade' },
+  { id: 'metodologia', label: 'Metodologia' },
+  { id: 'faq', label: 'FAQ' },
+];
+
 export default function Header({
   currentTab,
   onChangeTab,
@@ -30,16 +32,7 @@ export default function Header({
   theme,
   onToggleTheme,
 }: HeaderProps) {
-  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 24);
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleNavClick = (sectionId: string, isTab: boolean = false) => {
     setMobileMenuOpen(false);
@@ -70,165 +63,80 @@ export default function Header({
     }
   };
 
-  const isHomeHeaderTransparent = currentTab === 'home' && !scrolled;
-
   return (
-    <header
-      id="site-header"
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        isHomeHeaderTransparent 
-          ? 'bg-transparent border-transparent py-2' 
-          : 'bg-[#101828]/95 backdrop-blur-md shadow-lg border-b border-white/5 py-0'
-      }`}
-    >
-      <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 sm:px-8" aria-label="Principal">
-        {/* LOGO */}
-        <a 
-          href="#" 
-          onClick={(e) => { e.preventDefault(); handleNavClick('home-hero'); }}
-          className="group flex items-center gap-3" 
-          aria-label="MMGIA início"
-        >
-          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#1B98E0] text-lg font-black text-white shadow-hard transition-transform group-hover:-translate-y-0.5">M</span>
-          <span className="text-lg font-black tracking-tight text-white">MMG<span className="text-[#1B98E0]">IA</span></span>
-        </a>
-
-        {/* CENTER LINKS — DESKTOP */}
-        <div className="hidden items-center gap-7 lg:flex">
-          <button 
-            onClick={() => handleNavClick('como')}
-            className="text-sm font-semibold text-white/75 hover:text-white transition cursor-pointer"
-          >
-            Como funciona
-          </button>
-          <button 
-            onClick={() => handleNavClick('dimensoes')}
-            className="text-sm font-semibold text-white/75 hover:text-white transition cursor-pointer"
-          >
-            Dimensões
-          </button>
-          <button 
-            onClick={() => handleNavClick('privacidade')}
-            className="text-sm font-semibold text-white/75 hover:text-white transition cursor-pointer"
-          >
-            Privacidade
-          </button>
-          <button 
-            onClick={() => handleNavClick('metodologia')}
-            className="text-sm font-semibold text-white/75 hover:text-white transition cursor-pointer"
-          >
-            Metodologia
-          </button>
-          <button 
-            onClick={() => handleNavClick('faq')}
-            className="text-sm font-semibold text-white/75 hover:text-white transition cursor-pointer"
-          >
-            FAQ
-          </button>
+    <header id="site-header" className="mg-root" style={{ position: 'fixed', insetInline: 0, top: 0, zIndex: 50 }}>
+      {/* Barra institucional */}
+      <div className="mg-govbar">
+        <div>
+          <strong>MMGIA</strong>
+          <span className="sep" aria-hidden="true" />
+          <span className="mg-hide-tablet">Diagnóstico de código aberto alinhado à ENIA 2026-2029</span>
         </div>
+      </div>
 
-        {/* RIGHT CTA MODULE — DESKTOP */}
-        <div className="hidden items-center gap-3 lg:flex">
-          {/* Theme Switcher Button */}
-          <button
-            onClick={onToggleTheme}
-            className="p-2 border border-white/20 rounded-full text-white/85 hover:text-white hover:bg-white/10 transition-all cursor-pointer flex items-center justify-center h-10 w-10"
-            title="Alternar Tema"
+      {/* Cabeçalho principal */}
+      <div className="mg-header">
+        <div>
+          <a
+            href="#"
+            onClick={(e) => { e.preventDefault(); handleNavClick('home-hero'); }}
+            className="mg-logo"
+            aria-label="MMGIA início"
           >
-            {theme === 'dark' ? <SunIcon className="w-4.5 h-4.5 text-amber-400" /> : <MoonIcon className="w-4.5 h-4.5 text-white" />}
-          </button>
+            <span style={{ display: 'grid', placeItems: 'center', width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'var(--brand)', color: 'var(--on-brand)', fontWeight: 800 }}>M</span>
+            <span className="mg-logo-word">
+              <b>MMG<span style={{ color: 'var(--brand)' }}>IA</span></b>
+            </span>
+          </a>
 
-          <button 
-            onClick={() => handleNavClick('mapa', true)}
-            className="rounded-full border border-white/20 px-4 py-2 text-sm font-bold text-white hover:bg-white/10 transition cursor-pointer"
-          >
-            Painel público
-          </button>
-          
-          <button 
-            onClick={onGoToOnboarding}
-            className="rounded-full bg-[#1B98E0] px-5 py-2.5 text-sm font-black text-white hover:bg-white hover:text-[#101828] transition flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#1B98E0]/10"
-          >
-            <ClipboardListIcon className="w-4 h-4 shrink-0" />
-            <span>{hasActiveAssessment ? 'Retomar avaliação' : 'Iniciar avaliação'}</span>
-          </button>
-        </div>
+          <nav className="mg-nav" aria-label="Principal">
+            {NAV_LINKS.map((link) => (
+              <a key={link.id} href={`#${link.id}`} onClick={(e) => { e.preventDefault(); handleNavClick(link.id); }}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
 
-        {/* MOBILE CONTROLS (HAMBURGER & THEME TOGGLE) */}
-        <div className="flex items-center gap-2 lg:hidden">
-          <button
-            onClick={onToggleTheme}
-            className="p-2 border border-white/20 rounded-xl text-white/85 hover:text-white transition-all cursor-pointer flex items-center justify-center h-10 w-10"
-            title="Alternar Tema"
-          >
-            {theme === 'dark' ? <SunIcon className="w-4.5 h-4.5 text-amber-400" /> : <MoonIcon className="w-4.5 h-4.5 text-white" />}
-          </button>
-
-          <button 
-            id="menu-button" 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 text-white cursor-pointer hover:bg-white/5 active:scale-95 transition" 
-            aria-label="Abrir menu"
-          >
-            {mobileMenuOpen ? <XIcon className="h-5 w-5" /> : <MenuIcon className="h-5 w-5" />}
-          </button>
-        </div>
-      </nav>
-
-      {/* MOBILE MENU ACCORDION */}
-      {mobileMenuOpen && (
-        <div 
-          id="mobile-menu" 
-          className="mx-5 mb-4 rounded-2xl border border-white/10 bg-[#101828]/95 p-4 shadow-panel backdrop-blur lg:hidden animate-in fade-in slide-in-from-top-3 duration-250"
-        >
-          <div className="grid gap-2 text-left">
-            <button 
-              onClick={() => handleNavClick('como')}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              Como funciona
-            </button>
-            <button 
-              onClick={() => handleNavClick('dimensoes')}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              Dimensões
-            </button>
-            <button 
-              onClick={() => handleNavClick('privacidade')}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              Privacidade
-            </button>
-            <button 
-              onClick={() => handleNavClick('metodologia')}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              Metodologia
-            </button>
-            <button 
-              onClick={() => handleNavClick('faq')}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              FAQ
+          <div className="mg-header-actions">
+            <button type="button" className="mg-iconbtn" onClick={onToggleTheme} title="Alternar tema" aria-label="Alternar tema claro/escuro">
+              {theme === 'dark' ? <Sun className="mg-ico" aria-hidden="true" /> : <Moon className="mg-ico" aria-hidden="true" />}
             </button>
 
-            <button 
-              onClick={() => handleNavClick('mapa', true)}
-              className="rounded-xl px-4 py-3 text-sm font-semibold text-white/80 hover:bg-white/10 text-left transition w-full"
-            >
-              Painel público
-            </button>
+            <Button variant="secondary" onClick={() => handleNavClick('mapa', true)}>Painel público</Button>
 
-            <button 
-              onClick={() => { setMobileMenuOpen(false); onGoToOnboarding(); }}
-              className="mt-2 rounded-xl bg-[#1B98E0] px-4 py-3 text-center text-sm font-black text-white hover:bg-white hover:text-[#101828] transition flex items-center justify-center gap-1.5"
+            <Button variant="primary" icon={ClipboardList} onClick={onGoToOnboarding}>
+              {hasActiveAssessment ? 'Retomar avaliação' : 'Iniciar avaliação'}
+            </Button>
+
+            <button
+              type="button"
+              className="mg-iconbtn mg-menu-btn"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? 'Fechar menu' : 'Abrir menu'}
+              aria-expanded={mobileMenuOpen}
             >
-              <ClipboardListIcon className="w-4 h-4" />
-              <span>{hasActiveAssessment ? 'Retomar avaliação' : 'Iniciar avaliação'}</span>
+              {mobileMenuOpen ? <X className="mg-ico" aria-hidden="true" /> : <Menu className="mg-ico" aria-hidden="true" />}
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Menu mobile (abaixo de 992px) */}
+      {mobileMenuOpen && (
+        <nav
+          id="mobile-menu"
+          aria-label="Principal (celular)"
+          className="mg-only-mobile mg-stack"
+          style={{ background: 'var(--surface-raised)', borderBottom: '1px solid var(--surface-deep)', padding: 16 }}
+        >
+          {NAV_LINKS.map((link) => (
+            <Button key={link.id} variant="ghost" fullWidth onClick={() => handleNavClick(link.id)}>{link.label}</Button>
+          ))}
+          <Button variant="ghost" fullWidth onClick={() => handleNavClick('mapa', true)}>Painel público</Button>
+          <Button variant="primary" fullWidth icon={ClipboardList} onClick={() => { setMobileMenuOpen(false); onGoToOnboarding(); }} style={{ marginTop: 8 }}>
+            {hasActiveAssessment ? 'Retomar avaliação' : 'Iniciar avaliação'}
+          </Button>
+        </nav>
       )}
     </header>
   );
