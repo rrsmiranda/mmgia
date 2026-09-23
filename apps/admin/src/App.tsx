@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import AdminLogin from './components/AdminLogin';
-import AdminDashboard from './components/AdminDashboard';
+
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 
 export default function App() {
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
@@ -10,9 +11,11 @@ export default function App() {
   }
 
   return (
-    <AdminDashboard
-      adminEmail={adminEmail}
-      onLogout={() => setAdminEmail(null)}
-    />
+    <Suspense fallback={<main className="mg-page" style={{ paddingBlock: 48 }} aria-live="polite">Carregando…</main>}>
+      <AdminDashboard
+        adminEmail={adminEmail}
+        onLogout={() => setAdminEmail(null)}
+      />
+    </Suspense>
   );
 }

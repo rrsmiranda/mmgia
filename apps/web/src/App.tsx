@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
-import Onboarding from './components/Onboarding';
-import Questionnaire from './components/Questionnaire';
-import Revision from './components/Revision';
-import Result from './components/Result';
-import PublicPanel from './components/PublicPanel';
-import Methodology from './components/Methodology';
-import OpenData from './components/OpenData';
-import EditAssessment from './components/EditAssessment';
-import ReportViewer from './components/ReportViewer';
 import { ScoreLevel, AssessmentMetadata } from '@mmgia/shared/types';
+
+const Onboarding = lazy(() => import('./components/Onboarding'));
+const Questionnaire = lazy(() => import('./components/Questionnaire'));
+const Revision = lazy(() => import('./components/Revision'));
+const Result = lazy(() => import('./components/Result'));
+const PublicPanel = lazy(() => import('./components/PublicPanel'));
+const Methodology = lazy(() => import('./components/Methodology'));
+const OpenData = lazy(() => import('./components/OpenData'));
+const EditAssessment = lazy(() => import('./components/EditAssessment'));
+const ReportViewer = lazy(() => import('./components/ReportViewer'));
 
 export default function App() {
   // Theme Toggle for preview system
@@ -100,7 +101,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleLoadAssessment = (code: string, restoredAnswers: Record<string, ScoreLevel>, restoredMeta: any) => {
+  const handleLoadAssessment = (code: string, restoredAnswers: Record<string, ScoreLevel>, restoredMeta: AssessmentMetadata) => {
     setMetadata(restoredMeta);
     setAnswers(restoredAnswers);
     setAssessStep('result');
@@ -129,7 +130,8 @@ export default function App() {
       )}
 
       {/* Primary content routing switchboard */}
-      <div className="flex-grow" id="primary-viewport-body">
+      <Suspense fallback={<main className="mg-page" style={{ paddingBlock: 48 }} aria-live="polite">Carregando…</main>}>
+        <div className="flex-grow" id="primary-viewport-body">
         {currentTab === 'home' && (
           <LandingPage
             onStartOnboarding={handleStartOnboarding}
@@ -222,7 +224,8 @@ export default function App() {
             onGoToOnboarding={handleStartOnboarding}
           />
         )}
-      </div>
+        </div>
+      </Suspense>
 
       {/* Footer is also excluded on deep custom administrative viewports and home landing, which renders its own complete brand footer */}
       {currentTab !== 'home' && currentTab !== 'relatorio-viewer' && (

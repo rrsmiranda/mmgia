@@ -5,11 +5,11 @@
 
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
-import { ScoreLevel } from '@mmgia/shared/types';
+import { AssessmentMetadata, ScoreLevel } from '@mmgia/shared/types';
 import { Banner, Button, Card, DsRoot, Field, Input, Page } from '@mmgia/shared/design-system';
 
 interface EditAssessmentProps {
-  onLoadAssessment: (code: string, answers: Record<string, ScoreLevel>, metadata: any) => void;
+  onLoadAssessment: (code: string, answers: Record<string, ScoreLevel>, metadata: AssessmentMetadata) => void;
   onGoToOnboarding: () => void;
 }
 

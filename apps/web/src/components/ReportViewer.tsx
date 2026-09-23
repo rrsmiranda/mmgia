@@ -23,6 +23,19 @@ import {
 import { ScoreLevel, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
 import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '@mmgia/shared/scoring';
 
+interface Html2PdfWorker {
+  set(options: object): Html2PdfWorker;
+  from(element: HTMLElement): Html2PdfWorker;
+  save(): Promise<void>;
+}
+
+declare global {
+  interface Window {
+    html2pdf?: () => Html2PdfWorker;
+    html2pdfPatchedV2?: boolean;
+  }
+}
+
 interface ReportViewerProps {
   answers: Record<string, ScoreLevel>;
   metadata: AssessmentMetadata;
@@ -579,9 +592,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
-      // @ts-ignore
       if (window.html2pdf) {
-        // @ts-ignore
         window.html2pdf().set(opt).from(clone).save()
           .then(() => {
             setExportingPdf(false);
@@ -589,7 +600,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
               clone.parentNode.removeChild(clone);
             }
           })
-          .catch((err: any) => {
+          .catch((err: unknown) => {
             console.error('Erro ao gerar PDF:', err);
             setExportingPdf(false);
             if (clone.parentNode) {
@@ -605,14 +616,12 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
     };
 
     // Check if script is already loaded with our specific v2 patch
-    // @ts-ignore
     if (window.html2pdf && window.html2pdfPatchedV2) {
       runExport();
     } else {
       const scriptId = 'patched-html2pdf-script-v2';
       if (document.getElementById(scriptId)) {
         const checkLoaded = setInterval(() => {
-          // @ts-ignore
           if (window.html2pdf && window.html2pdfPatchedV2) {
             clearInterval(checkLoaded);
             runExport();
@@ -669,7 +678,6 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
           script.style.display = 'none';
           script.src = blobUrl;
           script.onload = () => {
-            // @ts-ignore
             window.html2pdfPatchedV2 = true;
             URL.revokeObjectURL(blobUrl);
             runExport();
