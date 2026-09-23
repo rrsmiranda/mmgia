@@ -3,34 +3,55 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
-  Copy,
   Check,
-  CheckCircle,
-  FileText,
-  Download,
-  RotateCcw,
-  RefreshCw,
-  Compass,
-  Sparkles,
-  BookOpen,
-  Info,
-  X,
   ChevronLeft,
   ChevronRight,
-  Award,
-  CheckSquare,
-  Printer,
+  Compass,
+  Copy,
+  Download,
+  Eye,
+  FileCheck2,
+  FileText,
   HelpCircle,
-  FileCheck,
-  Eye
+  Info,
+  Printer,
+  RefreshCw,
+  RotateCcw,
+  X,
 } from 'lucide-react';
-
-
 import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
-import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getSectorBenchmarks, getPeerAverageGlobal } from '@mmgia/shared/scoring';
+import {
+  DIMENSION_WEIGHTS,
+  getAllDimensionScores,
+  getGlobalScore,
+  getMaturityLevel,
+  getPeerAverageGlobal,
+  getSectorBenchmarks,
+} from '@mmgia/shared/scoring';
 import RadarChart from './RadarChart';
+import {
+  ActionBar,
+  Banner,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  DataTable,
+  DIMENSION_ORDER,
+  DimensionBars,
+  DimensionTag,
+  DsRoot,
+  LegalBadge,
+  LevelBadge,
+  Page,
+  Pill,
+  RiskBadge,
+  StatusBadge,
+  formatNumber,
+  type Level,
+} from '@mmgia/shared/design-system';
 
 interface ResultProps {
   answers: Record<string, ScoreLevel>;
@@ -41,7 +62,80 @@ interface ResultProps {
   theme?: 'light' | 'dark';
 }
 
-export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, theme = 'light' }: ResultProps) {
+/**
+ * Descrições dos 6 níveis de maturidade exibidas na memória de cálculo desta tela.
+ * Texto idêntico ao de getMaturityLevel (src/lib/scoring.ts) — não alterar.
+ */
+const LEVEL_MEANINGS: { lvl: Level; scoreRange: string; title: string; desc: string; risco: string }[] = [
+  {
+    lvl: 0,
+    scoreRange: '0,0 a 0,5',
+    title: 'Nível 0 — Inexistente',
+    desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
+    risco: 'Riscos críticos de segurança: o uso descontrolado de ferramentas (Shadow AI) gera vazamento inevitável de dados confidenciais e alta exposição civil por vieses e falhas cognitivas algorítmicas.',
+  },
+  {
+    lvl: 1,
+    scoreRange: '0,5 a 1,0',
+    title: 'Nível 1 — Inicial',
+    desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
+    risco: 'Ausência de testes formais de vieses demográficos, éticos ou segurança. Elevado risco de descontinuação repentina do conhecimento quando indivíduos-heróis chave se desligam das frentes internas.',
+  },
+  {
+    lvl: 2,
+    scoreRange: '1,0 a 1,5',
+    title: 'Nível 2 — Gerenciado',
+    desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
+    risco: 'Embora existam controles focais, a inconsistência gera ilhas de risco desconectadas. Cada iniciativa adota critérios próprios de segurança da informação, abrindo buracos estruturais de conformidade legal.',
+  },
+  {
+    lvl: 3,
+    scoreRange: '1,5 a 2,0',
+    title: 'Nível 3 — Definido',
+    desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
+    risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o risco organizacional para um patamar moderado. Há uma base de conformidade, mas o risco principal orbita em torno da rigidez dos processos.',
+  },
+  {
+    lvl: 4,
+    scoreRange: '2,0 a 2,5',
+    title: 'Nível 4 — Gerenciado Quantitativamente',
+    desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
+    risco: 'Monitoramento contínuo bem estruturado. O risco migra para o perigo da complacência e viés quantitativo: a equipe foca em métricas simplistas e negligencia as nuances qualitativas éticas e novidades de regulação.',
+  },
+  {
+    lvl: 5,
+    scoreRange: '2,5 a 3,0',
+    title: 'Nível 5 — Otimizado',
+    desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
+    risco: 'A governança se torna adaptativa, ágil e diferencial competitivo forte. Riscos minimizados. O único desafio é evitar a complacência e manter o ritmo ativo de monitoramento em face às novas disrupções técnicas no cenário global.',
+  },
+];
+
+const ACTION_PLAN = [
+  { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
+  { step: '02', title: 'Blindagem de Inputs e Letramento Básico', desc: 'Saneamento preventivo em requisições de prompts e disparos massivos de cartilhas de uso responsável para toda a corporação.', dim: 'Segurança', effort: 'Médio esforço', time: 'Semana 3-4' },
+  { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Tecnologia', effort: 'Médio esforço', time: 'Semana 5-6' },
+  { step: '04', title: 'Simulacros Éticos de Ataque (Red Teaming)', desc: 'Recrutamento de equipe e workshops dedicados para teste de vazamentos algorítmicos voluntários e testes de viesses demográficos.', dim: 'Segurança', effort: 'Alto esforço', time: 'Mês 2' },
+];
+
+interface WeightRow {
+  id: DimensionId;
+  score: number;
+  weight: number;
+  contribution: number;
+}
+
+interface GapRow {
+  id: string;
+  name: string;
+  dimensionId: DimensionId;
+  description: string;
+  legalReference?: string;
+  action: string;
+  effort: 'Baixo' | 'Médio' | 'Alto';
+}
+
+export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport }: ResultProps) {
   const [copied, setCopied] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
   const [gapFilter, setGapFilter] = useState<string>('todas');
@@ -56,29 +150,21 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Score Calculus (ver src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
+  // Score Calculus (ver packages/shared/src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
   const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
   const globalScore = getGlobalScore(answers);
-  const progressPercentage = Math.round((globalScore / 3) * 100);
   const levelInfo = getMaturityLevel(globalScore);
-  // Nível por eixo (leitura complementar): mesma tabela de conversão aplicada ao score de cada dimensão
-  const dimensionLevels = getAllDimensionLevels(answers);
 
-  // peer average coordinates based on sectoral metadata
   const sectorBenchmarks = getSectorBenchmarks(metadata.setor || 'Saúde');
   const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
 
-  // Identify gaps: practices with 'N' or 'P' score levels
   const gaps = LIST_PRACTICES.filter((practice) => {
     const ans = answers[practice.id];
     return !ans || ans === 'N' || ans === 'P';
   });
 
-  const filteredGaps = gapFilter === 'todas'
-    ? gaps
-    : gaps.filter(g => g.dimensionId === gapFilter);
+  const filteredGaps = gapFilter === 'todas' ? gaps : gaps.filter(g => g.dimensionId === gapFilter);
 
-  // Generate tactical recommendations directly from the practice's official verification criterion
   const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
     const practice = LIST_PRACTICES.find(p => p.id === id);
     if (!practice) {
@@ -88,7 +174,18 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     return { action: practice.criterion, effort };
   };
 
-  // Mock download dispatches
+  const gapRows: GapRow[] = filteredGaps.slice(0, 6).map((gap) => {
+    const rec = getGapRecommendation(gap.id);
+    return { id: gap.id, name: gap.name, dimensionId: gap.dimensionId, description: gap.description, legalReference: gap.legalReference, action: rec.action, effort: rec.effort };
+  });
+
+  const weightRows: WeightRow[] = DIMENSION_ORDER.map((id) => ({
+    id,
+    score: currentScores[id],
+    weight: DIMENSION_WEIGHTS[id],
+    contribution: currentScores[id] * DIMENSION_WEIGHTS[id],
+  }));
+
   const triggerDownload = (type: string) => {
     setDownloadingType(type);
     setTimeout(() => {
@@ -98,953 +195,485 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   };
 
   return (
-    <div className={`min-h-screen pt-28 pb-20 px-6 font-sans select-none transition-colors duration-500 ${
-      theme === 'dark' ? 'bg-[#0B1120] text-slate-100' : 'bg-slate-50 text-[#0F172A]'
-    }`} id="assessment-result-root">
-      
-      {/* 2. SCORE HERO */}
-      <section className="max-w-7xl mx-auto bg-slate-900 text-white rounded-3xl overflow-hidden shadow-xl mb-8 relative" id="result-hero-box">
-        {/* Layer 1: Vector light glows */}
-        <div className="absolute inset-0 z-0 opacity-15 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-accent rounded-full filter blur-[100px]"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-[100px]"></div>
-        </div>
-
-        <div className="p-8 md:p-12 text-center space-y-6 relative z-1 max-w-2xl mx-auto" id="hero-score-content">
-          <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#1D9E75] block">
-            diagnóstico_finalizado · score_global_mmgia
-          </span>
-
-          <h3 className="text-6xl md:text-7xl font-mono font-black text-white drop-shadow-md">
-            {globalScore.toFixed(2)}
-          </h3>
-
-          <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-brand-accent transition-all duration-1000"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3" id="badge-line">
-            <span className="px-3.5 py-1 bg-white/5 border border-white/10 rounded-full font-mono text-[10.5px] tracking-wider uppercase">
-              Score: {progressPercentage}% Ponderado
-            </span>
-            <span className="px-3.5 py-1 bg-brand-accent/25 text-brand-accent border border-brand-accent/25 rounded-full font-mono text-[10.5px] tracking-wider uppercase font-bold">
-              {levelInfo.label} (Nível {levelInfo.num})
-            </span>
-            <span className="px-3.5 py-1 bg-red-500/10 text-red-400 border border-red-500/10 rounded-full font-mono text-[10.5px] tracking-wider uppercase">
-              {levelInfo.risk}
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-300 leading-relaxed font-light">
-            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais estruturadas de governança no setor de <strong className="text-white">{metadata.setor}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
+    <DsRoot>
+      <Page>
+        {/* SCORE HERO */}
+        <section className="mg-hero" style={{ borderRadius: 'var(--radius-xl)', padding: '48px 32px', textAlign: 'center', marginBottom: 24 }} id="result-hero-box">
+          <p className="mg-eyebrow">Diagnóstico finalizado · Score Global MMGIA</p>
+          <p style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 64, lineHeight: 1, margin: '16px 0' }}>
+            {formatNumber(globalScore)} <span style={{ fontSize: 28, opacity: 0.7 }}>/ 3</span>
           </p>
-
-          <div className="flex flex-wrap gap-3 justify-center pt-2">
-            <button
-              onClick={() => setShowDetails(!showDetails)}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-mono text-[11px] uppercase tracking-wider transition-all border border-white/15 flex items-center gap-2 cursor-pointer"
-            >
-              <Info className="w-4 h-4 text-brand-accent animate-pulse" />
-              <span>{showDetails ? 'Ocultar Detalhamento Ponderado' : 'Como minha média foi calculada? Detalhar.'}</span>
-            </button>
-
-            <button
+          <div className="mg-row" style={{ justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <LevelBadge level={levelInfo.num as Level} />
+            <RiskBadge level={levelInfo.num as Level} />
+          </div>
+          <p className="mg-lead" style={{ maxWidth: 640, margin: '16px auto 0' }}>
+            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais de governança no setor de <strong>{metadata.setor}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
+          </p>
+          <ActionBar inline>
+            <Button variant="secondary" onInk icon={Info} onClick={() => setShowDetails((v) => !v)}>
+              {showDetails ? 'Ocultar detalhamento' : 'Como minha média foi calculada?'}
+            </Button>
+            <Button
+              variant="primary"
+              onInk
+              icon={Eye}
               onClick={() => { if (onViewReport) { onViewReport(); } else { setShowPdfViewer(true); setActivePdfPage(1); } }}
-              className="px-5 py-2.5 bg-brand-accent hover:brightness-110 text-white rounded-2xl font-mono text-[11px] uppercase tracking-wider transition-all font-bold flex items-center gap-2 cursor-pointer shadow-lg"
             >
-              <Eye className="w-4 h-4 text-white" />
-              <span>Visualizar Relatório Executivo (PDF)</span>
-            </button>
-          </div>
-        </div>
-      </section>
+              Visualizar relatório executivo
+            </Button>
+          </ActionBar>
+        </section>
 
-      {/* DETAILED METHODOLOGY AND CALCULATION BREAKDOWN ACCORDION */}
-      {showDetails && (
-        <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md mb-8 space-y-8 animate-[fadeIn_0.3s_ease]" id="detailed-calculation-panel">
-          <div className="flex justify-between items-start border-b border-slate-100 pb-4">
-            <div>
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#0C3D6E] block">Cálculo e Metodologia Rigorosa — MMGIA</span>
-              <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">Memória de Cálculo da Média de Maturidade Ponderada</h3>
-            </div>
-            <button onClick={() => setShowDetails(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+        {showDetails && (
+          <Card style={{ marginBottom: 24 }}>
+            <CardHeader
+              title="Memória de cálculo da média de maturidade ponderada"
+              actions={<Button variant="ghost" size="sm" iconOnly icon={X} aria-label="Fechar memória de cálculo" onClick={() => setShowDetails(false)} />}
+            />
+            <CardBody>
+              <p className="mg-lead">
+                Passo 1 — cada prática respondida herda o valor da escala NPLF (Nulo = 0, Parcial = 1, Larga = 2, Total = 3).
+                Passo 2 — o score de cada dimensão é a média dos níveis de prática respondidos dentro dela.
+                Passo 3 — as 5 dimensões são ponderadas pelos pesos oficiais abaixo para compor o Score Global (0 a 3).
+              </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Step Explanation */}
-            <div className="space-y-6">
-              <h4 className="text-xs font-mono font-bold uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
-                <CheckSquare className="w-4 h-4 text-[#1D9E75]" />
-                Passo a Passo do Modelo Matemático
-              </h4>
-              
-              <div className="space-y-4 text-xs text-slate-600 leading-relaxed font-sans">
-                <div className="relative pl-6">
-                  <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-[#0C3D6E]"></div>
-                  <strong className="text-slate-900 block font-sans">Passo 1: Escala de Classificação NPLF para Valor Numérico</strong>
-                  Cada prática selecionada na avaliação herda um score objetivo na escala de maturidade ISO/IEC 33004:2015:
-                  <div className="grid grid-cols-4 gap-2 mt-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-center text-[10px] font-mono">
-                    <div className="p-1"><span className="font-bold text-red-500 block">Nulo (N)</span>0% a 15% · <span className="font-bold bg-red-105 inline-block px-1 rounded text-red-700">0</span></div>
-                    <div className="p-1"><span className="font-bold text-cyan-600 block">Parcial (P)</span>&gt;15% a 50% · <span className="font-bold bg-cyan-100 inline-block px-1 rounded text-cyan-700 font-mono">1</span></div>
-                    <div className="p-1"><span className="font-bold text-blue-500 block">Larga (L)</span>&gt;50% a 85% · <span className="font-bold bg-blue-100 inline-block px-1 rounded text-blue-700 font-mono">2</span></div>
-                    <div className="p-1"><span className="font-bold text-emerald-600 block">Total (F)</span>&gt;85% a 100% · <span className="font-bold bg-emerald-100 inline-block px-1 rounded text-emerald-700 font-mono">3</span></div>
-                  </div>
-                </div>
-
-                <div className="relative pl-6">
-                  <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-[#0C3D6E]"></div>
-                  <strong className="text-slate-900 block">Passo 2: Médias Niveladas e Notas do Pilar (Dimensão)</strong>
-                  Calculamos o score da dimensão somando as notas de cada prática e dividindo pelo total de práticas mapeadas no pilar correspondente.
-                </div>
-
-                <div className="relative pl-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
-                  <div className="absolute left-2 top-4 w-2 h-2 rounded-full bg-brand-accent"></div>
-                  <strong className="text-slate-950 block text-xs">Passo 3: Média Ponderada Oficial</strong>
-                  As 5 dimensões são ponderadas pelos pesos de importância estratégica estabelecidos na metodologia (GGIA) para compor o <strong className="text-brand-primary">Score Global (0.0 a 3.00)</strong>:
-                  <div className="text-[11px] font-mono bg-white p-2.5 rounded-xl border border-slate-200/50 text-slate-850 space-y-1 mt-1">
-                    <div className="flex justify-between"><span>* Governança (gov):</span> <span className="font-semibold text-slate-950">25% (Peso 0.25)</span></div>
-                    <div className="flex justify-between"><span>* Tecnologia (tec):</span> <span className="font-semibold text-slate-950">20% (Peso 0.20)</span></div>
-                    <div className="flex justify-between"><span>* Segurança (seg):</span> <span className="font-semibold text-slate-950">25% (Peso 0.25)</span></div>
-                    <div className="flex justify-between"><span>* Educação (edu):</span> <span className="font-semibold text-slate-950">15% (Peso 0.15)</span></div>
-                    <div className="flex justify-between"><span>* Ecossistema (eco):</span> <span className="font-semibold text-slate-950">15% (Peso 0.15)</span></div>
-                  </div>
-                </div>
-
-                <div className="relative pl-6">
-                  <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-[#0C3D6E]"></div>
-                  <strong className="text-slate-900 block">Passo 4: Escala de Conversão para Nível de Maturidade</strong>
-                  A pontuação ponderada final de 0.0 a 3.00 enquadra-se em um dos 6 níveis oficiais de maturidade descritos abaixo.
-                </div>
-              </div>
-            </div>
-
-            {/* Live Arithmetic Breakdown */}
-            <div className="space-y-6">
-              <h4 className="text-xs font-mono font-bold uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
-                <Sparkles className="w-4 h-4 text-brand-accent animate-pulse" />
-                Matemática Aplicada ao Seu Diagnóstico
-              </h4>
-
-              <div className="space-y-4 bg-slate-900 text-slate-200 p-5 rounded-2xl border border-slate-800 shadow-inner">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-[#1D9E75] block font-bold">Equação Ponderada Ativa</span>
-                
-                {/* Visual equation terms */}
-                <div className="space-y-2.5 font-mono text-[11px]">
-                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Governança (gov):</span>
-                    <span className="text-slate-100">{currentScores.gov.toFixed(2)} × 0.25 = <strong className="text-white">{(currentScores.gov * 0.25).toFixed(3)}</strong></span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Tecnologia (tec):</span>
-                    <span className="text-slate-100">{currentScores.tec.toFixed(2)} × 0.20 = <strong className="text-white">{(currentScores.tec * 0.20).toFixed(3)}</strong></span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Segurança (seg):</span>
-                    <span className="text-slate-100">{currentScores.seg.toFixed(2)} × 0.25 = <strong className="text-white">{(currentScores.seg * 0.25).toFixed(3)}</strong></span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Educação (edu):</span>
-                    <span className="text-slate-100">{currentScores.edu.toFixed(2)} × 0.15 = <strong className="text-white">{(currentScores.edu * 0.15).toFixed(3)}</strong></span>
-                  </div>
-                  <div className="flex justify-between border-b border-slate-800 pb-1.5">
-                    <span>Ecossistema (eco):</span>
-                    <span className="text-slate-100">{currentScores.eco.toFixed(2)} × 0.15 = <strong className="text-white">{(currentScores.eco * 0.15).toFixed(3)}</strong></span>
-                  </div>
-                  
-                  {/* Total row */}
-                  <div className="flex justify-between pt-2.5 text-xs text-[#1D9E75] font-bold">
-                    <span>Soma Contribuições Ponderadas:</span>
-                    <span>{globalScore.toFixed(2)} / 3.00</span>
-                  </div>
-                </div>
-
-                <div className="bg-slate-950 p-4 rounded-xl text-[10.5px] text-slate-350 border border-slate-800/60 space-y-2 font-mono">
-                  <div className="flex items-center gap-1.5 text-brand-accent">
-                    <Award className="w-4 h-4 shrink-0" />
-                    <span>Maturidade: <strong>Nível {levelInfo.num} — {levelInfo.label}</strong></span>
-                  </div>
-                  <p className="font-light text-slate-450 leading-relaxed">
-                    Sua pontuação ponderada de <strong className="text-white">{globalScore.toFixed(2)}</strong> estabelece seu ranqueamento conforme a metodologia.
-                  </p>
-                </div>
+              <div style={{ marginTop: 20 }}>
+                <DataTable<WeightRow>
+                  caption="Contribuição de cada dimensão para o Score Global"
+                  rowKey={(r) => r.id}
+                  columns={[
+                    { key: 'dim', header: 'Eixo', render: (r) => <DimensionTag dimension={r.id} /> },
+                    { key: 'score', header: 'Score', numeric: true, render: (r) => formatNumber(r.score) },
+                    { key: 'weight', header: 'Peso', numeric: true, render: (r) => `${Math.round(r.weight * 100)}%` },
+                    { key: 'contrib', header: 'Contribuição', numeric: true, render: (r) => formatNumber(r.contribution, 3) },
+                  ]}
+                  rows={weightRows}
+                />
               </div>
 
-              {/* Range indicator */}
-              <div className="border border-slate-150 p-4 rounded-2xl bg-slate-50 space-y-2">
-                <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400 block font-bold">Distribuição das Faixas Oficiais (MMGIA):</span>
-                <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
-                  <div className={`p-2 border rounded-xl ${globalScore < 0.5 ? 'border-red-400 bg-red-50 text-red-900 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">0.0 a 0.5</span> Nível 0 — Inexistente
-                  </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 0.5 && globalScore < 1.0 ? 'border-sky-400 bg-sky-50 text-sky-950 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">0.5 a 1.0</span> Nível 1 — Inicial
-                  </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 1.0 && globalScore < 1.5 ? 'border-cyan-400 bg-cyan-50 text-cyan-900 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">1.0 a 1.5</span> Nível 2 — Gerenciado
-                  </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 1.5 && globalScore < 2.0 ? 'border-blue-400 bg-blue-50 text-blue-950 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">1.5 a 2.0</span> Nível 3 — Definido
-                  </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 2.0 && globalScore < 2.5 ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">2.0 a 2.5</span> Nível 4 — Quantitativo
-                  </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 2.5 ? 'border-indigo-400 bg-indigo-50 text-indigo-950 font-bold' : 'border-slate-200 bg-white'}`}>
-                    <span className="block text-[9px] text-[#0C3D6E]">2.5 a 3.0</span> Nível 5 — Otimizado
-                  </div>
-                </div>
+              <div className="mg-row" style={{ gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
+                <span className="mg-code">Score Global: {formatNumber(globalScore)} / 3</span>
+                <LevelBadge level={levelInfo.num as Level} />
+                <RiskBadge level={levelInfo.num as Level} />
               </div>
-            </div>
-          </div>
+              <p className="mg-small mg-muted" style={{ marginTop: 8 }}>{levelInfo.desc}</p>
 
-          {/* Interactive Detailed meanings cards list */}
-          <div className="border border-slate-100 p-6 rounded-3xl bg-slate-50/50 space-y-4">
-            <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider font-mono flex items-center gap-1.5">
-              <HelpCircle className="w-4 h-4 text-brand-primary" />
-              O Que Significa Cada Score de Nível de Maturidade?
-            </h4>
-            
-            <div className="grid grid-cols-1 gap-4">
-              {[
-                {
-                  lvl: 0,
-                  scoreRange: '0.0 a 0.5',
-                  title: 'Nível 0 — Inexistente',
-                  desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
-                  risco: 'Riscos críticos de segurança: o uso descontrolado de ferramentas (Shadow AI) gera vazamento inevitável de dados confidenciais e alta exposição civil por vieses e falhas cognitivas algorítmicas.'
-                },
-                {
-                  lvl: 1,
-                  scoreRange: '0.5 a 1.0',
-                  title: 'Nível 1 — Inicial',
-                  desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
-                  risco: 'Ausência de testes formais de vieses demográficos, éticos ou segurança. Elevado risco de descontinuação repentina do conhecimento quando indivíduos-heróis chave se desligam das frentes internas.'
-                },
-                {
-                  lvl: 2,
-                  scoreRange: '1.0 a 1.5',
-                  title: 'Nível 2 — Gerenciado',
-                  desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
-                  risco: 'Embora existam controles focais, a inconsistência gera ilhas de risco desconectadas. Cada iniciativa adota critérios próprios de segurança da informação, abrindo buracos estruturais de conformidade legal.'
-                },
-                {
-                  lvl: 3,
-                  scoreRange: '1.5 a 2.0',
-                  title: 'Nível 3 — Definido',
-                  desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
-                  risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o risco organizacional para um patamar moderado. Há uma base de conformidade, mas o risco principal orbita em torno da rigidez dos processos.'
-                },
-                {
-                  lvl: 4,
-                  scoreRange: '2.0 a 2.5',
-                  title: 'Nível 4 — Gerenciado Quantitativamente',
-                  desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
-                  risco: 'Monitoramento contínuo bem estruturado. O risco migra para o perigo da complacência e viés quantitativo: a equipe foca em métricas simplistas e negligencia as nuances qualitativas éticas e novidades de regulação.'
-                },
-                {
-                  lvl: 5,
-                  scoreRange: '2.5 a 3.0',
-                  title: 'Nível 5 — Otimizado',
-                  desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
-                  risco: 'A governança se torna adaptativa, ágil e diferencial competitivo forte. Riscos minimizados. O único desafio é evitar a complacência e manter o ritmo ativo de monitoramento em face às novas disrupções técnicas no cenário global.'
-                }
-              ].map((item) => {
-                const isSelected = levelInfo.num === item.lvl;
-                return (
-                  <div
-                    key={item.lvl}
-                    className={`p-4 rounded-2xl border transition-all ${
-                      isSelected
-                        ? 'bg-[#E6F1FB] border-blue-250 text-blue-950 ring-2 ring-[#0C3D6E]/10'
-                        : 'bg-white border-slate-100 hover:border-slate-200'
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`w-3 h-3 rounded-full ${
-                          item.lvl === 0 ? 'bg-red-500' :
-                          item.lvl === 1 ? 'bg-sky-500' :
-                          item.lvl === 2 ? 'bg-cyan-500' :
-                          item.lvl === 3 ? 'bg-blue-600' :
-                          item.lvl === 4 ? 'bg-emerald-600' : 'bg-indigo-700'
-                        }`}></div>
-                        <span className="font-bold text-slate-900 text-xs font-sans tracking-tight">{item.title}</span>
+              <div className="mg-stack" style={{ marginTop: 24, gap: 12 }}>
+                <h3 className="mg-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <HelpCircle className="mg-ico mg-ico-sm" aria-hidden="true" />
+                  O que significa cada nível de maturidade?
+                </h3>
+                {LEVEL_MEANINGS.map((item) => {
+                  const isSelected = levelInfo.num === item.lvl;
+                  return (
+                    <Card key={item.lvl} style={isSelected ? { boxShadow: '0 0 0 3px var(--brand-soft)', borderColor: 'var(--brand)' } : undefined}>
+                      <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                        <div className="mg-row" style={{ gap: 8 }}>
+                          <LevelBadge level={item.lvl} showLabel={false} />
+                          <span className="mg-title">{item.title}</span>
+                        </div>
+                        <span className="mg-code">Score {item.scoreRange}</span>
                       </div>
-                      <span className="font-mono text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold">Score: {item.scoreRange}</span>
-                    </div>
-                    <p className="mt-2 text-slate-700 leading-relaxed font-light">{item.desc}</p>
-                    <p className="mt-1.5 text-slate-500 italic border-l-2 border-slate-200 pl-2 mt-1.5 leading-normal"><strong>Implicações e Riscos:</strong> {item.risco}</p>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
+                      <p className="mg-small" style={{ marginTop: 8 }}>{item.desc}</p>
+                      <p className="mg-small mg-muted" style={{ marginTop: 6, borderLeft: '2px solid var(--surface-deep)', paddingLeft: 8 }}>
+                        <strong>Implicações e riscos:</strong> {item.risco}
+                      </p>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
-      {/* 2. RECOVERY CODE BOX */}
-      <div className="max-w-7xl mx-auto bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 mb-8" id="code-recovery-card">
-        <div className="space-y-1 text-center md:text-left">
-          <h4 className="text-sm font-sans font-bold text-slate-900">Seu Código Exclusivo de Recuperação</h4>
-          <p className="text-xs text-slate-400 leading-normal font-sans">
-            Esta é a única chave que permite editar ou relançar as respostas registradas de forma segura. Guarde bem.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 font-mono text-sm tracking-wider font-bold text-slate-800 w-full md:w-auto text-center">
-            {metadata.code}
-          </div>
-          <button
-            onClick={handleCopyCode}
-            className="p-3.5 bg-brand-primary text-white hover:brightness-110 active:scale-95 transition rounded-2xl cursor-pointer"
-            title="Copiar código"
-          >
-            {copied ? <Check className="w-5 h-5 text-brand-accent animate-pulse" /> : <Copy className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 font-sans">
-        
-        {/* 3. DIMENSION SCORES DETAIL (LEFT) */}
-        <div className={`lg:col-span-7 border rounded-3xl p-6 shadow-sm space-y-6 ${
-          theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 text-[#0F172A]'
-        }`} id="dimension-scorebars">
-          <div>
-            <h4 className="text-sm font-semibold uppercase font-mono tracking-wider text-brand-primary">Scores por Pilar de Maturidade</h4>
-            <p className="text-xs text-slate-400 mt-1 font-sans">
-              As colunas demonstram o desempenho setorial comparado à meta de excelência regulatória (Maturidade Nível 3).
-            </p>
-          </div>
-
-          <div className="space-y-4" id="scores-detail-list">
-            {(Object.keys(DIMENSIONS) as DimensionId[]).map((key) => {
-              const info = DIMENSIONS[key];
-              const score = currentScores[key];
-              const percent = (score / 3) * 100;
-              const dimLevel = dimensionLevels[key];
-
-              return (
-                <div key={key} className="space-y-1.5 flex flex-col">
-                  <div className="flex justify-between items-center text-xs font-mono font-bold">
-                    <span className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>{info.name}</span>
-                    <span className="flex items-center gap-2">
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${dimLevel.bg} text-white`}>
-                        Nível {dimLevel.num} · {dimLevel.label}
-                      </span>
-                      <span className={info.textColor}>
-                        {score.toFixed(2)} <span className="text-slate-400 font-light">/ 3.00</span>
-                      </span>
-                    </span>
-                  </div>
-                  {/* Progress Bar Container with red target marks at 2.00 (Level 3 defined) */}
-                  <div className={`h-3 rounded-full relative overflow-hidden flex items-center ${
-                    theme === 'dark' ? 'bg-slate-800/60' : 'bg-slate-100'
-                  }`}>
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        backgroundColor: info.color,
-                        width: `${percent}%`,
-                      }}
-                    ></div>
-                    {/* Tick for Nível 3 defined threshold (2.00 is 66.6% width) */}
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 border-r-2 border-red-500 border-dashed z-5"
-                      style={{ left: '66.6%' }}
-                      title="Meta Nível 3 (Definido)"
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className={`pt-2 border-t flex items-center gap-2 text-[10px] text-slate-400 font-mono ${
-            theme === 'dark' ? 'border-slate-800/80' : 'border-slate-100'
-          }`}>
-            <span className="w-1.5 h-3 bg-red-500 border-r border-dashed inline-block"></span>
-            <span>A linha vermelha pontilhada representa a meta recomendada de excelência (Nível 3 - Definido) para o setor público.</span>
-          </div>
-        </div>
-
-        {/* 4. RADAR CHART & BENCHMARKS (RIGHT) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
-          <RadarChart scores={currentScores} benchmarkScores={sectorBenchmarks} />
-
-          {/* Benchmark Indicators */}
-          <div className={`border rounded-3xl p-6 shadow-sm space-y-4 flex-1 flex flex-col justify-between ${
-            theme === 'dark' ? 'bg-[#141E30] border-slate-800/80' : 'bg-white border-slate-250 shadow-sm'
-          }`} id="group-benchmark-panel">
+        {/* RECOVERY CODE */}
+        <Card style={{ marginBottom: 24 }} id="code-recovery-card">
+          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div>
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-brand-primary block">
-                peer_group_benchmarking
-              </span>
-              <h4 className={`text-base font-bold tracking-tight mt-1 font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                Grupo Comparativo: {metadata.setor} · {metadata.porte}
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center" id="benchmark-numbers">
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-brand-accent' : 'text-[#0C3D6E]'}`}>{globalScore.toFixed(2)}</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1 animate-pulse">Seu Score</span>
-              </div>
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-705'}`}>{peerAverageGlobal.toFixed(2)}</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1">Média Peer</span>
-              </div>
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className="text-lg font-mono font-bold text-[#1D9E75]">2.71</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1">Melhor Score</span>
-              </div>
-            </div>
-
-            <div className={`p-4 border rounded-2xl text-xs space-y-1 ${
-              theme === 'dark' ? 'bg-emerald-950/20 border-emerald-900/40 text-emerald-300' : 'bg-emerald-50/50 border border-emerald-100/50 text-slate-650'
-            }`}>
-              <p className={`font-semibold font-sans ${theme === 'dark' ? 'text-emerald-250' : 'text-emerald-950'}`}>Percentil de Maturidade: 68%</p>
-              <p className={`text-[11px] leading-normal ${theme === 'dark' ? 'text-emerald-300/80' : 'text-emerald-700'}`}>
-                Sua organização está acima de 68% dos respondentes do grupo econômico de {metadata.setor} em todo o Brasil.
+              <p className="mg-title">Seu código exclusivo de recuperação</p>
+              <p className="mg-small mg-muted" style={{ marginTop: 4 }}>
+                Esta é a única chave que permite editar ou relançar as respostas registradas de forma segura. Guarde bem.
               </p>
             </div>
+            <div className="mg-row" style={{ gap: 12 }}>
+              <span className="mg-code" style={{ fontSize: 16, padding: '12px 20px', background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)' }}>
+                {metadata.code}
+              </span>
+              <Button variant="secondary" iconOnly icon={copied ? Check : Copy} aria-label="Copiar código" onClick={handleCopyCode} />
+            </div>
           </div>
-        </div>
-      </div>
+        </Card>
 
-      {/* 5. GAP ANALYSIS AND RECOMMENDATIONS */}
-      <section className={`border rounded-3xl p-8 shadow-sm mb-8 font-sans ${
-        theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 shadow-sm'
-      }`} id="gap-analysis-module">
-        <div className={`flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b pb-6 ${
-          theme === 'dark' ? 'border-slate-800/80' : 'border-slate-150'
-        }`}>
-          <div className="space-y-1">
-            <h3 className={`text-xl font-extrabold tracking-tight font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>
-              Análise de Lacunas Regulatórias (Gaps)
-            </h3>
-            <p className={`text-xs font-sans ${theme === 'dark' ? 'text-slate-400' : 'text-slate-520'}`}>
+        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 380px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start', marginBottom: 24 }}>
+          {/* DIMENSION SCORES */}
+          <Card id="dimension-scorebars">
+            <CardHeader title="Scores por pilar de maturidade" />
+            <CardBody>
+              <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
+                As barras comparam o desempenho de cada dimensão à meta de excelência regulatória (score 1,50 — Nível 3).
+              </p>
+              <DimensionBars scores={currentScores} goal />
+            </CardBody>
+          </Card>
+
+          {/* BENCHMARK */}
+          <Card id="group-benchmark-panel">
+            <CardHeader title={`Grupo comparativo: ${metadata.setor} · ${metadata.porte}`} />
+            <CardBody>
+              <div className="mg-only-desktop">
+                <RadarChart scores={currentScores} benchmarkScores={sectorBenchmarks} />
+              </div>
+              <div className="mg-only-mobile">
+                <DataTable
+                  caption="Comparação entre sua organização e o setor"
+                  rowKey={(r) => r.id}
+                  columns={[
+                    { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} short /> },
+                    { key: 'you', header: 'Você', numeric: true, render: (r) => formatNumber(currentScores[r.id]) },
+                    { key: 'sector', header: 'Setor', numeric: true, render: (r) => formatNumber(sectorBenchmarks[r.id]) },
+                  ]}
+                  rows={DIMENSION_ORDER.map((id) => ({ id }))}
+                />
+              </div>
+
+              <Banner tone="attention" title="Benchmark ilustrativo">
+                Os valores de setor ainda são sintéticos — o painel público passará a usar dados agregados reais assim que houver submissões suficientes.
+              </Banner>
+
+              <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(3,1fr)', gap: 8, marginTop: 16 }}>
+                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                  <span className="mg-code" style={{ display: 'block', fontSize: 16, color: 'var(--brand)' }}>{formatNumber(globalScore)}</span>
+                  <span className="mg-small mg-muted">Seu score</span>
+                </div>
+                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                  <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>{formatNumber(peerAverageGlobal)}</span>
+                  <span className="mg-small mg-muted">Média peer</span>
+                </div>
+                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                  <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>2,71</span>
+                  <span className="mg-small mg-muted">Melhor score</span>
+                </div>
+              </div>
+
+              <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
+                Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo econômico de {metadata.setor} em todo o Brasil.
+              </p>
+            </CardBody>
+          </Card>
+        </div>
+
+        {/* GAP ANALYSIS */}
+        <Card style={{ marginBottom: 24 }} id="gap-analysis-module">
+          <CardHeader title="Análise de lacunas regulatórias (gaps)" />
+          <CardBody>
+            <p className="mg-small mg-muted" style={{ marginTop: -8 }}>
               Diretrizes onde o diagnóstico constatou conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível.
             </p>
-          </div>
 
-          {/* Filter dimension pills */}
-          <div className="flex flex-wrap gap-1.5" id="gap-filters" font-sans="true">
-            <button
-              onClick={() => setGapFilter('todas')}
-              className={`px-3 py-1 text-[10px] font-mono uppercase font-bold rounded-full border cursor-pointer transition ${
-                gapFilter === 'todas'
-                  ? (theme === 'dark' ? 'bg-[#185FA5] text-white border-transparent shadow' : 'bg-slate-950 text-white border-slate-950 shadow-sm')
-                  : (theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white' : 'bg-white text-slate-500 border-slate-150 hover:border-slate-250')
-              }`}
-            >
-              Todas ({gaps.length})
-            </button>
-            {Object.keys(DIMENSIONS).map((key) => {
-              const info = DIMENSIONS[key as DimensionId];
-              const count = gaps.filter(g => g.dimensionId === key).length;
-              return (
-                <button
-                  key={key}
-                  disabled={count === 0}
-                  onClick={() => setGapFilter(key)}
-                  className={`px-3 py-1 text-[10px] font-mono uppercase font-bold rounded-full border cursor-pointer transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                    gapFilter === key
-                      ? (theme === 'dark' ? 'bg-[#185FA5] text-white border-transparent shadow' : 'text-white border-slate-950 bg-slate-950 shadow-sm')
-                      : (theme === 'dark' ? 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-850' : 'bg-white text-slate-600 border-slate-150 hover:border-slate-250')
-                  }`}
-                >
-                  {info.shortName} ({count})
-                </button>
-              );
-            })}
-          </div>
-        </div>
+            <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 16, marginBottom: 20 }} id="gap-filters">
+              <Pill pressed={gapFilter === 'todas'} onClick={() => setGapFilter('todas')}>Todas ({gaps.length})</Pill>
+              {DIMENSION_ORDER.filter((key) => gaps.some((g) => g.dimensionId === key)).map((key) => (
+                <Pill key={key} pressed={gapFilter === key} onClick={() => setGapFilter(key)}>
+                  {DIMENSIONS[key].shortName} ({gaps.filter(g => g.dimensionId === key).length})
+                </Pill>
+              ))}
+            </div>
 
-        {/* Gap cards grid list */}
-        {filteredGaps.length === 0 ? (
-          <div className="text-center py-12 max-w-sm mx-auto space-y-2 font-sans">
-            <CheckCircle className="w-12 h-12 text-[#124234] mx-auto animate-bounce" />
-            <h4 className="font-bold text-slate-900 text-sm">Nenhum Gap Crítico Identificado</h4>
-            <p className="text-xs text-slate-400">
-              Sua conformidade é larga ou total em todas as práticas filtradas! Parabéns por manter o compliance elevado.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans" id="gap-cards-list">
-            {filteredGaps.slice(0, 6).map((gap) => {
-              const rec = getGapRecommendation(gap.id);
-              const isHighPriority = gap.level === 1;
-              const isMediumPriority = gap.level === 2 || gap.level === 3;
+            {gapRows.length === 0 ? (
+              <Banner tone="good" title="Nenhum gap crítico identificado">
+                Sua conformidade é larga ou total em todas as práticas filtradas. Parabéns por manter o compliance elevado.
+              </Banner>
+            ) : (
+              <DataTable<GapRow>
+                caption="Práticas com lacuna e ação recomendada"
+                rowKey={(r) => r.id}
+                columns={[
+                  { key: 'practice', header: 'Prática', render: (r) => <><span className="mg-code">{r.id}</span><p className="mg-title" style={{ marginTop: 2 }}>{r.name}</p></> },
+                  { key: 'dim', header: 'Eixo', render: (r) => <DimensionTag dimension={r.dimensionId} short /> },
+                  { key: 'action', header: 'Ação recomendada', render: (r) => r.action },
+                  { key: 'effort', header: 'Esforço', render: (r) => r.effort },
+                  { key: 'legal', header: 'Base legal', render: (r) => (r.legalReference ? <LegalBadge>{r.legalReference}</LegalBadge> : '—') },
+                ]}
+                rows={gapRows}
+              />
+            )}
+          </CardBody>
+        </Card>
 
-              return (
-                <div
-                  key={gap.id}
-                  className={`border rounded-2xl p-5 flex flex-col justify-between space-y-4 ${
-                    theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80 text-white' : 'bg-slate-50 border-slate-150 text-[#0F172A]'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center" id={`gap-badges-${gap.id}`}>
-                      <span className={`font-mono text-[9px] font-bold px-2 py-0.5 rounded-full uppercase text-white ${
-                        isHighPriority ? 'bg-red-500' : isMediumPriority ? 'bg-cyan-500' : 'bg-blue-600'
-                      }`}>
-                        Prioridade {isHighPriority ? 'Alta' : isMediumPriority ? 'Média' : 'Baixa'}
-                      </span>
-
-                      <span className={`font-mono text-[9px] px-2 py-0.5 rounded uppercase font-bold ${
-                        theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {DIMENSIONS[gap.dimensionId].shortName}
-                      </span>
-                    </div>
-
-                    <h4 className={`font-bold text-sm font-sans tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>
-                      Prática {gap.id} — {gap.name}
-                    </h4>
-
-                    <p className={`text-xs leading-normal font-light ${theme === 'dark' ? 'text-slate-400' : 'text-slate-505'}`}>
-                      {gap.description}
-                    </p>
+        {/* ACTION PLAN */}
+        <Card style={{ marginBottom: 24 }} id="action-plan">
+          <CardHeader title="Plano de implementação prática" />
+          <CardBody>
+            <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>Mapeamento sequencial de rotinas voltadas para atingir robustez algorítmica.</p>
+            <div className="mg-stack" style={{ gap: 12 }}>
+              {ACTION_PLAN.map((item) => (
+                <div key={item.step} className="mg-row" style={{ gap: 16, padding: 16, background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', flexWrap: 'wrap' }}>
+                  <span className="mg-code" style={{ fontSize: 16, width: 36, height: 36, display: 'grid', placeItems: 'center', background: 'var(--brand)', color: 'var(--on-brand)', borderRadius: 'var(--radius-pill)', flexShrink: 0 }}>
+                    {item.step}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <p className="mg-title">{item.title}</p>
+                    <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{item.desc}</p>
                   </div>
-
-                  <div className={`p-4 border rounded-xl space-y-2 ${
-                    theme === 'dark' ? 'bg-slate-950/40 border-slate-805 text-slate-300' : 'bg-white border-slate-100 text-[#0F172A]'
-                  }`}>
-                    <span className="text-[10px] font-mono uppercase font-bold text-brand-primary block tracking-wider">Ação Recomendada:</span>
-                    <p className={`text-xs italic font-mono leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-650'}`}>
-                      {rec.action}
-                    </p>
-                    <div className={`flex items-center justify-between text-[9px] font-mono text-slate-400 pt-1.5 border-t ${
-                      theme === 'dark' ? 'border-slate-800/60' : 'border-slate-50'
-                    }`}>
-                      <span>Esforço: <strong className={`font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-600'}`}>{rec.effort}</strong></span>
-                      {gap.legalReference && (
-                        <span className="flex items-center gap-0.5 text-brand-accent font-bold">
-                          <BookOpen className="w-3 h-3" />
-                          {gap.legalReference}
-                        </span>
-                      )}
-                    </div>
+                  <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap' }}>
+                    <span className="mg-code">{item.dim}</span>
+                    <span className="mg-code">{item.effort}</span>
+                    <span className="mg-code">{item.time}</span>
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+
+        {/* EXPORT ACTIONS */}
+        <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="action-buttons-row">
+          <Button variant="primary" icon={FileText} onClick={() => { setShowPdfViewer(true); setActivePdfPage(1); }}>Visualizar & exportar PDF</Button>
+          <Button
+            variant="primary"
+            icon={downloadingType === 'tecnico' ? RefreshCw : Download}
+            disabled={downloadingType !== null}
+            onClick={() => triggerDownload('tecnico')}
+          >
+            Imprimir relatório técnico
+          </Button>
+          <Button variant="secondary" icon={Compass} onClick={() => onChangeTab('mapa')}>Ver painel geral</Button>
+          <Button variant="ghost" icon={RotateCcw} onClick={onRestart}>Novo diagnóstico</Button>
+        </div>
+
+        {/* DOWNLOAD PROGRESS TOAST */}
+        {downloadingType && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)', padding: 24 }}>
+            <Card style={{ maxWidth: 360, textAlign: 'center' }}>
+              <CardBody>
+                <RefreshCw className="mg-ico animate-spin" style={{ width: 32, height: 32, color: 'var(--brand)', margin: '0 auto' }} aria-hidden="true" />
+                <p className="mg-title" style={{ marginTop: 16 }}>Compilando relatório PDF...</p>
+                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Injetando dados de benchmarking, gráficos setoriais e notas de {metadata.estado}...</p>
+              </CardBody>
+            </Card>
           </div>
         )}
-      </section>
+      </Page>
 
-      {/* 6. MOCK ACTION PLAN TIMESHEET */}
-      <section className={`border rounded-3xl p-8 shadow-sm mb-8 ${
-        theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 shadow-sm text-[#0F172A]'
-      }`} id="action-plan">
-        <div className="space-y-1 mb-8 pt-1">
-          <h3 className={`text-lg font-bold tracking-tight font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Plano de Implementação Prática</h3>
-          <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Mapeamento sequencial de rotinas voltadas para atingir robustez algorítmica.</p>
-        </div>
-
-        <div className="space-y-4 font-sans">
-          {[
-            { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
-            { step: '02', title: 'Blindagem de Inputs e Letramento Básico', desc: 'Saneamento preventivo em requisições de prompts e disparos massivos de cartilhas de uso responsible para toda a corporação.', dim: 'Segurança', effort: 'Médio esforço', time: 'Semana 3-4' },
-            { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Tecnologia', effort: 'Médio esforço', time: 'Semana 5-6' },
-            { step: '04', title: 'Simulacros Éticos de Ataque (Red Teaming)', desc: 'Recrutamento de equipe e workshops dedicados para teste de vazamentos algorítmicos voluntários e testes de viesses demográficos.', dim: 'Segurança', effort: 'Alto esforço', time: 'Mês 2' }
-          ].map((item, index) => (
-            <div
-              key={item.step}
-              className={`p-5 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm border ${
-                theme === 'dark' ? 'bg-[#0B1120] border-slate-800/80' : 'bg-white border-slate-100'
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-mono font-bold text-sm shrink-0">
-                  {item.step}
-                </div>
-                <div className="space-y-1">
-                  <h4 className={`font-bold text-sm font-sans tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>{item.title}</h4>
-                  <p className={`text-xs leading-normal max-w-2xl font-sans font-light ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{item.desc}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 self-start md:self-center text-[10px] font-mono">
-                <span className={`px-2.5 py-0.5 rounded-full ${
-                  theme === 'dark' ? 'bg-slate-900 border border-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
-                }`}>{item.dim}</span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold ${
-                  theme === 'dark' ? 'bg-[#185FA5]/20 text-accent' : 'bg-blue-50 text-brand-primary'
-                }`}>{item.effort}</span>
-                <span className={`font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{item.time}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. EXPORT ACTIONS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-sans" id="action-buttons-row">
-        
-        <button
-          onClick={() => { setShowPdfViewer(true); setActivePdfPage(1); }}
-          className="py-4 bg-brand-primary text-white font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-        >
-          <FileText className="w-4 h-4" />
-          Visualizar & Exportar PDF
-        </button>
-
-        <button
-          onClick={() => triggerDownload('tecnico')}
-          disabled={downloadingType !== null}
-          className="py-4 bg-brand-accent text-white font-sans text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-sans"
-        >
-          {downloadingType === 'tecnico' ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Imprimir Relatório Técnico
-        </button>
-
-        <button
-          onClick={() => onChangeTab('mapa')}
-          className={`py-4 border font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer ${
-            theme === 'dark'
-              ? 'bg-[#141E30] hover:bg-slate-800 border-slate-800/80 text-white hover:text-white'
-              : 'bg-white border-slate-205 text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-          }`}
-        >
-          <Compass className="w-4 h-4 text-brand-primary" />
-          Ver Painel Geral
-        </button>
-
-        <button
-          onClick={onRestart}
-          className={`py-4 bg-transparent font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-            theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-slate-511 hover:text-slate-800'
-          }`}
-        >
-          <RotateCcw className="w-4 h-4" />
-          Novo Diagnóstico
-        </button>
-      </div>
-
-      {/* DOWNLOAD IN PROGRESS MODAL TOAST */}
-      {downloadingType && (
-        <div className="fixed inset-0 z-200 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center px-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center space-y-4 max-w-sm shadow-2xl">
-            <RefreshCw className="w-10 h-10 text-brand-primary mx-auto animate-spin" />
-            <h4 className="font-bold text-slate-900 font-sans text-sm">Compilando Relatório PDF...</h4>
-            <p className="text-xs text-slate-400 font-mono">
-              Injetando dados de benchmarking, gráficos setoriais e notas de {metadata.estado}...
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* INTERACTIVE PDF VIEWER OVERLAY MODAL */}
+      {/* INTERACTIVE PDF VIEWER OVERLAY */}
       {showPdfViewer && (
-        <div className="fixed inset-0 z-[110] bg-slate-950/75 backdrop-blur-md flex flex-col justify-between font-sans" id="realtime-pdf-document-viewer">
-          {/* Viewer Top bar controls */}
-          <div className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-white font-sans">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-[#0C3D6E]/10 border border-[#0C3D6E] text-[#1D9E75] rounded-xl flex items-center justify-center">
-                <FileCheck className="w-5 h-5 text-brand-accent animate-pulse" />
-              </div>
-              <div className="text-left">
-                <h4 className="font-bold text-sm tracking-tight text-white font-sans">Visualizador do Relatório Executivo Oficial</h4>
-                <p className="text-[10px] text-slate-400 font-mono">Governança e Gestão de IA — MMGIA</p>
+        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'var(--ink)' }} id="realtime-pdf-document-viewer">
+          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, padding: '16px 24px', borderBottom: '1px solid var(--ink-raised)' }}>
+            <div className="mg-row" style={{ gap: 12 }}>
+              <FileCheck2 className="mg-ico" aria-hidden="true" style={{ color: 'var(--on-ink-accent)' }} />
+              <div>
+                <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--on-ink)' }}>Relatório executivo oficial</p>
+                <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>Governança e gestão de IA — MMGIA</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 flex-wrap">
-              {/* Pagination controls */}
-              <div className="flex items-center bg-slate-800 rounded-2xl p-1 font-mono text-xs text-white">
-                <button
-                  disabled={activePdfPage === 1}
-                  onClick={() => setActivePdfPage(prev => Math.max(1, prev - 1))}
-                  className="px-3 py-1.5 hover:bg-slate-700 rounded-xl transition cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed text-white"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="px-3 py-1 bg-slate-900 rounded-lg shrink-0">Página {activePdfPage} de 4</span>
-                <button
-                  disabled={activePdfPage === 4}
-                  onClick={() => setActivePdfPage(prev => Math.min(4, prev + 1))}
-                  className="px-3 py-1.5 hover:bg-slate-700 rounded-xl transition cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed text-white"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+            <div className="mg-row" style={{ gap: 16, flexWrap: 'wrap' }}>
+              <div className="mg-row" style={{ gap: 4 }}>
+                <Button variant="ghost" onInk size="sm" iconOnly icon={ChevronLeft} aria-label="Página anterior" disabled={activePdfPage === 1} onClick={() => setActivePdfPage((p) => Math.max(1, p - 1))} />
+                <span className="mg-code" style={{ color: 'var(--on-ink)' }}>Página {activePdfPage} de 4</span>
+                <Button variant="ghost" onInk size="sm" iconOnly icon={ChevronRight} aria-label="Próxima página" disabled={activePdfPage === 4} onClick={() => setActivePdfPage((p) => Math.min(4, p + 1))} />
               </div>
 
-              {/* Zoom controls */}
-              <div className="hidden sm:flex items-center bg-slate-800 rounded-2xl p-1 font-mono text-xs">
-                <button
-                  onClick={() => setPdfZoom(prev => Math.max(75, prev - 25))}
-                  className="px-2.5 py-1.5 hover:bg-slate-700 rounded-xl transition cursor-pointer text-white"
-                  title="Diminuir Zoom"
-                >
-                  -
-                </button>
-                <span className="px-2 text-slate-300">{pdfZoom}%</span>
-                <button
-                  onClick={() => setPdfZoom(prev => Math.min(150, prev + 25))}
-                  className="px-2.5 py-1.5 hover:bg-slate-700 rounded-xl transition cursor-pointer text-white"
-                  title="Aumentar Zoom"
-                >
-                  +
-                </button>
+              <div className="mg-row" style={{ gap: 4 }}>
+                <Button variant="ghost" onInk size="sm" onClick={() => setPdfZoom((z) => Math.max(75, z - 25))} aria-label="Diminuir zoom">−</Button>
+                <span className="mg-code" style={{ color: 'var(--on-ink)' }}>{pdfZoom}%</span>
+                <Button variant="ghost" onInk size="sm" onClick={() => setPdfZoom((z) => Math.min(150, z + 25))} aria-label="Aumentar zoom">+</Button>
               </div>
 
-              {/* Action buttons */}
-              <button
-                onClick={() => {
-                  window.print();
-                }}
-                className="px-4 py-2 bg-brand-accent hover:brightness-110 text-white text-xs font-bold font-sans rounded-xl transition cursor-pointer flex items-center gap-1.5 shadow"
-              >
-                <Printer className="w-3.5 h-3.5 text-white" />
-                <span>Salvar / Imprimir PDF</span>
-              </button>
-
-              <button
-                onClick={() => setShowPdfViewer(false)}
-                className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer"
-                title="Fechar Relatório"
-              >
-                <X className="w-5 h-5 text-slate-400 hover:text-white" />
-              </button>
+              <Button variant="primary" size="sm" icon={Printer} onClick={() => window.print()}>Salvar / imprimir PDF</Button>
+              <Button variant="ghost" onInk size="sm" iconOnly icon={X} aria-label="Fechar relatório" onClick={() => setShowPdfViewer(false)} />
             </div>
           </div>
 
-          {/* Central PDF Canvas Page */}
-          <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center bg-slate-950/40" id="pdf-scroller-canvas">
+          <div className="flex-1 overflow-auto flex justify-center" style={{ padding: 32 }} id="pdf-scroller-canvas">
             <div
-              className="bg-white shadow-2xl border border-slate-300 rounded-xs p-10 md:p-14 text-slate-800 relative select-text cursor-default max-w-[800px] w-full transition-all duration-300"
+              className="w-full max-w-[800px] relative"
               style={{
+                background: 'var(--surface-raised)',
+                color: 'var(--text)',
                 fontFamily: 'Georgia, serif',
-                minHeight: '1000px',
+                minHeight: 1000,
+                padding: '56px 64px',
                 transform: `scale(${pdfZoom / 100})`,
-                transformOrigin: 'center center',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.6)'
+                transformOrigin: 'top center',
+                boxShadow: 'var(--shadow-modal)',
               }}
             >
-              {/* Header colored bar */}
-              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#0C3D6E] via-[#1D9E75] to-[#E67E22]" />
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: 'var(--brand)' }} />
 
-              {/* Header on pages 2, 3, 4 */}
               {activePdfPage > 1 && (
-                <div className="flex justify-between items-center border-b border-slate-200 pb-2 mb-8 font-mono text-[9px] uppercase tracking-wider text-slate-400 leading-normal">
-                  <span>MMGIA — Diagnóstico de Maturidade em Governança de IA</span>
-                  <span>Relatório de Avaliação Institucional de IA</span>
+                <div className="flex justify-between items-center mb-8 pb-2" style={{ borderBottom: '1px solid var(--surface-deep)' }}>
+                  <span className="mg-code">MMGIA — Diagnóstico de Maturidade em Governança de IA</span>
+                  <span className="mg-code">Relatório de Avaliação Institucional de IA</span>
                 </div>
               )}
 
-              {/* Page 1 Content: Cover Page */}
               {activePdfPage === 1 && (
-                <div className="flex flex-col justify-between h-full pt-12 pb-10 font-sans text-left space-y-12">
+                <div className="flex flex-col justify-between font-sans text-left" style={{ gap: 40 }}>
                   <div className="space-y-4">
-                    <span className="font-mono text-[10px] uppercase font-bold text-[#1D9E75] tracking-widest block bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full w-max">
-                      documento_executivo_oficial · confidencial
-                    </span>
-                    <h3 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight uppercase font-sans">
+                    <StatusBadge status="good">Documento executivo oficial · confidencial</StatusBadge>
+                    <h3 className="text-3xl font-extrabold tracking-tight leading-tight uppercase mt-3" style={{ color: 'var(--text)' }}>
                       Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA)
                     </h3>
-                    <p className="text-slate-500 font-light font-mono text-xs uppercase tracking-wider">
-                      Relatório Executivo de Maturidade Regulatória e Metodológica
-                    </p>
+                    <p className="mg-code" style={{ textTransform: 'uppercase' }}>Relatório Executivo de Maturidade Regulatória e Metodológica</p>
                   </div>
 
-                  <hr className="border-[#0C3D6E] border-2 w-28" />
+                  <hr style={{ border: 0, borderTop: '2px solid var(--brand)', width: 112 }} />
 
-                  <div className="space-y-4 text-slate-600 font-sans text-xs leading-relaxed">
-                    <h4 className="font-bold text-slate-900 text-sm uppercase">1. Introdução & Fundamentação</h4>
-                    <p className="font-light">
+                  <div className="space-y-4 text-xs leading-relaxed mg-lead">
+                    <h4 className="font-bold text-sm uppercase" style={{ color: 'var(--text)' }}>1. Introdução & Fundamentação</h4>
+                    <p>
                       Este Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA) é um instrumento estratégico projetado para auxiliar organizações públicas e privadas a mensurar, avaliar e aprimorar sua capacidade de desenvolver, adotar, operar e governar soluções de Inteligência Artificial (IA) de forma ética, responsável, segura, legal e eficaz.
                     </p>
-                    <p className="font-light">
+                    <p>
                       Alinhado à Estratégia Nacional de Inteligência Artificial (ENIA) 2026-2029, o modelo serve como um roteiro para a recomendação e transformação, permitindo que as instituições analisem seu estado atual, identifiquem lacunas e planejem uma evolução estruturada sustentável de seus algoritmos.
                     </p>
                   </div>
 
-                  {/* Metadata block */}
-                  <div className="bg-slate-50 border border-slate-150 p-6 rounded-2xl text-left grid grid-cols-2 gap-4 font-mono text-[10px] text-slate-600 uppercase leading-snug">
+                  <div className="grid grid-cols-2 gap-4 p-6 rounded-2xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Entidade</span>
-                      <span className="font-bold text-slate-900">Mapeamento Anônimo</span>
+                      <span className="mg-code block">Entidade</span>
+                      <span className="mg-title">Mapeamento Anônimo</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Segmento de Atuação</span>
-                      <span className="font-bold text-slate-900 text-slate-800">{metadata.setor || 'N/A'}</span>
+                      <span className="mg-code block">Segmento de Atuação</span>
+                      <span className="mg-title">{metadata.setor || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Natureza Governamental</span>
-                      <span className="font-bold text-slate-900">{metadata.natureza || 'N/A'}</span>
+                      <span className="mg-code block">Natureza Governamental</span>
+                      <span className="mg-title">{metadata.natureza || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Porte Organizacional</span>
-                      <span className="font-bold text-slate-900">{metadata.porte || 'N/A'}</span>
+                      <span className="mg-code block">Porte Organizacional</span>
+                      <span className="mg-title">{metadata.porte || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Local / Estado</span>
-                      <span className="font-bold text-slate-900">{metadata.estado || 'DF'}</span>
+                      <span className="mg-code block">Local / Estado</span>
+                      <span className="mg-title">{metadata.estado || 'DF'}</span>
                     </div>
                     <div>
-                      <span className="text-[9px] text-slate-400 block font-light">Chave Segurança</span>
-                      <span className="font-bold text-slate-900 text-[#0C3D6E]">{metadata.code || 'N/A'}</span>
+                      <span className="mg-code block">Chave Segurança</span>
+                      <span className="mg-title" style={{ color: 'var(--brand)' }}>{metadata.code || 'N/A'}</span>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-end border-t border-slate-150 pt-6 text-[9px] font-mono text-slate-400">
-                    <span>Emissão: 08 de Junho de 2026</span>
-                    <span>Versão 1.0 (Oficial)</span>
+                  <div className="flex justify-between items-end pt-6" style={{ borderTop: '1px solid var(--surface-deep)' }}>
+                    <span className="mg-code">Emissão: 08 de Junho de 2026</span>
+                    <span className="mg-code">Versão 1.0 (Oficial)</span>
                   </div>
                 </div>
               )}
 
-              {/* Page 2 Content: Methodology, meaning of current score */}
               {activePdfPage === 2 && (
                 <div className="space-y-6 font-sans text-left">
-                  <h3 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-2.5 uppercase font-sans">
+                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
                     2. Resumo Qualitativo de Maturidade Regulatória
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                    <div className="bg-[#E6F1FB] border border-blue-200 p-5 rounded-2xl text-center space-y-2">
-                      <span className="font-mono text-[8px] uppercase tracking-wider text-slate-500 font-bold block">Média Ponderada Oficial MMGIA</span>
-                      <div className="text-4xl font-mono font-black text-[#0C3D6E]">{globalScore.toFixed(2)} / 3.00</div>
-                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-primary text-white text-[9.5px] font-mono font-bold uppercase">
-                        Nível {levelInfo.num} — {levelInfo.label}
-                      </div>
+                    <div className="p-5 rounded-2xl text-center space-y-2" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
+                      <span className="mg-code block">Média Ponderada Oficial MMGIA</span>
+                      <div className="text-4xl font-black" style={{ fontFamily: 'var(--mg-font-mono)', color: 'var(--brand)' }}>{formatNumber(globalScore)} / 3,00</div>
+                      <LevelBadge level={levelInfo.num as Level} />
                     </div>
 
-                    <div className="space-y-1 text-xs text-slate-600 leading-relaxed font-light">
-                      <strong className="text-slate-900 block font-medium">Interpretação Baseada na Metodologia:</strong>
-                      <p className="text-[11px] leading-normal">{levelInfo.desc}</p>
+                    <div className="space-y-1 text-xs leading-relaxed mg-lead">
+                      <strong style={{ color: 'var(--text)' }} className="block font-medium">Interpretação Baseada na Metodologia:</strong>
+                      <p className="leading-normal">{levelInfo.desc}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <h4 className="font-bold text-slate-900 text-xs uppercase tracking-tight">Implicações Práticas & Riscos Mapeados</h4>
-                    <p className="text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 leading-relaxed">
+                    <h4 className="font-bold text-xs uppercase tracking-tight" style={{ color: 'var(--text)' }}>Implicações Práticas & Riscos Mapeados</h4>
+                    <p className="text-xs italic pl-3 leading-relaxed mg-lead" style={{ borderLeft: '2px solid var(--surface-deep)' }}>
                       {levelInfo.risco}
                     </p>
 
-                    <h4 className="font-bold text-slate-900 text-xs uppercase tracking-tight">Alinhamento aos Marcos Globais</h4>
-                    <p className="text-xs text-slate-650 leading-relaxed font-light">
+                    <h4 className="font-bold text-xs uppercase tracking-tight" style={{ color: 'var(--text)' }}>Alinhamento aos Marcos Globais</h4>
+                    <p className="text-xs leading-relaxed mg-lead">
                       Este resultado valida o estado técnico e de conformidade do modelo com as imposições futuras do <strong>PL 2338/2023</strong> (Marco de IA no Congresso Brasileiro), da Lei Geral de Proteção de Dados (<strong>LGPD</strong>), de diretrizes internacionais de design ético (<strong>AI Act da União Europeia</strong>), e com as práticas integradas e unificadas das normas <strong>ISO/IEC 42001</strong>.
                     </p>
 
-                    <div className="bg-slate-50 border border-slate-150 p-4 rounded-xl font-mono text-[10px] text-slate-600 space-y-1">
-                      <span className="font-bold text-slate-950 uppercase tracking-wider block text-[9px] text-[#0C3D6E] pb-0.5">Mapeamento Geral de Riscos</span>
+                    <div className="p-4 rounded-xl space-y-1" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
+                      <span className="mg-code block" style={{ textTransform: 'uppercase' }}>Mapeamento Geral de Riscos</span>
                       {globalScore < 1.0 ? (
-                        <p>A entidade opera com risco regulatório Crítico. Requer instituição imediata de políticas básicas regulatórias e criação de um Comitê Focal para evitar processos e incidentes relacionados à Shadow AI.</p>
+                        <p className="mg-small">A entidade opera com risco regulatório Crítico. Requer instituição imediata de políticas básicas regulatórias e criação de um Comitê Focal para evitar processos e incidentes relacionados à Shadow AI.</p>
                       ) : globalScore < 2.0 ? (
-                        <p>A entidade opera em nível de risco Moderado. Possui processos definidos, porém com inconsistências pontuais de execução departamental. Vital instituir o Relatório de Impacto de IA.</p>
+                        <p className="mg-small">A entidade opera em nível de risco Moderado. Possui processos definidos, porém com inconsistências pontuais de execução departamental. Vital instituir o Relatório de Impacto de IA.</p>
                       ) : (
-                        <p>A entidade atinge excelente conformidade regulatória ativa, com riscos residuais mínimos. Recomenda-se manter rotinas periódicas de simulação (Red Teaming) e auditorias de transparência.</p>
+                        <p className="mg-small">A entidade atinge excelente conformidade regulatória ativa, com riscos residuais mínimos. Recomenda-se manter rotinas periódicas de simulação (Red Teaming) e auditorias de transparência.</p>
                       )}
                     </div>
                   </div>
-
-                  <div className="absolute bottom-6 left-12 right-12 flex justify-between text-[8px] font-mono text-slate-400 border-t border-slate-150 pt-3">
-                    <span>MMGIA — Comitê Técnico Informativo</span>
-                    <span>Página 2 de 4</span>
-                  </div>
                 </div>
               )}
 
-              {/* Page 3 Content: Matrix scores, Dimension scores, Benchmarking */}
               {activePdfPage === 3 && (
                 <div className="space-y-5 font-sans text-left">
-                  <h3 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-2.5 uppercase font-sans">
+                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
                     3. Detalhamento dos Eixos por Média de Importância
                   </h3>
 
-                  <p className="text-xs text-slate-600 leading-relaxed font-light">
+                  <p className="text-xs leading-relaxed mg-lead">
                     O cálculo do Score Global ponderado converge o desempenho das práticas de cada pilar de acordo com os seguintes pesos de importância estratégica fundamentados na metodologia oficial:
                   </p>
 
-                  <div className="border border-slate-200 rounded-xl overflow-hidden shadow-sm text-left">
-                    <table className="w-full border-collapse text-[11px] text-left">
-                      <thead>
-                        <tr className="bg-slate-50 text-slate-500 font-mono text-[8px] uppercase border-b border-slate-200">
-                          <th className="p-2.5">Eixo de Maturidade</th>
-                          <th className="p-2.5 text-center">Score Obtido</th>
-                          <th className="p-2.5 text-center">Peso</th>
-                          <th className="p-2.5 text-right flex-1">Contribuição</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 font-sans">
-                        {[
-                          { name: '1. Governança e Arcabouço Regulatório', score: currentScores.gov, weight: '25%', contribution: (currentScores.gov * 0.25) },
-                          { name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação', score: currentScores.tec, weight: '20%', contribution: (currentScores.tec * 0.20) },
-                          { name: '3. Segurança, Confiança e Proteção da Sociedade', score: currentScores.seg, weight: '25%', contribution: (currentScores.seg * 0.25) },
-                          { name: '4. Educação, Capacitação e Cultura Organizacional', score: currentScores.edu, weight: '15%', contribution: (currentScores.edu * 0.15) },
-                          { name: '5. Cooperação e Inserção no Ecossistema', score: currentScores.eco, weight: '15%', contribution: (currentScores.eco * 0.15) },
-                        ].map((row, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/40">
-                            <td className="p-2.5 font-medium text-slate-900">{row.name}</td>
-                            <td className="p-2.5 text-center font-mono font-bold text-slate-700">{row.score.toFixed(2)}</td>
-                            <td className="p-2.5 text-center font-mono text-slate-500">{row.weight}</td>
-                            <td className="p-2.5 text-right font-mono font-bold text-slate-800">+{row.contribution.toFixed(3)}</td>
-                          </tr>
-                        ))}
-                        <tr className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
-                          <td className="p-2.5 font-mono text-[9px] uppercase">Score Global Final Regido (Total)</td>
-                          <td className="p-2.5 text-center font-mono font-black" colSpan={2}>
-                            {globalScore.toFixed(2)}
-                          </td>
-                          <td className="p-2.5 text-right font-mono text-brand-primary font-black underline">
-                            {globalScore.toFixed(3)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
+                  <DataTable<WeightRow & { name: string }>
+                    caption="Score, peso e contribuição por eixo de maturidade"
+                    rowKey={(r) => r.id}
+                    columns={[
+                      { key: 'name', header: 'Eixo de Maturidade', render: (r) => r.name },
+                      { key: 'score', header: 'Score Obtido', numeric: true, render: (r) => formatNumber(r.score) },
+                      { key: 'weight', header: 'Peso', numeric: true, render: (r) => `${Math.round(r.weight * 100)}%` },
+                      { key: 'contrib', header: 'Contribuição', numeric: true, render: (r) => `+${formatNumber(r.contribution, 3)}` },
+                    ]}
+                    rows={[
+                      { ...weightRows[0], name: '1. Governança e Arcabouço Regulatório' },
+                      { ...weightRows[1], name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação' },
+                      { ...weightRows[2], name: '3. Segurança, Confiança e Proteção da Sociedade' },
+                      { ...weightRows[3], name: '4. Educação, Capacitação e Cultura Organizacional' },
+                      { ...weightRows[4], name: '5. Cooperação e Inserção no Ecossistema' },
+                    ]}
+                  />
+
+                  <p className="mg-code">Score Global Final Regido (Total): {formatNumber(globalScore)} / 3,00</p>
 
                   <div className="space-y-3 pt-2">
-                    <h4 className="font-bold text-slate-900 text-xs uppercase">Comparativos de Grupo (Setor: {metadata.setor})</h4>
-                    <p className="text-xs text-slate-650 font-light leading-normal leading-relaxed">
-                      Sua pontuação ponderada final é de <strong>{globalScore.toFixed(2)}</strong>, enquanto o benchmark da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{peerAverageGlobal.toFixed(2)}</strong>.
+                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Setor: {metadata.setor})</h4>
+                    <p className="text-xs leading-relaxed mg-lead">
+                      Sua pontuação ponderada final é de <strong>{formatNumber(globalScore)}</strong>, enquanto o benchmark ilustrativo da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{formatNumber(peerAverageGlobal)}</strong>.
                     </p>
 
                     <div className="grid grid-cols-2 gap-3 text-xs leading-relaxed font-sans">
-                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                        <strong className="text-slate-900 text-[11px] block font-semibold">Conformidade do Setor</strong>
-                        <span className="text-[11px] text-slate-600 block mt-0.5">A organização encontra-se em patamar <strong className="text-emerald-700">{globalScore >= peerAverageGlobal ? 'Vantajoso / Acima da Média' : 'De Atenção / Ajustes Prioritários'}</strong> comparada aos órgãos do grupo.</span>
+                      <div className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
+                        <strong className="text-[11px] block font-semibold" style={{ color: 'var(--text)' }}>Conformidade do Setor</strong>
+                        <span className="text-[11px] block mt-0.5 mg-muted">
+                          A organização encontra-se em patamar {' '}
+                          <StatusBadge status={globalScore >= peerAverageGlobal ? 'good' : 'attention'}>
+                            {globalScore >= peerAverageGlobal ? 'Vantajoso / Acima da Média' : 'De Atenção / Ajustes Prioritários'}
+                          </StatusBadge>
+                          {' '}comparada aos órgãos do grupo.
+                        </span>
                       </div>
-                      <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                        <strong className="text-slate-900 text-[11px] block font-semibold">Distância para a Meta Técnica</strong>
-                        <span className="text-[11px] text-slate-600 block mt-0.5">Déficit da meta de maturidade padrão (Nível 3 definido com score 2.00) fixado em <strong className={globalScore >= 2.0 ? 'text-emerald-700' : 'text-red-600'}>{(globalScore - 2.0).toFixed(2)}</strong> pontos.</span>
+                      <div className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
+                        <strong className="text-[11px] block font-semibold" style={{ color: 'var(--text)' }}>Distância para a Meta Técnica</strong>
+                        <span className="text-[11px] block mt-0.5 mg-muted">
+                          Déficit da meta de maturidade padrão (Nível 3 definido com score 2,00) fixado em <strong>{formatNumber(globalScore - 2.0)}</strong> pontos.
+                        </span>
                       </div>
                     </div>
-                  </div>
-
-                  <div className="absolute bottom-6 left-12 right-12 flex justify-between text-[8px] font-mono text-slate-400 border-t border-slate-150 pt-3">
-                    <span>MMGIA — Comitê Técnico Informativo</span>
-                    <span>Página 3 de 4</span>
                   </div>
                 </div>
               )}
 
-              {/* Page 4 Content: Roadmaps, Gap resolutions & sign block */}
               {activePdfPage === 4 && (
                 <div className="space-y-6 font-sans text-left">
-                  <h3 className="text-xl font-bold text-slate-900 border-b border-slate-200 pb-2.5 uppercase font-sans">
+                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
                     4. Recomendações Críticas e Assinaturas
                   </h3>
 
-                  <p className="text-xs text-slate-600 leading-relaxed font-light">
+                  <p className="text-xs leading-relaxed mg-lead">
                     Mapeamos recomendações de impacto na escala de maturidade. Tratam-se de ações proativas para sanar canais e práticas diagnosticadas com conformidade incipiente (Nulo ou Parcial):
                   </p>
 
@@ -1052,54 +681,54 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                     {(filteredGaps.length > 0 ? filteredGaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
                       const rec = getGapRecommendation(gap.id);
                       return (
-                        <div key={i} className="p-3 bg-slate-50 border border-slate-150 rounded-xl font-sans text-left">
-                          <div className="flex justify-between items-center text-[9px] font-mono mb-1 leading-none">
-                            <span className="font-bold text-[#0C3D6E]">Prática {gap.id} — {gap.name}</span>
-                            <span className="text-red-500 uppercase font-bold text-[8px]">Alta Prioridade</span>
+                        <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
+                          <div className="flex justify-between items-center mb-1.5">
+                            <span className="mg-code" style={{ color: 'var(--brand)' }}>Prática {gap.id} — {gap.name}</span>
+                            <StatusBadge status="critical">Alta prioridade</StatusBadge>
                           </div>
-                          <p className="text-slate-600 text-[10.5px] leading-normal font-sans italic">
+                          <p className="text-[10.5px] leading-normal italic mg-muted">
                             <strong>Ação Implementação:</strong> {rec.action}
                           </p>
-                          <span className="text-[8.5px] text-slate-400 font-mono block mt-1">Eixo: {DIMENSIONS[gap.dimensionId].shortName} · Esforço Operacional: {rec.effort}</span>
+                          <span className="mg-code block mt-1">Eixo: {DIMENSIONS[gap.dimensionId].shortName} · Esforço Operacional: {rec.effort}</span>
                         </div>
                       );
                     })}
                   </div>
 
                   <div className="pt-2">
-                    <h4 className="font-bold text-slate-900 text-xs font-sans uppercase">Diretrizes Práticas Finais</h4>
-                    <p className="text-xs text-slate-650 leading-relaxed font-light mt-1 text-justify">
+                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Diretrizes Práticas Finais</h4>
+                    <p className="text-xs leading-relaxed mt-1 text-justify mg-lead">
                       A conformidade regulatória plena dar-se-á com a instituição robusta do <strong>Comitê de IA</strong> formalizado nos diários oficiais municipais, estaduais ou feeds internos, promovendo a transparência, mitigando alucinações cognitivas graves de algoritmos generativos e garantindo as auditorias de explicabilidade perante o cidadão em consonância com o PL 2338/2023.
                     </p>
                   </div>
 
-                  {/* Representative signatures */}
-                  <div className="grid grid-cols-2 gap-8 pt-10 text-center text-[10px] font-mono leading-snug">
+                  <div className="grid grid-cols-2 gap-8 pt-10 text-center leading-snug">
                     <div className="space-y-1">
-                      <div className="border-t border-slate-300 pt-1 text-slate-700 font-bold">Comitê de Governança de IA</div>
-                      <span className="text-slate-400 font-light text-[8.5px]">Representante Técnico Integrado MMGIA</span>
+                      <div className="pt-1 font-bold" style={{ borderTop: '1px solid var(--surface-deep)', color: 'var(--text)' }}>Comitê de Governança de IA</div>
+                      <span className="mg-code">Representante Técnico Integrado MMGIA</span>
                     </div>
                     <div className="space-y-1">
-                      <div className="border-t border-slate-300 pt-1 text-slate-700 font-bold">Encarregado de Proteção de Dados (DPO)</div>
-                      <span className="text-slate-400 font-light text-[8.5px]">Compliance e Proteção Regulatória da LGPD</span>
+                      <div className="pt-1 font-bold" style={{ borderTop: '1px solid var(--surface-deep)', color: 'var(--text)' }}>Encarregado de Proteção de Dados (DPO)</div>
+                      <span className="mg-code">Compliance e Proteção Regulatória da LGPD</span>
                     </div>
-                  </div>
-
-                  <div className="absolute bottom-6 left-12 right-12 flex justify-between text-[8px] font-mono text-slate-400 border-t border-slate-150 pt-3">
-                    <span>Comissão de Ética MMGIA 2026</span>
-                    <span>Página 4 de 4</span>
                   </div>
                 </div>
               )}
+
+              <div className="flex justify-between pt-3 mt-10" style={{ borderTop: '1px solid var(--surface-deep)' }}>
+                <span className="mg-code">MMGIA — Comitê Técnico Informativo</span>
+                <span className="mg-code">Página {activePdfPage} de 4</span>
+              </div>
             </div>
           </div>
 
-          {/* Bottom controller helper text */}
-          <div className="bg-slate-900 border-t border-slate-800 px-6 py-4 text-center text-[10px] font-mono text-slate-450 leading-normal">
-            <span>Este visualizador interativo simula fielmente as páginas de exportação física do relatório MMGIA em formato A4. Utilize o botão "Salvar / Imprimir PDF" para salvar como arquivo PDF no seu computador ou celular de forma permanente.</span>
+          <div className="text-center py-4" style={{ borderTop: '1px solid var(--ink-raised)' }}>
+            <span className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>
+              Este visualizador interativo simula fielmente as páginas de exportação física do relatório MMGIA em formato A4. Utilize o botão "Salvar / imprimir PDF" para salvar como arquivo PDF de forma permanente.
+            </span>
           </div>
         </div>
       )}
-    </div>
+    </DsRoot>
   );
 }

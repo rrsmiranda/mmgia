@@ -4,6 +4,7 @@
  */
 
 import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
+import { DIMENSION_ORDER, SCORE_GOAL, SCORE_MAX, formatNumber } from '@mmgia/shared/design-system';
 
 interface RadarChartProps {
   scores: Record<DimensionId, number>;
@@ -16,10 +17,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
   const centerX = width / 2;
   const centerY = height / 2;
   const maxRadius = 120;
-  const maxScore = 3.0;
-
-  // Ordered list of dimensions for pentagon rotation
-  const order: DimensionId[] = ['gov', 'tec', 'seg', 'edu', 'eco'];
+  const maxScore = SCORE_MAX;
 
   const getCoordinates = (index: number, score: number) => {
     const angle = (index * 2 * Math.PI) / 5 - Math.PI / 2;
@@ -31,17 +29,18 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
     };
   };
 
-  // Build grid boundaries (pentagon rings at 1, 2, and 3 scores)
-  const ringPoints = [1.0, 2.0, 3.0].map((ringValue) => {
-    return order.map((_, i) => {
+  const ringAt = (ringValue: number) =>
+    DIMENSION_ORDER.map((_, i) => {
       const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
       const radius = (ringValue / maxScore) * maxRadius;
       return `${centerX + radius * Math.cos(angle)},${centerY + radius * Math.sin(angle)}`;
     }).join(' ');
-  });
 
-  // Build paths for values
-  const userPointsStr = order
+  // Grid rings at 1, 2 e 3; anel tracejado adicional na meta (1,50)
+  const ringPoints = [1.0, 2.0, 3.0].map((ringValue) => ({ value: ringValue, points: ringAt(ringValue) }));
+  const goalRingPoints = ringAt(SCORE_GOAL);
+
+  const userPointsStr = DIMENSION_ORDER
     .map((dim, i) => {
       const { x, y } = getCoordinates(i, scores[dim] || 0);
       return `${x},${y}`;
@@ -49,7 +48,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
     .join(' ');
 
   const benchmarkPointsStr = benchmarkScores
-    ? order
+    ? DIMENSION_ORDER
         .map((dim, i) => {
           const { x, y } = getCoordinates(i, benchmarkScores[dim] || 0);
           return `${x},${y}`;
@@ -57,10 +56,9 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
         .join(' ')
     : '';
 
-  // Calculate coordinates for grid axis labels
-  const labelPositions = order.map((dim, i) => {
+  const labelPositions = DIMENSION_ORDER.map((dim, i) => {
     const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-    const labelDistance = maxRadius + 30; // offset outwards
+    const labelDistance = maxRadius + 30;
     return {
       dim,
       x: centerX + labelDistance * Math.cos(angle),
@@ -69,46 +67,38 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
   });
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 bg-slate-900 border border-slate-800 rounded-3xl" id="radar-chart-container">
+    <div className="flex flex-col items-center justify-center" id="radar-chart-container">
       <div className="mb-4 text-center">
-        <h4 className="text-sm font-semibold uppercase font-mono tracking-wider text-brand-accent">
-          Radar de Maturidade por Dimensão
-        </h4>
-        <p className="text-xs text-slate-400 font-sans mt-0.5">
-          Pentágono de preenchimento relativo de 0.00 a 3.00
+        <h4 className="mg-title">Radar de maturidade por dimensão</h4>
+        <p className="mg-small mg-muted" style={{ marginTop: 2 }}>
+          Pentágono de preenchimento relativo de {formatNumber(0)} a {formatNumber(maxScore)}
         </p>
       </div>
 
       <div className="relative">
         <svg width={width} height={height} className="overflow-visible mx-auto" id="radar-svg">
-          {/* Grid Pentagons */}
-          {ringPoints.map((points, index) => {
-            const val = index + 1;
-            return (
-              <g key={val}>
-                <polygon
-                  points={points}
-                  fill="none"
-                  stroke="rgba(255, 255, 255, 0.06)"
-                  strokeWidth="1.5"
-                />
-                {/* Score label text on grid */}
-                <text
-                  x={centerX}
-                  y={centerY - (val / maxScore) * maxRadius + 4}
-                  fill="rgba(255, 255, 255, 0.3)"
-                  fontSize="9"
-                  fontFamily="monospace"
-                  textAnchor="middle"
-                >
-                  {val.toFixed(1)}
-                </text>
-              </g>
-            );
-          })}
+          {/* Grid rings */}
+          {ringPoints.map(({ value, points }) => (
+            <g key={value}>
+              <polygon points={points} fill="none" stroke="var(--surface-deep)" strokeWidth="1.5" />
+              <text
+                x={centerX}
+                y={centerY - (value / maxScore) * maxRadius + 4}
+                fill="var(--text-muted)"
+                fontSize="9"
+                fontFamily="var(--mg-font-mono)"
+                textAnchor="middle"
+              >
+                {formatNumber(value, 1)}
+              </text>
+            </g>
+          ))}
 
-          {/* Grid Axes Spokes */}
-          {order.map((_, i) => {
+          {/* Anel tracejado na meta (score 1,50) */}
+          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
+
+          {/* Grid axis spokes */}
+          {DIMENSION_ORDER.map((_, i) => {
             const outerCoord = getCoordinates(i, maxScore);
             return (
               <line
@@ -117,113 +107,70 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
                 y1={centerY}
                 x2={outerCoord.x}
                 y2={outerCoord.y}
-                stroke="rgba(255, 255, 255, 0.06)"
+                stroke="var(--surface-deep)"
                 strokeWidth="1"
                 strokeDasharray="2 2"
               />
             );
           })}
 
-          {/* Benchmark polygon overlay if defined */}
+          {/* Benchmark polygon overlay (ilustrativo) */}
           {benchmarkScores && (
             <g>
-              <polygon
-                points={benchmarkPointsStr}
-                fill="rgba(29, 158, 117, 0.06)"
-                stroke="#1D9E75"
-                strokeWidth="1.5"
-                strokeDasharray="3 3"
-              />
-              {/* Highlight vertices */}
-              {order.map((dim, i) => {
+              <polygon points={benchmarkPointsStr} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="3 3" />
+              {DIMENSION_ORDER.map((dim, i) => {
                 const { x, y } = getCoordinates(i, benchmarkScores[dim] || 0);
-                return (
-                  <circle
-                    key={`b-${dim}`}
-                    cx={x}
-                    cy={y}
-                    r="3.5"
-                    fill="#1D9E75"
-                    stroke="#1D9E75"
-                    strokeWidth="1"
-                  />
-                );
+                return <circle key={`b-${dim}`} cx={x} cy={y} r="3.5" fill="var(--text-muted)" />;
               })}
             </g>
           )}
 
-          {/* User Score Filled Polygon */}
+          {/* User score filled polygon */}
           <g>
-            <polygon
-              points={userPointsStr}
-              fill="rgba(24, 95, 165, 0.28)"
-              stroke="#2563EB"
-              strokeWidth="2.5"
-            />
-            {/* Highlight vertices */}
-            {order.map((dim, i) => {
+            <polygon points={userPointsStr} fill="var(--brand-soft)" stroke="var(--brand-accent)" strokeWidth="2.5" />
+            {DIMENSION_ORDER.map((dim, i) => {
               const { x, y } = getCoordinates(i, scores[dim] || 0);
-              const metadata = DIMENSIONS[dim];
               return (
                 <g key={`u-${dim}`}>
                   <circle
                     cx={x}
                     cy={y}
                     r="5.5"
-                    fill={metadata.color}
-                    stroke="#FFFFFF"
+                    fill={`var(--dim-${dim})`}
+                    stroke="var(--surface-raised)"
                     strokeWidth="1.5"
                     className="cursor-pointer hover:scale-125 transition-transform"
                   />
-                  {/* Score annotation directly by dot */}
                   <text
                     x={x}
                     y={y - 8}
-                    fill="#FFFFFF"
+                    fill="var(--text)"
                     fontSize="9.5"
                     fontWeight="bold"
-                    fontFamily="monospace"
+                    fontFamily="var(--mg-font-mono)"
                     textAnchor="middle"
-                    className="pointer-events-none drop-shadow"
+                    className="pointer-events-none"
                   >
-                    {(scores[dim] || 0).toFixed(2)}
+                    {formatNumber(scores[dim] || 0)}
                   </text>
                 </g>
               );
             })}
           </g>
 
-          {/* Axis Labels */}
+          {/* Axis labels */}
           {labelPositions.map((pos, i) => {
             const metadata = DIMENSIONS[pos.dim];
-            const alignment =
-              i === 0
-                ? 'middle'
-                : i === 1 || i === 2
-                ? 'start'
-                : 'end';
-
+            const alignment = i === 0 ? 'middle' : i === 1 || i === 2 ? 'start' : 'end';
             const verticalOffset = i === 0 ? -10 : i === 2 || i === 3 ? 15 : 0;
             const horizontalOffset = i === 1 ? 5 : i === 4 ? -5 : 0;
 
             return (
               <g key={pos.dim} transform={`translate(${pos.x + horizontalOffset}, ${pos.y + verticalOffset})`}>
-                <text
-                  fill="#F8FAFC"
-                  fontSize="11"
-                  fontWeight="800"
-                  fontFamily="sans-serif"
-                  textAnchor={alignment}
-                >
+                <text fill="var(--text)" fontSize="11" fontWeight="800" fontFamily="var(--mg-font-sans)" textAnchor={alignment}>
                   {metadata.shortName}
                 </text>
-                <text
-                  fill="rgba(255, 255, 255, 0.4)"
-                  fontSize="8.5"
-                  fontFamily="monospace"
-                  textAnchor={alignment}
-                  y="12"
-                >
+                <text fill="var(--text-muted)" fontSize="8.5" fontFamily="var(--mg-font-mono)" textAnchor={alignment} y="12">
                   {metadata.id.toUpperCase()}
                 </text>
               </g>
@@ -232,16 +179,16 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
         </svg>
       </div>
 
-      {/* Legend Block */}
-      <div className="mt-4 flex gap-6 text-[10px] uppercase font-mono font-bold tracking-wider" id="radar-legend">
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded bg-blue-600 outline outline-1 outline-white"></span>
-          <span className="text-slate-300">Sua Organização</span>
+      {/* Legend */}
+      <div className="mt-4 flex gap-6" id="radar-legend">
+        <div className="mg-row" style={{ gap: 8 }}>
+          <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--brand-accent)', display: 'inline-block' }} />
+          <span className="mg-small">Sua organização</span>
         </div>
         {benchmarkScores && (
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 border-t border-dashed border-[#1D9E75] inline-block"></span>
-            <span className="text-brand-accent">Média Grupo Nacional</span>
+          <div className="mg-row" style={{ gap: 8 }}>
+            <span style={{ width: 12, height: 0, borderTop: '2px dashed var(--text-muted)', display: 'inline-block' }} />
+            <span className="mg-small mg-muted">Média grupo nacional (ilustrativo)</span>
           </div>
         )}
       </div>
