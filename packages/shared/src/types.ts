@@ -614,7 +614,7 @@ export const SEED_ADMIN_USERS: AdminUser[] = [
   {
     id: 'u2',
     name: 'Rafael Miranda',
-    email: 'rafaelmirandanpd@gmail.com',
+    email: 'rafael.miranda@exemplo.gov.br',
     role: 'gestor',
     status: 'Ativo',
     lastLogin: '07/06/2026 18:42',

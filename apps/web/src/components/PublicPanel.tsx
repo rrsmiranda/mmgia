@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Database, LineChart, LayoutGrid, MapPin } from 'lucide-react';
 import BrazilMap from './BrazilMap';
 import { DimensionId } from '@mmgia/shared/types';
+import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
   Button,
   Card,
@@ -52,12 +53,24 @@ function scoreStatus(score: number) {
   return 'var(--status-critical)';
 }
 
+// Score médio nacional (mock) — o nível exibido é sempre derivado por getMaturityLevel, nunca escrito à mão.
+const NATIONAL_AVERAGE_SCORE = 1.42;
+
+// Scores por UF (mock) — usados apenas para ilustrar o card "Dados do estado em foco".
+const UF_SCORES: Record<string, number> = { DF: 2.12, SP: 1.89 };
+const DEFAULT_UF_SCORE = 1.38;
+
 export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
   const [sectorFilter, setSectorFilter] = useState('Todos');
   const [porteFilter, setPorteFilter] = useState('Todos');
   const [selectedUf, setSelectedUf] = useState<string>('DF');
 
-  const ufScoreLabel = selectedUf === 'DF' ? '2,12 / 3 (Nível 3)' : selectedUf === 'SP' ? '1,89 / 3 (Nível 2)' : '1,38 / 3 (Nível 2)';
+  const nationalLevel = getMaturityLevel(NATIONAL_AVERAGE_SCORE);
+  const metaGap = Math.max(0, 1.5 - NATIONAL_AVERAGE_SCORE);
+
+  const ufScore = UF_SCORES[selectedUf] ?? DEFAULT_UF_SCORE;
+  const ufLevel = getMaturityLevel(ufScore);
+  const ufScoreLabel = `${formatNumber(ufScore)} / 3 (Nível ${ufLevel.num})`;
 
   return (
     <DsRoot>
@@ -123,8 +136,8 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
           {/* PAINEL PRINCIPAL */}
           <div className="mg-stack" style={{ gap: 24 }}>
             <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12 }} id="panel-kpis">
-              <KpiCard label="Score médio Brasil" value={formatNumber(1.42)} />
-              <KpiCard label="Nível modal" value="Nível 2" />
+              <KpiCard label="Score médio Brasil" value={formatNumber(NATIONAL_AVERAGE_SCORE)} />
+              <KpiCard label="Nível modal" value={`Nível ${nationalLevel.num}`} />
               <KpiCard label="Avaliações ativas" value="1.847" />
               <KpiCard label="Pilar mais crítico" value="Edu" />
             </div>
@@ -136,7 +149,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
               <InsightCard status="good" label="Destaque nacional" title="Aspectos de segurança: 1,52">
                 Iniciativas de proteção e adequação à LGPD puxam os índices para cima.
               </InsightCard>
-              <InsightCard status="attention" label="Rumo ao Nível 3" title="Diferença para meta: 0,58 pts">
+              <InsightCard status="attention" label="Rumo ao Nível 3" title={`Diferença para meta: ${formatNumber(metaGap)} pts`}>
                 Basta formalizar comitês e inventários estruturados nas organizações de nível 2.
               </InsightCard>
             </div>

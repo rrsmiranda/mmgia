@@ -28,7 +28,7 @@ const SCHEMA_FIELDS: SchemaField[] = [
   { name: 'estado', type: 'string', desc: 'Unidade Federativa de atuação principal.', ex: 'SP' },
   { name: 'setor', type: 'string', desc: 'Vertical econômica ou atividade prática principal.', ex: 'Financeiro' },
   { name: 'score_global', type: 'float', desc: 'Média global recalculada de 0.00 a 3.00.', ex: '1.82' },
-  { name: 'nivel_global', type: 'integer', desc: 'Maturidade apurada de nível 1 a 5.', ex: '3' },
+  { name: 'nivel_global', type: 'integer', desc: 'Maturidade apurada de nível 0 a 5.', ex: '3' },
 ];
 
 export default function OpenData() {

@@ -15,7 +15,7 @@
 
 1. **TypeScript strict** — zero `any`, zero `@ts-ignore`, zero `as unknown`.
 2. **Três arquivos por componente** — `Componente.tsx` + `.stories.tsx` + `.test.tsx`.
-3. **Tipografia** — Plus Jakarta Sans (títulos + corpo) + Geist Mono (dados técnicos).
+3. **Tipografia** — Rawline (gov.br oficial, via CDN) com Raleway como fallback local, para títulos e corpo; JetBrains Mono para dados técnicos/código. (Este arquivo previa Plus Jakarta Sans + Geist Mono nas fases 2/6/7; a tipografia efetivamente implementada, junto com o restante do design system MMGIA — tokens de cor categórica/ordinal/status/marca, componentes `mg-*` — está em `packages/shared/src/design-system/` e documentada em `mmgia-design-system/docs/design-system.md`. O switcher de 6 paletas de accent descrito na Fase 2 abaixo não foi implementado; o design system real usa uma única marca fixa mais um toggle claro/escuro.)
 4. **Cores** — sempre via tokens; nunca hardcode hex fora de `tokens/`.
 5. **Anonimidade é inegociável** — ver a seção "Os dois mundos" abaixo.
 6. **Acessibilidade** — WCAG 2.1 AA; respeitar `prefers-reduced-motion`.
@@ -70,38 +70,36 @@ tabela `submissions` (avaliações anônimas) não têm relação por chave estr
 
 ---
 
-## Estrutura do monorepo (3 apps)
+## Estrutura do monorepo
+
+> Esta seção reflete a estrutura real do repositório nesta sessão (npm
+> workspaces — sem pnpm/turbo). `apps/worker/` e `infra/` (Cloudflare Worker,
+> migrations SQL) ainda não existem: os dados hoje são seeds estáticos em
+> `packages/shared/src/types.ts`, e o cálculo de score roda inteiramente no
+> browser, sem backend. O plano de backend nas fases 5/8 abaixo continua
+> válido como próximo passo, mas ainda é aspiracional, não implementado.
 
 ```
 mmgia/
 ├── CLAUDE.md                    ← este arquivo
-├── package.json                 ← workspace root
-├── pnpm-workspace.yaml
-├── turbo.json
-├── .github/workflows/ci.yml
+├── package.json                 ← workspace root (npm workspaces)
 ├── apps/
-│   ├── web/                     ← SPA pública anônima (mmgia.org.br)
-│   ├── admin/                   ← SPA administrativa (admin.mmgia.org.br)
-│   └── worker/                  ← Cloudflare Worker (api.mmgia.org.br)
-├── packages/
-│   ├── shared/                  ← schemas Zod + scoring + base legal
-│   ├── ui/                      ← design system (Plus Jakarta + Geist Mono)
-│   ├── pdf/                     ← geração de PDF client-side
-│   └── xlsx/                    ← geração de Excel (área admin)
-└── infra/
-    ├── migrations/
-    │   ├── 001_initial.sql      ← submissions (anônima)
-    │   ├── 002_edit_code.sql    ← código de edição
-    │   ├── 003_admin.sql        ← admin_users + admin_sessions
-    │   ├── 004_news.sql         ← news_items
-    │   └── 005_legal.sql        ← legal_refs
-    └── seeds/
-        ├── dev_seed.sql
-        └── legal_seed.sql       ← base legal das 45 práticas
+│   ├── web/                     ← SPA pública anônima
+│   │   └── src/components/      ← telas públicas (Landing, Onboarding, Avaliação…)
+│   └── admin/                   ← SPA administrativa
+│       └── src/components/      ← telas admin (Login, Dashboard/RBAC/Notícias/Base legal)
+└── packages/
+    └── shared/                  ← consumido via subpaths do package.json (exports)
+        └── src/
+            ├── types.ts         ← DIMENSIONS, LIST_PRACTICES, seeds (SEED_*)
+            ├── lib/scoring.ts   ← getDimensionScore/getGlobalScore/getMaturityLevel
+            └── design-system/   ← componentes mg-*, tokens.css, theme.css (ds-*)
 ```
 
-**As 3 apps são deployadas separadamente** (domínios distintos), o que isola
-completamente o código administrativo do público.
+**As 2 apps são deployadas separadamente** (domínios distintos), o que isola
+completamente o código administrativo do público. `apps/worker` (API) é
+planejado, não implementado — hoje `apps/web` e `apps/admin` operam sem
+backend, com dados de exemplo embutidos em `packages/shared`.
 
 ---
 
@@ -599,10 +597,9 @@ apps/admin (5):
 
 ### Checklist de tema e interações
 ```
-□ Theme switcher: 6 cores + claro/escuro, persiste
-□ Accent muda botões/eyebrows/barras/ícones — não muda logo/score/governança
-□ Scroll reveal, counters animados, carrossel, hover lift, nav drawer, back-to-top
-□ Tipografia: Plus Jakarta Sans (títulos+corpo) + Geist Mono (dados)
+□ Toggle claro/escuro, persiste
+□ Tipografia: Rawline/Raleway (títulos+corpo) + JetBrains Mono (dados)
+□ Cor de dimensão nunca vira cor de status; nível/NPLF sempre pela rampa ordinal
 □ prefers-reduced-motion desativa animações
 ```
 
