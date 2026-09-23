@@ -5,7 +5,7 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { LuSun, LuMoon, LuInfo, LuMap } from 'react-icons/lu';
+import { Sun, Moon, Info } from 'lucide-react';
 import brazilMapData from '@svg-maps/brazil';
 
 export interface StateData {
@@ -170,12 +170,6 @@ export default function BrazilMap({
     });
   }, [hoveredLocation, selectedUfUpper]);
 
-  // Safe cast icons
-  const SunIcon = LuSun as any;
-  const MoonIcon = LuMoon as any;
-  const InfoIcon = LuInfo as any;
-  const MapIcon = LuMap as any;
-
   return (
     <div
       ref={containerRef}
@@ -231,12 +225,12 @@ export default function BrazilMap({
           >
             {theme === 'dark' ? (
               <>
-                <SunIcon className="w-3.5 h-3.5 text-amber-400" />
+                <Sun className="w-3.5 h-3.5 text-amber-400" />
                 <span>Claro</span>
               </>
             ) : (
               <>
-                <MoonIcon className="w-3.5 h-3.5 text-blue-600" />
+                <Moon className="w-3.5 h-3.5 text-blue-600" />
                 <span>Escuro</span>
               </>
             )}
@@ -410,7 +404,7 @@ export default function BrazilMap({
         )}
 
         <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
-          <InfoIcon className="w-3" />
+          <Info className="w-3" />
           <span>Framer Motion &amp; SVG Map Brasil integrado</span>
         </div>
       </div>
