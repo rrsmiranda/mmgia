@@ -29,7 +29,7 @@ const Grid = LuLayoutGrid as any;
 const FileCheck2 = LuFileCheck2 as any;
 const Database = LuDatabase as any;
 import BrazilMap from './BrazilMap';
-import { DIMENSIONS, DimensionId } from '../types';
+import { DIMENSIONS, DimensionId } from '@mmgia/shared/types';
 
 interface PublicPanelProps {
   onChangeTab: (tab: string) => void;

@@ -34,7 +34,7 @@ const ChevronLeft = LuChevronLeft as any;
 const Landmark = LuLandmark as any;
 const MapIcon = LuMap as any;
 const GridIcon = LuLayoutGrid as any;
-import { AssessmentMetadata } from '../types';
+import { AssessmentMetadata } from '@mmgia/shared/types';
 import BrazilMap from './BrazilMap';
 
 const STATE_TILES = [

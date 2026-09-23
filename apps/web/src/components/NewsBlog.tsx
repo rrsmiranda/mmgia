@@ -25,7 +25,7 @@ const ChevronRight = LuChevronRight as any;
 const TrendingUp = LuTrendingUp as any;
 const Flame = LuFlame as any;
 const ArrowRight = LuArrowRight as any;
-import { SEED_NEWS, NewsItem } from '../types';
+import { SEED_NEWS, NewsItem } from '@mmgia/shared/types';
 
 export default function NewsBlog() {
   const [activeCategory, setActiveCategory] = useState<string>('todas');

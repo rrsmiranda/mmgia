@@ -1,0 +1,11 @@
+{
+  "name": "@mmgia/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    "./types": "./src/types.ts",
+    "./scoring": "./src/lib/scoring.ts",
+    "./styles/tokens.css": "./src/styles/tokens.css"
+  }
+}

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DimensionId, DIMENSIONS } from '../types';
+import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
 
 interface RadarChartProps {
   scores: Record<DimensionId, number>;

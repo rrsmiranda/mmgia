@@ -25,7 +25,7 @@ const Lock = LuLock as any;
 const Compass = LuCompass as any;
 const AlertTriangle = LuTriangleAlert as any;
 const Award = LuAward as any;
-import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId } from '../types';
+import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shared/types';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface QuestionnaireProps {

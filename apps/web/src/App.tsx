@@ -14,10 +14,8 @@ import PublicPanel from './components/PublicPanel';
 import Methodology from './components/Methodology';
 import OpenData from './components/OpenData';
 import EditAssessment from './components/EditAssessment';
-import AdminLogin from './components/AdminLogin';
-import AdminDashboard from './components/AdminDashboard';
 import ReportViewer from './components/ReportViewer';
-import { ScoreLevel, AssessmentMetadata } from './types';
+import { ScoreLevel, AssessmentMetadata } from '@mmgia/shared/types';
 
 export default function App() {
   // Theme Toggle for preview system
@@ -37,11 +35,11 @@ export default function App() {
 
   // Navigation Routing Tabs
   const [currentTab, setCurrentTab] = useState<string>('home');
-  
+
   // Questionnaire states
   const [assessStep, setAssessStep] = useState<'onboarding' | 'questions' | 'revision' | 'result'>('onboarding');
   const [answers, setAnswers] = useState<Record<string, ScoreLevel>>({});
-  
+
   const generateSessionCode = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
     const segment = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -56,9 +54,6 @@ export default function App() {
     termosAceitos: false,
     code: generateSessionCode(),
   });
-
-  // Admin login states
-  const [adminEmail, setAdminEmail] = useState<string | null>(null);
 
   // Sync state session to local storage for recovery simulations
   useEffect(() => {
@@ -113,31 +108,17 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleSuccessAdminLogin = (email: string) => {
-    setAdminEmail(email);
-    setCurrentTab('admin');
-  };
-
-  const handleAdminLogout = () => {
-    setAdminEmail(null);
-    setCurrentTab('home');
-  };
-
   return (
     <div className={`min-h-screen flex flex-col justify-between selection:bg-brand-primary selection:text-white font-sans transition-all duration-500 ${
       theme === 'dark' ? 'bg-slate-950 text-slate-100 dark' : 'bg-slate-50 text-slate-700'
     }`} id="mmgia-root-viewport">
-      
+
       {/* Renders global header navigation unless user sits inside the fullscreen dashboard */}
-      {currentTab !== 'admin' && currentTab !== 'login' && currentTab !== 'relatorio-viewer' && (
+      {currentTab !== 'relatorio-viewer' && (
         <Header
           currentTab={currentTab}
           onChangeTab={(tab) => {
-            if (tab === 'admin-login') {
-              setCurrentTab('login');
-            } else {
-              setCurrentTab(tab);
-            }
+            setCurrentTab(tab);
             window.scrollTo({ top: 0, behavior: 'smooth' });
           }}
           hasActiveAssessment={Object.keys(answers).length > 0}
@@ -241,24 +222,10 @@ export default function App() {
             onGoToOnboarding={handleStartOnboarding}
           />
         )}
-
-        {currentTab === 'login' && (
-          <AdminLogin
-            onSuccessLogin={handleSuccessAdminLogin}
-            onCancel={() => setCurrentTab('home')}
-          />
-        )}
-
-        {currentTab === 'admin' && adminEmail && (
-          <AdminDashboard
-            adminEmail={adminEmail}
-            onLogout={handleAdminLogout}
-          />
-        )}
       </div>
 
       {/* Footer is also excluded on deep custom administrative viewports and home landing, which renders its own complete brand footer */}
-      {currentTab !== 'admin' && currentTab !== 'login' && currentTab !== 'home' && currentTab !== 'relatorio-viewer' && (
+      {currentTab !== 'home' && currentTab !== 'relatorio-viewer' && (
         <footer className={`py-12 px-6 border-t text-center select-none transition-colors duration-500 ${
           theme === 'dark' ? 'bg-slate-950 text-slate-400 border-slate-900' : 'bg-slate-900 text-slate-400 border-slate-800'
         }`} id="global-application-footer">

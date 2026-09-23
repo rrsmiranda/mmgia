@@ -20,8 +20,8 @@ import {
   Copy,
   Check
 } from 'lucide-react';
-import { ScoreLevel, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '../types';
-import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '../lib/scoring';
+import { ScoreLevel, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '@mmgia/shared/scoring';
 
 interface ReportViewerProps {
   answers: Record<string, ScoreLevel>;

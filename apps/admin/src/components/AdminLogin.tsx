@@ -26,7 +26,7 @@ const ShieldCheck = LuShieldCheck as any;
 
 interface AdminLoginProps {
   onSuccessLogin: (userEmail: string) => void;
-  onCancel: () => void;
+  onCancel?: () => void;
 }
 
 export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps) {
@@ -80,14 +80,16 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
 
       <div className="w-full max-w-sm bg-white p-8 shadow-2xl relative z-1 rounded-none border border-slate-100" id="login-form-card">
         
-        {/* Top Back Action */}
-        <button
-          onClick={onCancel}
-          className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-semibold"
-        >
-          <ArrowLeft className="w-3" />
-          Voltar
-        </button>
+        {/* Top Back Action — só aparece quando o app hospedeiro tem para onde voltar */}
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 cursor-pointer flex items-center gap-1 text-[10px] font-mono uppercase tracking-wider font-semibold"
+          >
+            <ArrowLeft className="w-3" />
+            Voltar
+          </button>
+        )}
 
         {/* LOGO */}
         <div className="text-center space-y-2 mt-4 mb-8">

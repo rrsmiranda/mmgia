@@ -4,51 +4,58 @@
  */
 
 import React, { useState } from 'react';
+import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '@mmgia/shared/scoring';
+import RadarChart from './RadarChart';
 import {
-  Copy,
-  Check,
-  CheckCircle,
-  FileText,
-  Download,
-  RotateCcw,
-  RefreshCw,
-  Compass,
+  FileCheck2,
+  ChevronDown,
+  ChevronUp,
+  TriangleAlert,
   Sparkles,
-  BookOpen,
+  ClipboardCheck,
+  HelpCircle,
   Info,
   X,
+  Eye,
   ChevronLeft,
   ChevronRight,
   Award,
   CheckSquare,
-  Printer,
-  HelpCircle,
-  FileCheck,
-  Eye
+  Printer
 } from 'lucide-react';
 
+const AlertTriangle = TriangleAlert;
+const SparklesIcon = Sparkles;
+const FileCheckIcon = FileCheck2;
 
-import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '../types';
-import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getSectorBenchmarks, getPeerAverageGlobal } from '../lib/scoring';
-import RadarChart from './RadarChart';
-
-interface ResultProps {
+interface RevisionProps {
   answers: Record<string, ScoreLevel>;
   metadata: AssessmentMetadata;
-  onRestart: () => void;
-  onChangeTab: (tab: string) => void;
+  onGoToPractice: (dimensionId: DimensionId, index: number) => void;
+  onGoBackToQuestionnaire: () => void;
+  onConfirmAndGenerateResult: () => void;
   onViewReport?: () => void;
   theme?: 'light' | 'dark';
 }
 
-export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, theme = 'light' }: ResultProps) {
+export default function Revision({
+  answers,
+  metadata,
+  onGoToPractice,
+  onGoBackToQuestionnaire,
+  onConfirmAndGenerateResult,
+  onViewReport,
+  theme = 'light',
+}: RevisionProps) {
+  const [expandedDimension, setExpandedDimension] = useState<DimensionId | null>('gov');
   const [copied, setCopied] = useState(false);
-  const [downloadingType, setDownloadingType] = useState<string | null>(null);
-  const [gapFilter, setGapFilter] = useState<string>('todas');
   const [showDetails, setShowDetails] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [pdfZoom, setPdfZoom] = useState(100);
+
+  const order: DimensionId[] = ['gov', 'tec', 'seg', 'edu', 'eco'];
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
@@ -56,29 +63,33 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Check counts
+  const getDimensionStats = (dimId: DimensionId) => {
+    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
+    const answered = dimPractices.filter(p => !!answers[p.id]);
+    return {
+      total: dimPractices.length,
+      answered: answered.length,
+      unanswered: dimPractices.length - answered.length,
+    };
+  };
+
+  const overallUnansweredCount = LIST_PRACTICES.filter(p => !answers[p.id]).length;
+
   // Score Calculus (ver src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
   const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
   const globalScore = getGlobalScore(answers);
   const progressPercentage = Math.round((globalScore / 3) * 100);
   const levelInfo = getMaturityLevel(globalScore);
-  // Nível por eixo (leitura complementar): mesma tabela de conversão aplicada ao score de cada dimensão
   const dimensionLevels = getAllDimensionLevels(answers);
 
-  // peer average coordinates based on sectoral metadata
-  const sectorBenchmarks = getSectorBenchmarks(metadata.setor || 'Saúde');
   const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
 
-  // Identify gaps: practices with 'N' or 'P' score levels
   const gaps = LIST_PRACTICES.filter((practice) => {
     const ans = answers[practice.id];
     return !ans || ans === 'N' || ans === 'P';
   });
 
-  const filteredGaps = gapFilter === 'todas'
-    ? gaps
-    : gaps.filter(g => g.dimensionId === gapFilter);
-
-  // Generate tactical recommendations directly from the practice's official verification criterion
   const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
     const practice = LIST_PRACTICES.find(p => p.id === id);
     if (!practice) {
@@ -88,87 +99,81 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     return { action: practice.criterion, effort };
   };
 
-  // Mock download dispatches
-  const triggerDownload = (type: string) => {
-    setDownloadingType(type);
-    setTimeout(() => {
-      setDownloadingType(null);
-      window.print();
-    }, 1800);
+  const getNplfBadge = (val?: ScoreLevel) => {
+    if (!val) {
+      return (
+        <span className="font-mono text-[9px] font-bold text-slate-500 bg-slate-50 border border-slate-200 px-2 py-0.5 uppercase mb-1 dark:bg-slate-900/60 dark:border-slate-800/80 dark:text-slate-400">
+          Não respondida
+        </span>
+      );
+    }
+
+    const dict = {
+      N: { bg: 'bg-red-500', label: 'Nulo (N)' },
+      P: { bg: 'bg-cyan-500', label: 'Parcial (P)' },
+      L: { bg: 'bg-blue-600', label: 'Larga (L)' },
+      F: { bg: 'bg-emerald-600', label: 'Total (F)' },
+    };
+
+    return (
+      <span className={`font-mono text-[9px] font-bold text-white px-2 py-0.5 uppercase mb-1 ${dict[val].bg}`}>
+        {dict[val].label}
+      </span>
+    );
+  };
+
+  const toggleAccordion = (id: DimensionId) => {
+    setExpandedDimension(expandedDimension === id ? null : id);
   };
 
   return (
     <div className={`min-h-screen pt-28 pb-20 px-6 font-sans select-none transition-colors duration-500 ${
       theme === 'dark' ? 'bg-[#0B1120] text-slate-100' : 'bg-slate-50 text-[#0F172A]'
-    }`} id="assessment-result-root">
+    }`} id="assessment-revision-root">
       
-      {/* 2. SCORE HERO */}
-      <section className="max-w-7xl mx-auto bg-slate-900 text-white rounded-3xl overflow-hidden shadow-xl mb-8 relative" id="result-hero-box">
-        {/* Layer 1: Vector light glows */}
-        <div className="absolute inset-0 z-0 opacity-15 pointer-events-none">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-accent rounded-full filter blur-[100px]"></div>
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500 rounded-full filter blur-[100px]"></div>
-        </div>
-
-        <div className="p-8 md:p-12 text-center space-y-6 relative z-1 max-w-2xl mx-auto" id="hero-score-content">
-          <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#1D9E75] block">
-            diagnóstico_finalizado · score_global_mmgia
-          </span>
-
-          <h3 className="text-6xl md:text-7xl font-mono font-black text-white drop-shadow-md">
-            {globalScore.toFixed(2)}
-          </h3>
-
-          <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-blue-500 to-brand-accent transition-all duration-1000"
-              style={{ width: `${progressPercentage}%` }}
-            ></div>
+      {/* Header Info Banner */}
+      <div className="max-w-7xl mx-auto mb-10 text-center md:text-left">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h2 className={`text-3xl font-extrabold tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+              Revisão de Diagnóstico
+            </h2>
+            <p className={`text-sm mt-1 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+              Confirme se as respostas representam fielmente os artefatos institucionais de conformidade antes de computar o score.
+            </p>
           </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-3" id="badge-line">
-            <span className="px-3.5 py-1 bg-white/5 border border-white/10 rounded-full font-mono text-[10.5px] tracking-wider uppercase">
-              Score: {progressPercentage}% Ponderado
-            </span>
-            <span className="px-3.5 py-1 bg-brand-accent/25 text-brand-accent border border-brand-accent/25 rounded-full font-mono text-[10.5px] tracking-wider uppercase font-bold">
-              {levelInfo.label} (Nível {levelInfo.num})
-            </span>
-            <span className="px-3.5 py-1 bg-red-500/10 text-red-400 border border-red-500/10 rounded-full font-mono text-[10.5px] tracking-wider uppercase">
-              {levelInfo.risk}
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-300 leading-relaxed font-light">
-            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais estruturadas de governança no setor de <strong className="text-white">{metadata.setor}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
-          </p>
-
-          <div className="flex flex-wrap gap-3 justify-center pt-2">
+          
+          <div className="flex flex-wrap gap-3 justify-center md:justify-end shrink-0">
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl font-mono text-[11px] uppercase tracking-wider transition-all border border-white/15 flex items-center gap-2 cursor-pointer"
+              className={`px-4 py-2 rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all border flex items-center gap-1.5 cursor-pointer shadow-xs ${
+                theme === 'dark'
+                  ? 'bg-slate-900/60 hover:bg-slate-800 border-slate-800/80 text-slate-300'
+                  : 'bg-slate-105 hover:bg-slate-200 border-slate-200 text-slate-800'
+              }`}
             >
-              <Info className="w-4 h-4 text-brand-accent animate-pulse" />
-              <span>{showDetails ? 'Ocultar Detalhamento Ponderado' : 'Como minha média foi calculada? Detalhar.'}</span>
+              <Info className="w-4 h-4 text-brand-primary animate-pulse" />
+              <span>{showDetails ? 'Ocultar Detalhes' : 'Como a média é calculada? Detalhes.'}</span>
             </button>
 
             <button
               onClick={() => { if (onViewReport) { onViewReport(); } else { setShowPdfViewer(true); setActivePdfPage(1); } }}
-              className="px-5 py-2.5 bg-brand-accent hover:brightness-110 text-white rounded-2xl font-mono text-[11px] uppercase tracking-wider transition-all font-bold flex items-center gap-2 cursor-pointer shadow-lg"
+              className="px-4 py-2 bg-brand-primary hover:brightness-110 text-white rounded-xl font-mono text-[11px] uppercase tracking-wider transition-all font-bold flex items-center gap-1.5 cursor-pointer shadow-sm"
             >
               <Eye className="w-4 h-4 text-white" />
               <span>Visualizar Relatório Executivo (PDF)</span>
             </button>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* DETAILED METHODOLOGY AND CALCULATION BREAKDOWN ACCORDION */}
       {showDetails && (
         <div className="max-w-7xl mx-auto bg-white border border-slate-200 rounded-3xl p-6 md:p-8 shadow-md mb-8 space-y-8 animate-[fadeIn_0.3s_ease]" id="detailed-calculation-panel">
           <div className="flex justify-between items-start border-b border-slate-100 pb-4">
             <div>
-              <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#0C3D6E] block">Cálculo e Metodologia Rigorosa — MMGIA</span>
-              <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">Memória de Cálculo da Média de Maturidade Ponderada</h3>
+              <span className="font-mono text-[10px] uppercase font-bold tracking-widest text-[#0C3D6E] block font-sans">Cálculo e Metodologia Rigorosa — MMGIA</span>
+              <h3 className="text-xl font-bold text-slate-900 font-sans mt-0.5">Memória de Cálculo da Média de Maturidade Ponderada Prévia</h3>
             </div>
             <button onClick={() => setShowDetails(false)} className="text-slate-400 hover:text-slate-600 transition cursor-pointer">
               <X className="w-5 h-5" />
@@ -178,7 +183,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Step Explanation */}
             <div className="space-y-6">
-              <h4 className="text-xs font-mono font-bold uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
+              <h4 className="text-xs font-mono font-bold uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2 font-sans">
                 <CheckSquare className="w-4 h-4 text-[#1D9E75]" />
                 Passo a Passo do Modelo Matemático
               </h4>
@@ -199,14 +204,14 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                 <div className="relative pl-6">
                   <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-[#0C3D6E]"></div>
                   <strong className="text-slate-900 block">Passo 2: Médias Niveladas e Notas do Pilar (Dimensão)</strong>
-                  Calculamos o score da dimensão somando as notas de cada prática e dividindo pelo total de práticas mapeadas no pilar correspondente.
+                  Calculamos o score de cada dimensão somando as notas de cada prática e dividindo pelo total de práticas mapeadas no pilar correspondente.
                 </div>
 
                 <div className="relative pl-6 p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-2">
                   <div className="absolute left-2 top-4 w-2 h-2 rounded-full bg-brand-accent"></div>
-                  <strong className="text-slate-950 block text-xs">Passo 3: Média Ponderada Oficial</strong>
-                  As 5 dimensões são ponderadas pelos pesos de importância estratégica estabelecidos na metodologia (GGIA) para compor o <strong className="text-brand-primary">Score Global (0.0 a 3.00)</strong>:
-                  <div className="text-[11px] font-mono bg-white p-2.5 rounded-xl border border-slate-200/50 text-slate-850 space-y-1 mt-1">
+                  <strong className="text-slate-950 block text-xs font-sans">Passo 3: Média Ponderada Oficial</strong>
+                  As 5 dimensões são ponderadas pelos pesos de importância estratégica estabelecidos na metodologia para compor o <strong className="text-brand-primary font-sans">Score Global Prévia (0.0 a 3.00)</strong>:
+                  <div className="text-[11px] font-mono bg-white p-2.5 rounded-xl border border-slate-200/50 text-slate-800 space-y-1 mt-1">
                     <div className="flex justify-between"><span>* Governança (gov):</span> <span className="font-semibold text-slate-950">25% (Peso 0.25)</span></div>
                     <div className="flex justify-between"><span>* Tecnologia (tec):</span> <span className="font-semibold text-slate-950">20% (Peso 0.20)</span></div>
                     <div className="flex justify-between"><span>* Segurança (seg):</span> <span className="font-semibold text-slate-950">25% (Peso 0.25)</span></div>
@@ -217,7 +222,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
                 <div className="relative pl-6">
                   <div className="absolute left-0 top-1 w-2 h-2 rounded-full bg-[#0C3D6E]"></div>
-                  <strong className="text-slate-900 block">Passo 4: Escala de Conversão para Nível de Maturidade</strong>
+                  <strong className="text-slate-900 block font-sans">Passo 4: Escala de Conversão para Nível de Maturidade</strong>
                   A pontuação ponderada final de 0.0 a 3.00 enquadra-se em um dos 6 níveis oficiais de maturidade descritos abaixo.
                 </div>
               </div>
@@ -226,8 +231,8 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             {/* Live Arithmetic Breakdown */}
             <div className="space-y-6">
               <h4 className="text-xs font-mono font-bold uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
-                <Sparkles className="w-4 h-4 text-brand-accent animate-pulse" />
-                Matemática Aplicada ao Seu Diagnóstico
+                <SparklesIcon className="w-4 h-4 text-brand-accent animate-pulse" />
+                Matemática Aplicada ao Seu Diagnóstico Atual
               </h4>
 
               <div className="space-y-4 bg-slate-900 text-slate-200 p-5 rounded-2xl border border-slate-800 shadow-inner">
@@ -263,19 +268,19 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                   </div>
                 </div>
 
-                <div className="bg-slate-950 p-4 rounded-xl text-[10.5px] text-slate-350 border border-slate-800/60 space-y-2 font-mono">
+                <div className="bg-slate-950 p-4 rounded-xl text-[10.5px] text-slate-300 border border-slate-800/60 space-y-2 font-mono">
                   <div className="flex items-center gap-1.5 text-brand-accent">
                     <Award className="w-4 h-4 shrink-0" />
                     <span>Maturidade: <strong>Nível {levelInfo.num} — {levelInfo.label}</strong></span>
                   </div>
-                  <p className="font-light text-slate-450 leading-relaxed">
-                    Sua pontuação ponderada de <strong className="text-white">{globalScore.toFixed(2)}</strong> estabelece seu ranqueamento conforme a metodologia.
+                  <p className="font-light text-slate-400 leading-relaxed font-sans text-left">
+                    Sua pontuação preliminar de <strong className="text-white font-mono">{globalScore.toFixed(2)}</strong> estabelece seu enquadramento de maturidade abaixo.
                   </p>
                 </div>
               </div>
 
               {/* Range indicator */}
-              <div className="border border-slate-150 p-4 rounded-2xl bg-slate-50 space-y-2">
+              <div className="border border-slate-200 p-4 rounded-2xl bg-slate-50 space-y-2">
                 <span className="font-mono text-[9px] uppercase tracking-wider text-slate-400 block font-bold">Distribuição das Faixas Oficiais (MMGIA):</span>
                 <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-600">
                   <div className={`p-2 border rounded-xl ${globalScore < 0.5 ? 'border-red-400 bg-red-50 text-red-900 font-bold' : 'border-slate-200 bg-white'}`}>
@@ -290,7 +295,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                   <div className={`p-2 border rounded-xl ${globalScore >= 1.5 && globalScore < 2.0 ? 'border-blue-400 bg-blue-50 text-blue-950 font-bold' : 'border-slate-200 bg-white'}`}>
                     <span className="block text-[9px] text-[#0C3D6E]">1.5 a 2.0</span> Nível 3 — Definido
                   </div>
-                  <div className={`p-2 border rounded-xl ${globalScore >= 2.0 && globalScore < 2.5 ? 'border-emerald-400 bg-emerald-50 text-emerald-900 font-bold' : 'border-slate-200 bg-white'}`}>
+                  <div className={`p-2 border rounded-xl ${globalScore >= 2.0 && globalScore < 2.5 ? 'border-emerald-400 bg-emerald-50 text-emerald-950 font-bold' : 'border-slate-200 bg-white'}`}>
                     <span className="block text-[9px] text-[#0C3D6E]">2.0 a 2.5</span> Nível 4 — Quantitativo
                   </div>
                   <div className={`p-2 border rounded-xl ${globalScore >= 2.5 ? 'border-indigo-400 bg-indigo-50 text-indigo-950 font-bold' : 'border-slate-200 bg-white'}`}>
@@ -303,12 +308,12 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
           {/* Interactive Detailed meanings cards list */}
           <div className="border border-slate-100 p-6 rounded-3xl bg-slate-50/50 space-y-4">
-            <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider font-mono flex items-center gap-1.5">
+            <h4 className="text-xs font-semibold text-slate-800 uppercase tracking-wider font-mono flex items-center gap-1.5 font-sans">
               <HelpCircle className="w-4 h-4 text-brand-primary" />
               O Que Significa Cada Score de Nível de Maturidade?
             </h4>
             
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-4 font-sans">
               {[
                 {
                   lvl: 0,
@@ -357,7 +362,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                 return (
                   <div
                     key={item.lvl}
-                    className={`p-4 rounded-2xl border transition-all ${
+                    className={`p-4 rounded-2xl border transition-all text-left ${
                       isSelected
                         ? 'bg-[#E6F1FB] border-blue-250 text-blue-950 ring-2 ring-[#0C3D6E]/10'
                         : 'bg-white border-slate-100 hover:border-slate-200'
@@ -377,7 +382,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                       <span className="font-mono text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-semibold">Score: {item.scoreRange}</span>
                     </div>
                     <p className="mt-2 text-slate-700 leading-relaxed font-light">{item.desc}</p>
-                    <p className="mt-1.5 text-slate-500 italic border-l-2 border-slate-200 pl-2 mt-1.5 leading-normal"><strong>Implicações e Riscos:</strong> {item.risco}</p>
+                    <p className="mt-1.5 text-slate-500 italic border-l-2 border-slate-200 pl-2 leading-normal"><strong>Implicações e Riscos:</strong> {item.risco}</p>
                   </div>
                 );
               })}
@@ -386,382 +391,177 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
         </div>
       )}
 
-      {/* 2. RECOVERY CODE BOX */}
-      <div className="max-w-7xl mx-auto bg-white border border-slate-100 rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 mb-8" id="code-recovery-card">
-        <div className="space-y-1 text-center md:text-left">
-          <h4 className="text-sm font-sans font-bold text-slate-900">Seu Código Exclusivo de Recuperação</h4>
-          <p className="text-xs text-slate-400 leading-normal font-sans">
-            Esta é a única chave que permite editar ou relançar as respostas registradas de forma segura. Guarde bem.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl px-5 py-3.5 font-mono text-sm tracking-wider font-bold text-slate-800 w-full md:w-auto text-center">
-            {metadata.code}
-          </div>
-          <button
-            onClick={handleCopyCode}
-            className="p-3.5 bg-brand-primary text-white hover:brightness-110 active:scale-95 transition rounded-2xl cursor-pointer"
-            title="Copiar código"
-          >
-            {copied ? <Check className="w-5 h-5 text-brand-accent animate-pulse" /> : <Copy className="w-5 h-5" />}
-          </button>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mb-8 font-sans">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* 3. DIMENSION SCORES DETAIL (LEFT) */}
-        <div className={`lg:col-span-7 border rounded-3xl p-6 shadow-sm space-y-6 ${
-          theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 text-[#0F172A]'
-        }`} id="dimension-scorebars">
-          <div>
-            <h4 className="text-sm font-semibold uppercase font-mono tracking-wider text-brand-primary">Scores por Pilar de Maturidade</h4>
-            <p className="text-xs text-slate-400 mt-1 font-sans">
-              As colunas demonstram o desempenho setorial comparado à meta de excelência regulatória (Maturidade Nível 3).
-            </p>
-          </div>
+        {/* LEFT COLUMN: FAQ STYLE ACCORDION OF DIMENSIONS */}
+        <div className="lg:col-span-7 space-y-4">
+          
+          {/* Missing Questions Warning banner */}
+          {overallUnansweredCount > 0 && (
+            <div className={`border rounded-3xl p-5 flex items-start gap-3.5 ${
+              theme === 'dark' ? 'bg-cyan-950/20 border-cyan-900/40 text-cyan-300' : 'bg-cyan-50 border-cyan-100 text-cyan-900'
+            }`} id="revision-warning-banner">
+              <AlertTriangle className="w-5 h-5 text-cyan-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <h4 className="font-bold text-xs font-mono uppercase tracking-wider text-cyan-600 dark:text-cyan-400">Práticas em Aberto Encontradas</h4>
+                <p className="text-[11px] font-light leading-relaxed">
+                  Detector local identificou <strong className="font-bold">{overallUnansweredCount} práticas sem resposta</strong> de um total de 45 diretrizes. Você pode prosseguir e registrar os resultados, mas as faltantes contarão como score zero (Nulo).
+                </p>
+              </div>
+            </div>
+          )}
 
-          <div className="space-y-4" id="scores-detail-list">
-            {(Object.keys(DIMENSIONS) as DimensionId[]).map((key) => {
+          <div className="space-y-3" id="revision-accordions">
+            {order.map((key) => {
               const info = DIMENSIONS[key];
+              const stats = getDimensionStats(key);
               const score = currentScores[key];
-              const percent = (score / 3) * 100;
               const dimLevel = dimensionLevels[key];
+              const isExpanded = expandedDimension === key;
 
               return (
-                <div key={key} className="space-y-1.5 flex flex-col">
-                  <div className="flex justify-between items-center text-xs font-mono font-bold">
-                    <span className={theme === 'dark' ? 'text-slate-200' : 'text-slate-800'}>{info.name}</span>
-                    <span className="flex items-center gap-2">
+                <div
+                  key={key}
+                  className={`border rounded-3xl overflow-hidden transition-all shadow-sm ${
+                    theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-200/60 text-[#0F172A]'
+                  }`}
+                  id={`accordion-block-${key}`}
+                >
+                  {/* Header tab line clickable */}
+                  <div
+                    onClick={() => toggleAccordion(key)}
+                    className={`p-5 flex justify-between items-center cursor-pointer transition select-none ${
+                      theme === 'dark' ? 'hover:bg-slate-900/60' : 'hover:bg-slate-105'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: info.color }}></div>
+                      <h3 className={`font-bold text-sm font-sans tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>
+                        {info.name}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-mono text-[10px] text-slate-400">
+                        {stats.answered}/{stats.total} respondidas
+                      </span>
                       <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${dimLevel.bg} text-white`}>
                         Nível {dimLevel.num} · {dimLevel.label}
                       </span>
-                      <span className={info.textColor}>
-                        {score.toFixed(2)} <span className="text-slate-400 font-light">/ 3.00</span>
+                      <span className={`font-mono text-xs font-bold px-2 py-0.5 rounded-lg ${
+                        theme === 'dark' ? 'text-slate-300 bg-slate-900/60 border border-slate-800/80' : 'text-slate-800 bg-slate-100'
+                      }`}>
+                        Score: {score.toFixed(2)}
                       </span>
-                    </span>
+                      {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </div>
                   </div>
-                  {/* Progress Bar Container with red target marks at 2.00 (Level 3 defined) */}
-                  <div className={`h-3 rounded-full relative overflow-hidden flex items-center ${
-                    theme === 'dark' ? 'bg-slate-800/60' : 'bg-slate-100'
-                  }`}>
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        backgroundColor: info.color,
-                        width: `${percent}%`,
-                      }}
-                    ></div>
-                    {/* Tick for Nível 3 defined threshold (2.00 is 66.6% width) */}
-                    <div
-                      className="absolute top-0 bottom-0 w-0.5 border-r-2 border-red-500 border-dashed z-5"
-                      style={{ left: '66.6%' }}
-                      title="Meta Nível 3 (Definido)"
-                    ></div>
-                  </div>
+
+                  {/* Accordion Expanded rows */}
+                  {isExpanded && (
+                    <div className={`border-t p-5 space-y-3 divide-y ${
+                      theme === 'dark'
+                        ? 'border-slate-800/80 bg-slate-900/30 divide-slate-800/80 text-slate-100'
+                        : 'border-slate-100/60 bg-slate-50/50 divide-slate-150 text-[#0F172A]'
+                    }`} id={`accordion-expanded-${key}`}>
+                      {LIST_PRACTICES.filter(p => p.dimensionId === key).map((practice, index) => {
+                        const scoreChoice = answers[practice.id];
+                        const isAnswered = !!scoreChoice;
+
+                        return (
+                          <div
+                            key={practice.id}
+                            className="pt-3.5 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                          >
+                            <div className="space-y-1 max-w-xl text-left">
+                              <span className="font-mono text-[10px] text-slate-400 block font-bold">
+                                PRÁTICA {practice.id} (Requisito Nível {practice.level})
+                              </span>
+                              <p className={`font-sans font-bold leading-snug ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                                {practice.name}
+                              </p>
+                              <p className={`font-sans font-light leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-530'}`}>
+                                {practice.description}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-2.5 self-start sm:self-center">
+                              {getNplfBadge(scoreChoice)}
+                              
+                              <button
+                                onClick={() => onGoToPractice(key, index)}
+                                className="font-sans text-[10px] font-semibold text-brand-primary hover:underline"
+                              >
+                                {isAnswered ? 'Alterar' : 'Responder'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-
-          <div className={`pt-2 border-t flex items-center gap-2 text-[10px] text-slate-400 font-mono ${
-            theme === 'dark' ? 'border-slate-800/80' : 'border-slate-100'
-          }`}>
-            <span className="w-1.5 h-3 bg-red-500 border-r border-dashed inline-block"></span>
-            <span>A linha vermelha pontilhada representa a meta recomendada de excelência (Nível 3 - Definido) para o setor público.</span>
-          </div>
         </div>
 
-        {/* 4. RADAR CHART & BENCHMARKS (RIGHT) */}
-        <div className="lg:col-span-5 flex flex-col justify-between space-y-6">
-          <RadarChart scores={currentScores} benchmarkScores={sectorBenchmarks} />
-
-          {/* Benchmark Indicators */}
-          <div className={`border rounded-3xl p-6 shadow-sm space-y-4 flex-1 flex flex-col justify-between ${
-            theme === 'dark' ? 'bg-[#141E30] border-slate-800/80' : 'bg-white border-slate-250 shadow-sm'
-          }`} id="group-benchmark-panel">
-            <div>
-              <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-brand-primary block">
-                peer_group_benchmarking
-              </span>
-              <h4 className={`text-base font-bold tracking-tight mt-1 font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                Grupo Comparativo: {metadata.setor} · {metadata.porte}
-              </h4>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 text-center" id="benchmark-numbers">
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-brand-accent' : 'text-[#0C3D6E]'}`}>{globalScore.toFixed(2)}</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1 animate-pulse">Seu Score</span>
-              </div>
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-705'}`}>{peerAverageGlobal.toFixed(2)}</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1">Média Peer</span>
-              </div>
-              <div className={`p-3 border rounded-2xl ${
-                theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-100'
-              }`}>
-                <span className="text-lg font-mono font-bold text-[#1D9E75]">2.71</span>
-                <span className="text-[8px] uppercase font-mono text-slate-400 block mt-1">Melhor Score</span>
-              </div>
-            </div>
-
-            <div className={`p-4 border rounded-2xl text-xs space-y-1 ${
-              theme === 'dark' ? 'bg-emerald-950/20 border-emerald-900/40 text-emerald-300' : 'bg-emerald-50/50 border border-emerald-100/50 text-slate-650'
+        {/* RIGHT COLUMN: STICKY RADAR CHART VISUALIZATION */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className={`border rounded-3xl p-6 shadow-sm space-y-6 lg:sticky lg:top-24 ${
+            theme === 'dark' ? 'bg-[#141E30] border-slate-800/80' : 'bg-white border-slate-200/60 shadow-sm'
+          }`} id="revision-radar-sidebar">
+            <RadarChart scores={currentScores} />
+            
+            <div className={`p-4 border rounded-2xl flex items-center gap-3 text-[11px] font-light text-left ${
+              theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80 text-slate-300' : 'bg-blue-50/50 border border-[#185FA5]/10 text-slate-650'
             }`}>
-              <p className={`font-semibold font-sans ${theme === 'dark' ? 'text-emerald-250' : 'text-emerald-950'}`}>Percentil de Maturidade: 68%</p>
-              <p className={`text-[11px] leading-normal ${theme === 'dark' ? 'text-emerald-300/80' : 'text-emerald-700'}`}>
-                Sua organização está acima de 68% dos respondentes do grupo econômico de {metadata.setor} em todo o Brasil.
+              <ClipboardCheck className={`w-5 h-5 shrink-0 ${theme === 'dark' ? 'text-accent' : 'text-brand-primary'}`} />
+              <p className="leading-relaxed">
+                As notas variam de <strong>0 a 3</strong>. Uma média alta em uma dimensão atesta a plenitude de auditoria estruturada nesta vertical.
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. GAP ANALYSIS AND RECOMMENDATIONS */}
-      <section className={`border rounded-3xl p-8 shadow-sm mb-8 font-sans ${
-        theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 shadow-sm'
-      }`} id="gap-analysis-module">
-        <div className={`flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4 border-b pb-6 ${
-          theme === 'dark' ? 'border-slate-800/80' : 'border-slate-150'
-        }`}>
-          <div className="space-y-1">
-            <h3 className={`text-xl font-extrabold tracking-tight font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>
-              Análise de Lacunas Regulatórias (Gaps)
-            </h3>
-            <p className={`text-xs font-sans ${theme === 'dark' ? 'text-slate-400' : 'text-slate-520'}`}>
-              Diretrizes onde o diagnóstico constatou conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível.
-            </p>
-          </div>
-
-          {/* Filter dimension pills */}
-          <div className="flex flex-wrap gap-1.5" id="gap-filters" font-sans="true">
-            <button
-              onClick={() => setGapFilter('todas')}
-              className={`px-3 py-1 text-[10px] font-mono uppercase font-bold rounded-full border cursor-pointer transition ${
-                gapFilter === 'todas'
-                  ? (theme === 'dark' ? 'bg-[#185FA5] text-white border-transparent shadow' : 'bg-slate-950 text-white border-slate-950 shadow-sm')
-                  : (theme === 'dark' ? 'bg-slate-900 border-slate-800 text-slate-400 hover:text-white' : 'bg-white text-slate-500 border-slate-150 hover:border-slate-250')
-              }`}
-            >
-              Todas ({gaps.length})
-            </button>
-            {Object.keys(DIMENSIONS).map((key) => {
-              const info = DIMENSIONS[key as DimensionId];
-              const count = gaps.filter(g => g.dimensionId === key).length;
-              return (
-                <button
-                  key={key}
-                  disabled={count === 0}
-                  onClick={() => setGapFilter(key)}
-                  className={`px-3 py-1 text-[10px] font-mono uppercase font-bold rounded-full border cursor-pointer transition disabled:opacity-30 disabled:cursor-not-allowed ${
-                    gapFilter === key
-                      ? (theme === 'dark' ? 'bg-[#185FA5] text-white border-transparent shadow' : 'text-white border-slate-950 bg-slate-950 shadow-sm')
-                      : (theme === 'dark' ? 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white hover:bg-slate-850' : 'bg-white text-slate-600 border-slate-150 hover:border-slate-250')
-                  }`}
-                >
-                  {info.shortName} ({count})
-                </button>
-              );
-            })}
-          </div>
+      {/* BOTTOM FIXED BAR (CALL TO ACTION ACCENT BAND) */}
+      <div className="mt-12 bg-slate-900 border border-slate-800 p-6 rounded-3xl flex flex-col md:flex-row justify-between items-center gap-6" id="revision-bottom-band">
+        <div className="space-y-1 text-center md:text-left">
+          <h3 className="font-bold text-sm text-white">Pronto para submeter?</h3>
+          <p className="text-xs text-slate-400 font-light font-sans">
+            Com as respostas conferidas, você autoriza o cálculo estatístico do seu nível e emissão de diretrizes.
+          </p>
         </div>
 
-        {/* Gap cards grid list */}
-        {filteredGaps.length === 0 ? (
-          <div className="text-center py-12 max-w-sm mx-auto space-y-2 font-sans">
-            <CheckCircle className="w-12 h-12 text-[#124234] mx-auto animate-bounce" />
-            <h4 className="font-bold text-slate-900 text-sm">Nenhum Gap Crítico Identificado</h4>
-            <p className="text-xs text-slate-400">
-              Sua conformidade é larga ou total em todas as práticas filtradas! Parabéns por manter o compliance elevado.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-sans" id="gap-cards-list">
-            {filteredGaps.slice(0, 6).map((gap) => {
-              const rec = getGapRecommendation(gap.id);
-              const isHighPriority = gap.level === 1;
-              const isMediumPriority = gap.level === 2 || gap.level === 3;
-
-              return (
-                <div
-                  key={gap.id}
-                  className={`border rounded-2xl p-5 flex flex-col justify-between space-y-4 ${
-                    theme === 'dark' ? 'bg-slate-900/40 border-slate-800/80 text-white' : 'bg-slate-50 border-slate-150 text-[#0F172A]'
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center" id={`gap-badges-${gap.id}`}>
-                      <span className={`font-mono text-[9px] font-bold px-2 py-0.5 rounded-full uppercase text-white ${
-                        isHighPriority ? 'bg-red-500' : isMediumPriority ? 'bg-cyan-500' : 'bg-blue-600'
-                      }`}>
-                        Prioridade {isHighPriority ? 'Alta' : isMediumPriority ? 'Média' : 'Baixa'}
-                      </span>
-
-                      <span className={`font-mono text-[9px] px-2 py-0.5 rounded uppercase font-bold ${
-                        theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-600'
-                      }`}>
-                        {DIMENSIONS[gap.dimensionId].shortName}
-                      </span>
-                    </div>
-
-                    <h4 className={`font-bold text-sm font-sans tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>
-                      Prática {gap.id} — {gap.name}
-                    </h4>
-
-                    <p className={`text-xs leading-normal font-light ${theme === 'dark' ? 'text-slate-400' : 'text-slate-505'}`}>
-                      {gap.description}
-                    </p>
-                  </div>
-
-                  <div className={`p-4 border rounded-xl space-y-2 ${
-                    theme === 'dark' ? 'bg-slate-950/40 border-slate-805 text-slate-300' : 'bg-white border-slate-100 text-[#0F172A]'
-                  }`}>
-                    <span className="text-[10px] font-mono uppercase font-bold text-brand-primary block tracking-wider">Ação Recomendada:</span>
-                    <p className={`text-xs italic font-mono leading-relaxed ${theme === 'dark' ? 'text-slate-300' : 'text-slate-650'}`}>
-                      {rec.action}
-                    </p>
-                    <div className={`flex items-center justify-between text-[9px] font-mono text-slate-400 pt-1.5 border-t ${
-                      theme === 'dark' ? 'border-slate-800/60' : 'border-slate-50'
-                    }`}>
-                      <span>Esforço: <strong className={`font-bold ${theme === 'dark' ? 'text-slate-200' : 'text-slate-600'}`}>{rec.effort}</strong></span>
-                      {gap.legalReference && (
-                        <span className="flex items-center gap-0.5 text-brand-accent font-bold">
-                          <BookOpen className="w-3 h-3" />
-                          {gap.legalReference}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
-
-      {/* 6. MOCK ACTION PLAN TIMESHEET */}
-      <section className={`border rounded-3xl p-8 shadow-sm mb-8 ${
-        theme === 'dark' ? 'bg-[#141E30] border-slate-800/80 text-white' : 'bg-white border-slate-250 shadow-sm text-[#0F172A]'
-      }`} id="action-plan">
-        <div className="space-y-1 mb-8 pt-1">
-          <h3 className={`text-lg font-bold tracking-tight font-sans ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Plano de Implementação Prática</h3>
-          <p className={`text-xs ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Mapeamento sequencial de rotinas voltadas para atingir robustez algorítmica.</p>
+        <div className="flex items-center gap-3 w-full md:w-auto">
+          <button
+            onClick={onGoBackToQuestionnaire}
+            className="flex-1 md:flex-initial text-center py-3 px-6 border border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 transition text-xs font-semibold uppercase font-mono tracking-wider cursor-pointer"
+          >
+            ← Voltar e Corrigir
+          </button>
+          
+          <button
+            onClick={onConfirmAndGenerateResult}
+            className="flex-1 md:flex-initial text-center py-3.5 px-8 bg-brand-accent hover:bg-emerald-600 transition text-slate-950 text-xs font-bold uppercase font-mono tracking-wider cursor-pointer font-sans"
+          >
+            Confirmar e Ver Resultado →
+          </button>
         </div>
-
-        <div className="space-y-4 font-sans">
-          {[
-            { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
-            { step: '02', title: 'Blindagem de Inputs e Letramento Básico', desc: 'Saneamento preventivo em requisições de prompts e disparos massivos de cartilhas de uso responsible para toda a corporação.', dim: 'Segurança', effort: 'Médio esforço', time: 'Semana 3-4' },
-            { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Tecnologia', effort: 'Médio esforço', time: 'Semana 5-6' },
-            { step: '04', title: 'Simulacros Éticos de Ataque (Red Teaming)', desc: 'Recrutamento de equipe e workshops dedicados para teste de vazamentos algorítmicos voluntários e testes de viesses demográficos.', dim: 'Segurança', effort: 'Alto esforço', time: 'Mês 2' }
-          ].map((item, index) => (
-            <div
-              key={item.step}
-              className={`p-5 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm border ${
-                theme === 'dark' ? 'bg-[#0B1120] border-slate-800/80' : 'bg-white border-slate-100'
-              }`}
-            >
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-brand-primary text-white rounded-full flex items-center justify-center font-mono font-bold text-sm shrink-0">
-                  {item.step}
-                </div>
-                <div className="space-y-1">
-                  <h4 className={`font-bold text-sm font-sans tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-950'}`}>{item.title}</h4>
-                  <p className={`text-xs leading-normal max-w-2xl font-sans font-light ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{item.desc}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 self-start md:self-center text-[10px] font-mono">
-                <span className={`px-2.5 py-0.5 rounded-full ${
-                  theme === 'dark' ? 'bg-slate-900 border border-slate-800 text-slate-300' : 'bg-slate-100 text-slate-600'
-                }`}>{item.dim}</span>
-                <span className={`px-2.5 py-0.5 rounded-full font-bold ${
-                  theme === 'dark' ? 'bg-[#185FA5]/20 text-accent' : 'bg-blue-50 text-brand-primary'
-                }`}>{item.effort}</span>
-                <span className={`font-bold ${theme === 'dark' ? 'text-slate-300' : 'text-slate-700'}`}>{item.time}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 7. EXPORT ACTIONS ROW */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 font-sans" id="action-buttons-row">
-        
-        <button
-          onClick={() => { setShowPdfViewer(true); setActivePdfPage(1); }}
-          className="py-4 bg-brand-primary text-white font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-        >
-          <FileText className="w-4 h-4" />
-          Visualizar & Exportar PDF
-        </button>
-
-        <button
-          onClick={() => triggerDownload('tecnico')}
-          disabled={downloadingType !== null}
-          className="py-4 bg-brand-accent text-white font-sans text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow hover:brightness-110 active:scale-95 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed font-sans"
-        >
-          {downloadingType === 'tecnico' ? (
-            <RefreshCw className="w-4 h-4 animate-spin" />
-          ) : (
-            <Download className="w-4 h-4" />
-          )}
-          Imprimir Relatório Técnico
-        </button>
-
-        <button
-          onClick={() => onChangeTab('mapa')}
-          className={`py-4 border font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-all cursor-pointer ${
-            theme === 'dark'
-              ? 'bg-[#141E30] hover:bg-slate-800 border-slate-800/80 text-white hover:text-white'
-              : 'bg-white border-slate-205 text-slate-700 hover:bg-slate-50 hover:text-slate-900'
-          }`}
-        >
-          <Compass className="w-4 h-4 text-brand-primary" />
-          Ver Painel Geral
-        </button>
-
-        <button
-          onClick={onRestart}
-          className={`py-4 bg-transparent font-sans text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-            theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-slate-511 hover:text-slate-800'
-          }`}
-        >
-          <RotateCcw className="w-4 h-4" />
-          Novo Diagnóstico
-        </button>
       </div>
-
-      {/* DOWNLOAD IN PROGRESS MODAL TOAST */}
-      {downloadingType && (
-        <div className="fixed inset-0 z-200 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center px-6">
-          <div className="bg-white border border-slate-100 rounded-3xl p-8 text-center space-y-4 max-w-sm shadow-2xl">
-            <RefreshCw className="w-10 h-10 text-brand-primary mx-auto animate-spin" />
-            <h4 className="font-bold text-slate-900 font-sans text-sm">Compilando Relatório PDF...</h4>
-            <p className="text-xs text-slate-400 font-mono">
-              Injetando dados de benchmarking, gráficos setoriais e notas de {metadata.estado}...
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* INTERACTIVE PDF VIEWER OVERLAY MODAL */}
       {showPdfViewer && (
-        <div className="fixed inset-0 z-[110] bg-slate-950/75 backdrop-blur-md flex flex-col justify-between font-sans" id="realtime-pdf-document-viewer">
+        <div className="fixed inset-0 z-[110] bg-slate-950/75 backdrop-blur-md flex flex-col justify-between font-sans select-none" id="realtime-pdf-document-viewer">
           {/* Viewer Top bar controls */}
-          <div className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-white font-sans">
+          <div className="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-wrap items-center justify-between gap-4 text-white font-sans pointer-events-auto">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-[#0C3D6E]/10 border border-[#0C3D6E] text-[#1D9E75] rounded-xl flex items-center justify-center">
-                <FileCheck className="w-5 h-5 text-brand-accent animate-pulse" />
+                <FileCheckIcon className="w-5 h-5 text-brand-accent animate-pulse" />
               </div>
               <div className="text-left">
-                <h4 className="font-bold text-sm tracking-tight text-white font-sans">Visualizador do Relatório Executivo Oficial</h4>
+                <h4 className="font-bold text-sm tracking-tight text-white font-sans">Visualizador do Relatório Executivo Prévio (Rascunho)</h4>
                 <p className="text-[10px] text-slate-400 font-mono">Governança e Gestão de IA — MMGIA</p>
               </div>
             </div>
@@ -818,7 +618,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
               <button
                 onClick={() => setShowPdfViewer(false)}
-                className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer"
+                className="p-2 hover:bg-white/10 rounded-xl transition cursor-pointer animate-[fadeIn_0.2s_ease]"
                 title="Fechar Relatório"
               >
                 <X className="w-5 h-5 text-slate-400 hover:text-white" />
@@ -827,7 +627,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
 
           {/* Central PDF Canvas Page */}
-          <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center bg-slate-950/40" id="pdf-scroller-canvas">
+          <div className="flex-1 overflow-auto p-4 md:p-8 flex items-center justify-center bg-slate-950/40 pointer-events-auto" id="pdf-scroller-canvas">
             <div
               className="bg-white shadow-2xl border border-slate-300 rounded-xs p-10 md:p-14 text-slate-800 relative select-text cursor-default max-w-[800px] w-full transition-all duration-300"
               style={{
@@ -854,7 +654,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                 <div className="flex flex-col justify-between h-full pt-12 pb-10 font-sans text-left space-y-12">
                   <div className="space-y-4">
                     <span className="font-mono text-[10px] uppercase font-bold text-[#1D9E75] tracking-widest block bg-emerald-50 text-emerald-800 px-3 py-1 rounded-full w-max">
-                      documento_executivo_oficial · confidencial
+                      documento_executivo_previo · confidencial
                     </span>
                     <h3 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight uppercase font-sans">
                       Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA)
@@ -868,10 +668,10 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
                   <div className="space-y-4 text-slate-600 font-sans text-xs leading-relaxed">
                     <h4 className="font-bold text-slate-900 text-sm uppercase">1. Introdução & Fundamentação</h4>
-                    <p className="font-light">
+                    <p className="font-light text-justify">
                       Este Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA) é um instrumento estratégico projetado para auxiliar organizações públicas e privadas a mensurar, avaliar e aprimorar sua capacidade de desenvolver, adotar, operar e governar soluções de Inteligência Artificial (IA) de forma ética, responsável, segura, legal e eficaz.
                     </p>
-                    <p className="font-light">
+                    <p className="font-light text-justify">
                       Alinhado à Estratégia Nacional de Inteligência Artificial (ENIA) 2026-2029, o modelo serve como um roteiro para a recomendação e transformação, permitindo que as instituições analisem seu estado atual, identifiquem lacunas e planejem uma evolução estruturada sustentável de seus algoritmos.
                     </p>
                   </div>
@@ -920,34 +720,34 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     <div className="bg-[#E6F1FB] border border-blue-200 p-5 rounded-2xl text-center space-y-2">
-                      <span className="font-mono text-[8px] uppercase tracking-wider text-slate-500 font-bold block">Média Ponderada Oficial MMGIA</span>
+                      <span className="font-mono text-[8px] uppercase tracking-wider text-slate-500 font-bold block">Média Ponderada MMGIA</span>
                       <div className="text-4xl font-mono font-black text-[#0C3D6E]">{globalScore.toFixed(2)} / 3.00</div>
-                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-primary text-white text-[9.5px] font-mono font-bold uppercase">
+                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-brand-primary text-white text-[9.5px] font-mono font-bold uppercaseScale">
                         Nível {levelInfo.num} — {levelInfo.label}
                       </div>
                     </div>
 
                     <div className="space-y-1 text-xs text-slate-600 leading-relaxed font-light">
                       <strong className="text-slate-900 block font-medium">Interpretação Baseada na Metodologia:</strong>
-                      <p className="text-[11px] leading-normal">{levelInfo.desc}</p>
+                      <p className="text-[11px] leading-normal text-justify">{levelInfo.desc}</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <h4 className="font-bold text-slate-900 text-xs uppercase tracking-tight">Implicações Práticas & Riscos Mapeados</h4>
-                    <p className="text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 leading-relaxed">
+                    <p className="text-xs text-slate-500 italic border-l-2 border-slate-300 pl-3 leading-relaxed text-justify">
                       {levelInfo.risco}
                     </p>
 
                     <h4 className="font-bold text-slate-900 text-xs uppercase tracking-tight">Alinhamento aos Marcos Globais</h4>
-                    <p className="text-xs text-slate-650 leading-relaxed font-light">
+                    <p className="text-xs text-slate-650 leading-relaxed font-light text-justify">
                       Este resultado valida o estado técnico e de conformidade do modelo com as imposições futuras do <strong>PL 2338/2023</strong> (Marco de IA no Congresso Brasileiro), da Lei Geral de Proteção de Dados (<strong>LGPD</strong>), de diretrizes internacionais de design ético (<strong>AI Act da União Europeia</strong>), e com as práticas integradas e unificadas das normas <strong>ISO/IEC 42001</strong>.
                     </p>
 
                     <div className="bg-slate-50 border border-slate-150 p-4 rounded-xl font-mono text-[10px] text-slate-600 space-y-1">
                       <span className="font-bold text-slate-950 uppercase tracking-wider block text-[9px] text-[#0C3D6E] pb-0.5">Mapeamento Geral de Riscos</span>
                       {globalScore < 1.0 ? (
-                        <p>A entidade opera com risco regulatório Crítico. Requer instituição imediata de políticas básicas regulatórias e criação de um Comitê Focal para evitar processos e incidentes relacionados à Shadow AI.</p>
+                        <p>A entidade opera com risco regulatório Crítico. Requer instituição imediata de políticas básicas regulatórias e criação de um Comitê Focal para evitar processos e incidentes relacionados à Shadow IA.</p>
                       ) : globalScore < 2.0 ? (
                         <p>A entidade opera em nível de risco Moderado. Possui processos definidos, porém com inconsistências pontuais de execução departamental. Vital instituir o Relatório de Impacto de IA.</p>
                       ) : (
@@ -958,7 +758,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
                   <div className="absolute bottom-6 left-12 right-12 flex justify-between text-[8px] font-mono text-slate-400 border-t border-slate-150 pt-3">
                     <span>MMGIA — Comitê Técnico Informativo</span>
-                    <span>Página 2 de 4</span>
+                    <span>Página 2 de 3</span>
                   </div>
                 </div>
               )}
@@ -1000,7 +800,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                           </tr>
                         ))}
                         <tr className="bg-slate-50 font-bold border-t border-slate-200 text-xs">
-                          <td className="p-2.5 font-mono text-[9px] uppercase">Score Global Final Regido (Total)</td>
+                          <td className="p-2.5 font-mono text-[9px] uppercase">Score Global Prévia (Total)</td>
                           <td className="p-2.5 text-center font-mono font-black" colSpan={2}>
                             {globalScore.toFixed(2)}
                           </td>
@@ -1014,7 +814,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
                   <div className="space-y-3 pt-2">
                     <h4 className="font-bold text-slate-900 text-xs uppercase">Comparativos de Grupo (Setor: {metadata.setor})</h4>
-                    <p className="text-xs text-slate-650 font-light leading-normal leading-relaxed">
+                    <p className="text-xs text-slate-650 font-light leading-normal leading-relaxed text-justify">
                       Sua pontuação ponderada final é de <strong>{globalScore.toFixed(2)}</strong>, enquanto o benchmark da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{peerAverageGlobal.toFixed(2)}</strong>.
                     </p>
 
@@ -1045,11 +845,11 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                   </h3>
 
                   <p className="text-xs text-slate-600 leading-relaxed font-light">
-                    Mapeamos recomendações de impacto na escala de maturidade. Tratam-se de ações proativas para sanar canais e práticas diagnosticadas com conformidade incipiente (Nulo ou Parcial):
+                    Mapeamos recomendações de impacto na escala de maturidade. Tratam-se de ações proativas para sanar canais e práticas de conformidade preliminarmente incipientes (Nulo ou Parcial):
                   </p>
 
                   <div className="space-y-3 font-sans text-xs">
-                    {(filteredGaps.length > 0 ? filteredGaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
+                    {(gaps.length > 0 ? gaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
                       const rec = getGapRecommendation(gap.id);
                       return (
                         <div key={i} className="p-3 bg-slate-50 border border-slate-150 rounded-xl font-sans text-left">
@@ -1057,7 +857,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                             <span className="font-bold text-[#0C3D6E]">Prática {gap.id} — {gap.name}</span>
                             <span className="text-red-500 uppercase font-bold text-[8px]">Alta Prioridade</span>
                           </div>
-                          <p className="text-slate-600 text-[10.5px] leading-normal font-sans italic">
+                          <p className="text-slate-600 text-[10.5px] leading-normal font-sans italic text-left">
                             <strong>Ação Implementação:</strong> {rec.action}
                           </p>
                           <span className="text-[8.5px] text-slate-400 font-mono block mt-1">Eixo: {DIMENSIONS[gap.dimensionId].shortName} · Esforço Operacional: {rec.effort}</span>
@@ -1095,8 +895,8 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
 
           {/* Bottom controller helper text */}
-          <div className="bg-slate-900 border-t border-slate-800 px-6 py-4 text-center text-[10px] font-mono text-slate-450 leading-normal">
-            <span>Este visualizador interativo simula fielmente as páginas de exportação física do relatório MMGIA em formato A4. Utilize o botão "Salvar / Imprimir PDF" para salvar como arquivo PDF no seu computador ou celular de forma permanente.</span>
+          <div className="bg-slate-900 border-t border-slate-800 px-6 py-4 text-center text-[10px] font-mono text-slate-400 leading-normal">
+            <span>Este visualizador interativo simula fielmente as páginas de exportação física do relatório rascunho em formato A4. Utilize o botão "Salvar / Imprimir PDF" para salvar como arquivo PDF de forma permanente.</span>
           </div>
         </div>
       )}

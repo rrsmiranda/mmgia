@@ -33,7 +33,7 @@ const AlertOctagon = LuOctagonAlert as any;
 const Calculator = LuCalculator as any;
 const ShieldCheck = LuShieldCheck as any;
 const BookOpen = LuBookOpen as any;
-import { DIMENSIONS, LIST_PRACTICES, DimensionId } from '../types';
+import { DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shared/types';
 
 export default function Methodology() {
   const [activeSection, setActiveSection] = useState('niveis');

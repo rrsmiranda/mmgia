@@ -58,7 +58,7 @@ import {
   SEED_NEWS,
   DIMENSIONS,
   DimensionId
-} from '../types';
+} from '@mmgia/shared/types';
 
 interface AdminDashboardProps {
   adminEmail: string;

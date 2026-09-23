@@ -21,7 +21,7 @@ const ArrowRight = LuArrowRight as any;
 const Sparkles = LuSparkles as any;
 const CheckCircle2 = LuCircleCheck as any;
 const XCircle = LuCircleX as any;
-import { ScoreLevel } from '../types';
+import { ScoreLevel } from '@mmgia/shared/types';
 
 interface EditAssessmentProps {
   onLoadAssessment: (code: string, answers: Record<string, ScoreLevel>, metadata: any) => void;
