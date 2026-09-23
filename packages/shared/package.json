@@ -6,6 +6,9 @@
   "exports": {
     "./types": "./src/types.ts",
     "./scoring": "./src/lib/scoring.ts",
-    "./styles/tokens.css": "./src/styles/tokens.css"
+    "./styles/tokens.css": "./src/styles/tokens.css",
+    "./design-system": "./src/design-system/index.ts",
+    "./design-system/styles/index.css": "./src/design-system/styles/index.css",
+    "./design-system/styles/theme.css": "./src/design-system/styles/theme.css"
   }
 }
