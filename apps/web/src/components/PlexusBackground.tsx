@@ -5,7 +5,7 @@
 
 import { useEffect, useRef } from 'react';
 
-interface Point {
+interface Node {
   x: number;
   y: number;
   vx: number;
@@ -13,16 +13,29 @@ interface Point {
 }
 
 interface PlexusBackgroundProps {
-  /** Número máximo de pontos, ajustado para baixo em áreas pequenas. */
-  maxPoints?: number;
+  /** Número de nós, ajustado para baixo em áreas pequenas. */
+  maxNodes?: number;
+}
+
+/** Resolve uma cor CSS (incl. var(--token)) para "r, g, b" via um elemento fora de tela. */
+function resolveRgb(value: string): string {
+  const probe = document.createElement('span');
+  probe.style.color = value;
+  document.body.appendChild(probe);
+  const rgb = getComputedStyle(probe).color; // sempre normalizado como "rgb(r, g, b)"
+  document.body.removeChild(probe);
+  const match = rgb.match(/\d+/g);
+  return match ? match.slice(0, 3).join(', ') : '255, 255, 255';
 }
 
 /**
- * Fundo decorativo de pontos conectados por linhas (canvas 2D), para seções
- * escuras (var(--ink)) do design system. Cor vem sempre de var(--on-ink-accent).
- * Para com prefers-reduced-motion: renderiza um quadro estático, sem rAF.
+ * Fundo decorativo de nós conectados por linhas (canvas 2D, com trilha de
+ * desvanecimento), para seções escuras (var(--ink)) do design system.
+ * Cores sempre via token: fundo/trilha em var(--ink), nós e linhas em
+ * var(--on-ink-accent). Para com prefers-reduced-motion: só um quadro
+ * estático, sem requestAnimationFrame.
  */
-export default function PlexusBackground({ maxPoints = 46 }: PlexusBackgroundProps) {
+export default function PlexusBackground({ maxNodes = 50 }: PlexusBackgroundProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -33,13 +46,14 @@ export default function PlexusBackground({ maxPoints = 46 }: PlexusBackgroundPro
 
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const linkDistance = 130;
+    const linkDistance = 150;
 
-    const accentColor = getComputedStyle(canvas).getPropertyValue('--on-ink-accent').trim() || '#7DD3FC';
+    const trailRgb = resolveRgb('var(--ink)');
+    const accentRgb = resolveRgb('var(--on-ink-accent)');
 
     let width = 0;
     let height = 0;
-    let points: Point[] = [];
+    let nodes: Node[] = [];
     let raf = 0;
 
     const resize = () => {
@@ -52,51 +66,55 @@ export default function PlexusBackground({ maxPoints = 46 }: PlexusBackgroundPro
       canvas.style.height = `${height}px`;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      const count = Math.min(maxPoints, Math.max(12, Math.round((width * height) / 16000)));
-      points = Array.from({ length: count }, () => ({
+      const count = Math.min(maxNodes, Math.max(14, Math.round((width * height) / 15000)));
+      nodes = Array.from({ length: count }, () => ({
         x: Math.random() * width,
         y: Math.random() * height,
-        vx: (Math.random() - 0.5) * 0.22,
-        vy: (Math.random() - 0.5) * 0.22,
+        vx: (Math.random() - 0.5) * 0.5,
+        vy: (Math.random() - 0.5) * 0.5,
       }));
+      // Primeiro quadro sem trilha (a tela começa vazia/transparente).
+      ctx.clearRect(0, 0, width, height);
     };
 
     const drawFrame = () => {
-      ctx.clearRect(0, 0, width, height);
+      // Trilha: preenche com o próprio tom de fundo em baixa opacidade, em vez
+      // de limpar o quadro — os nós deixam um rastro suave ao se mover.
+      ctx.fillStyle = `rgba(${trailRgb}, 0.12)`;
+      ctx.fillRect(0, 0, width, height);
 
-      for (let i = 0; i < points.length; i++) {
-        for (let j = i + 1; j < points.length; j++) {
-          const a = points[i];
-          const b = points[j];
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < linkDistance) {
-            ctx.globalAlpha = (1 - dist / linkDistance) * 0.3;
-            ctx.strokeStyle = accentColor;
-            ctx.lineWidth = 1;
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes[i];
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${accentRgb}, 0.6)`;
+        ctx.fill();
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const other = nodes[j];
+          const distance = Math.hypot(node.x - other.x, node.y - other.y);
+          if (distance < linkDistance) {
             ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
+            ctx.moveTo(node.x, node.y);
+            ctx.lineTo(other.x, other.y);
+            ctx.strokeStyle = `rgba(${accentRgb}, ${0.3 - distance / 500})`;
+            ctx.lineWidth = 1;
             ctx.stroke();
           }
         }
       }
-
-      ctx.globalAlpha = 0.7;
-      ctx.fillStyle = accentColor;
-      for (const p of points) {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.6, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.globalAlpha = 1;
     };
 
     const step = () => {
-      for (const p of points) {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x <= 0 || p.x >= width) p.vx *= -1;
-        if (p.y <= 0 || p.y >= height) p.vy *= -1;
+      for (const node of nodes) {
+        node.x += node.vx;
+        node.y += node.vy;
+        // Atravessa as bordas em vez de quicar, para um fluxo contínuo.
+        if (node.x < 0) node.x = width;
+        if (node.x > width) node.x = 0;
+        if (node.y < 0) node.y = height;
+        if (node.y > height) node.y = 0;
       }
       drawFrame();
       raf = requestAnimationFrame(step);
@@ -113,7 +131,7 @@ export default function PlexusBackground({ maxPoints = 46 }: PlexusBackgroundPro
       window.removeEventListener('resize', resize);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [maxPoints]);
+  }, [maxNodes]);
 
   return (
     <canvas
