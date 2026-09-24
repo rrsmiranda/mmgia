@@ -57,7 +57,7 @@
   --status-critical-soft: #FEE2E2;
   --status-serious-soft: #FFEDD5;
   --status-good-soft: #D1FAE5;
-  --shadow-card: none;
+  --shadow-card: 0 1px 2px rgba(16,24,40,.06), 0 2px 8px rgba(16,24,40,.08);
   --shadow-modal: 0 16px 40px rgba(19,41,61,.18);
 }
 /* Tema escuro: funciona com a classe .dark (usada hoje no App.tsx) ou com data-theme="dark". */
@@ -100,6 +100,7 @@
   --status-critical-soft: #2A1215;
   --status-serious-soft: #2B1A0E;
   --status-good-soft: #0F2A22;
+  --shadow-card: 0 1px 2px rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.4);
   --shadow-modal: 0 16px 40px rgba(0,0,0,.6);
 }
 :root {

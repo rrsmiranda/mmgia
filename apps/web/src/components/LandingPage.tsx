@@ -162,7 +162,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </Page>
 
       {/* COMO FUNCIONA */}
-      <section id="como" style={{ paddingBlock: 80 }}>
+      <section id="como" style={{ paddingBlock: 64 }}>
         <Page>
           <Reveal>
             <SectionHeader
@@ -194,7 +194,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* DIMENSÕES */}
-      <section id="dimensoes" style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
+      <section id="dimensoes" style={{ paddingBlock: 72, background: 'var(--surface-sunken)', borderBlock: '1px solid var(--surface-deep)' }}>
         <Page>
           <Reveal>
             <SectionHeader
@@ -223,7 +223,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* SERVIÇOS */}
-      <section id="servicos" style={{ paddingBlock: 80 }}>
+      <section id="servicos" style={{ paddingBlock: 64 }}>
         <Page>
           <Reveal>
             <SectionHeader eyebrow="Serviços" title="O que a plataforma entrega." description="Uma base prática para equipes públicas, privadas e do terceiro setor medirem governança de IA e priorizarem evolução." />
@@ -324,7 +324,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* METODOLOGIA */}
-      <section id="metodologia" style={{ paddingBlock: 80 }}>
+      <section id="metodologia" style={{ paddingBlock: 64 }}>
         <Page>
           <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
@@ -361,7 +361,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* ALINHAMENTO REGULATÓRIO */}
-      <section style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
+      <section style={{ paddingBlock: 72, background: 'var(--surface-sunken)', borderBlock: '1px solid var(--surface-deep)' }}>
         <Page>
           <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
@@ -390,7 +390,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* NÍVEIS */}
-      <section style={{ paddingBlock: 80 }}>
+      <section style={{ paddingBlock: 64 }}>
         <Page>
           <Reveal>
             <SectionHeader eyebrow="Escala de maturidade" title="6 níveis, do inexistente ao otimizado." />
@@ -428,7 +428,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* FAQ */}
-      <section id="faq" style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
+      <section id="faq" style={{ paddingBlock: 64, background: 'var(--surface-sunken)', borderBlock: '1px solid var(--surface-deep)' }}>
         <Page>
           <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1.4fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40 }}>
@@ -454,7 +454,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* NOTÍCIAS */}
-      <section id="noticias" style={{ paddingBlock: 80 }}>
+      <section id="noticias" style={{ paddingBlock: 64 }}>
         <Page>
           <Reveal>
           <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>

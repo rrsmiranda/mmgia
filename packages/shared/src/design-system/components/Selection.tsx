@@ -23,8 +23,7 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
       role="radio"
       aria-checked={checked}
       onClick={onSelect}
-      className={cx('mg-option', list && 'mg-option--list')}
-      style={centered ? { alignItems: 'center', textAlign: 'center' } : undefined}
+      className={cx('mg-option', list && 'mg-option--list', centered && 'mg-option--centered')}
     >
       {Icon && <span className="mg-option-ico"><Icon className="mg-ico" aria-hidden="true" /></span>}
       {leading}
