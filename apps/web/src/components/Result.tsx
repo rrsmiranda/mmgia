@@ -31,6 +31,7 @@ import {
   getSectorBenchmarks,
 } from '@mmgia/shared/scoring';
 import RadarChart from './RadarChart';
+import PlexusBackground from './PlexusBackground';
 import {
   ActionBar,
   Banner,
@@ -198,7 +199,9 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     <DsRoot>
       <Page>
         {/* SCORE HERO */}
-        <section className="mg-hero" style={{ borderRadius: 'var(--radius-xl)', padding: '48px 32px', textAlign: 'center', marginBottom: 24 }} id="result-hero-box">
+        <section className="mg-hero" style={{ borderRadius: 'var(--radius-xl)', padding: '48px 32px', textAlign: 'center', marginBottom: 24, position: 'relative', overflow: 'hidden' }} id="result-hero-box">
+          <PlexusBackground />
+          <div style={{ position: 'relative', zIndex: 1 }}>
           <p className="mg-eyebrow">Diagnóstico finalizado · Score Global MMGIA</p>
           <p style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 64, lineHeight: 1, margin: '16px 0' }}>
             {formatNumber(globalScore)} <span style={{ fontSize: 28, opacity: 0.7 }}>/ 3</span>
@@ -223,6 +226,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               Visualizar relatório executivo
             </Button>
           </ActionBar>
+          </div>
         </section>
 
         {showDetails && (

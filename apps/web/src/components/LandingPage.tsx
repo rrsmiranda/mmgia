@@ -23,6 +23,7 @@ import {
 import { useState } from 'react';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
 import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
+import PlexusBackground from './PlexusBackground';
 import {
   Button,
   Card,
@@ -97,7 +98,9 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
   return (
     <DsRoot>
       {/* HERO */}
-      <section className="mg-hero" id="home-hero">
+      <section className="mg-hero" id="home-hero" style={{ position: 'relative', overflow: 'hidden' }}>
+        <PlexusBackground />
+        <div style={{ position: 'relative', zIndex: 1 }}>
         <Page>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center', paddingBlock: 64 }}>
             <div>
@@ -143,6 +146,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             </Card>
           </div>
         </Page>
+        </div>
       </section>
 
       {/* STATS STRIP */}
@@ -264,7 +268,9 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* PRIVACIDADE */}
-      <section id="privacidade" className="mg-hero" style={{ paddingBlock: 80 }}>
+      <section id="privacidade" className="mg-hero" style={{ paddingBlock: 80, position: 'relative', overflow: 'hidden' }}>
+        <PlexusBackground />
+        <div style={{ position: 'relative', zIndex: 1 }}>
         <Page>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <Card large style={{ background: 'var(--ink-raised)', border: '1px solid var(--ink-raised)' }}>
@@ -304,6 +310,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             </div>
           </div>
         </Page>
+        </div>
       </section>
 
       {/* METODOLOGIA */}
@@ -386,7 +393,9 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       </section>
 
       {/* PAINEL PÚBLICO CTA */}
-      <section id="painel" className="mg-hero" style={{ paddingBlock: 56 }}>
+      <section id="painel" className="mg-hero" style={{ paddingBlock: 56, position: 'relative', overflow: 'hidden' }}>
+        <PlexusBackground />
+        <div style={{ position: 'relative', zIndex: 1 }}>
         <Page>
           <div className="mg-row" style={{ justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ maxWidth: 640 }}>
@@ -397,6 +406,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             <Button variant="primary" size="lg" onInk onClick={() => onChangeTab('mapa')}>Ver painel público</Button>
           </div>
         </Page>
+        </div>
       </section>
 
       {/* FAQ */}
