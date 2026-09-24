@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Database, LineChart, LayoutGrid, MapPin } from 'lucide-react';
 import BrazilMap from './BrazilMap';
+import CountUp from './CountUp';
 import { DimensionId } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
@@ -136,9 +137,9 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
           {/* PAINEL PRINCIPAL */}
           <div className="mg-stack" style={{ gap: 24 }}>
             <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12 }} id="panel-kpis">
-              <KpiCard label="Score médio Brasil" value={formatNumber(NATIONAL_AVERAGE_SCORE)} />
+              <KpiCard label="Score médio Brasil" value={<CountUp value={NATIONAL_AVERAGE_SCORE} decimals={2} formatter={(n) => formatNumber(n)} />} />
               <KpiCard label="Nível modal" value={`Nível ${nationalLevel.num}`} />
-              <KpiCard label="Avaliações ativas" value="1.847" />
+              <KpiCard label="Avaliações ativas" value={<CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} />} />
               <KpiCard label="Pilar mais crítico" value="Edu" />
             </div>
 

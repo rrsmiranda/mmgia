@@ -24,6 +24,8 @@ import { useState } from 'react';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
 import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
 import PlexusBackground from './PlexusBackground';
+import Reveal from './Reveal';
+import CountUp from './CountUp';
 import {
   Button,
   Card,
@@ -105,7 +107,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center', paddingBlock: 64 }}>
             <div>
               <p className="mg-eyebrow">Modelo de maturidade em IA · ENIA 2026–2029</p>
-              <h1 className="mg-h1" style={{ marginTop: 12, fontSize: 'var(--font-size-scale-up-09)' }}>
+              <h1 className="mg-h1 mg-heading-gradient" style={{ marginTop: 12, fontSize: 'var(--font-size-scale-up-09)' }}>
                 Avalie a governança de IA com rigor, privacidade e ação.
               </h1>
               <p className="mg-lead" style={{ marginTop: 16, maxWidth: 560 }}>
@@ -116,14 +118,14 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <Button variant="secondary" size="lg" onInk onClick={() => { const el = document.getElementById('metodologia'); el?.scrollIntoView({ behavior: 'smooth' }); }}>Ver metodologia</Button>
               </div>
               <p className="mg-small" style={{ marginTop: 24, color: 'var(--on-ink-muted)' }}>
-                <strong style={{ color: 'var(--on-ink)' }}>1.847</strong> avaliações · 27 estados · <strong style={{ color: 'var(--on-ink)' }}>100%</strong> gratuito
+                <strong style={{ color: 'var(--on-ink)' }}><CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} /></strong> avaliações · 27 estados · <strong style={{ color: 'var(--on-ink)' }}>100%</strong> gratuito
               </p>
             </div>
 
             <Card large>
               <p className="mg-eyebrow">Exemplo ilustrativo</p>
               <div className="mg-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
-                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}>{formatNumber(1.72)} <small style={{ fontSize: 18, opacity: 0.6 }}>/ 3</small></span>
+                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}><CountUp value={1.72} decimals={2} formatter={(n) => formatNumber(n)} /> <small style={{ fontSize: 18, opacity: 0.6 }}>/ 3</small></span>
                 <LevelBadge level={3 as Level} />
               </div>
               <div style={{ marginTop: 16 }}>
@@ -152,21 +154,23 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* STATS STRIP */}
       <Page>
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12, marginTop: -40, position: 'relative', zIndex: 1 }} id="stats-banner">
-          <KpiCard label="Avaliações" value="1.847" />
-          <KpiCard label="Práticas" value="45" />
-          <KpiCard label="Dimensões" value="5" />
-          <KpiCard label="Gratuito" value="100%" />
+          <KpiCard label="Avaliações" value={<CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} />} />
+          <KpiCard label="Práticas" value={<CountUp value={45} />} />
+          <KpiCard label="Dimensões" value={<CountUp value={5} />} />
+          <KpiCard label="Gratuito" value={<><CountUp value={100} />%</>} />
         </div>
       </Page>
 
       {/* COMO FUNCIONA */}
       <section id="como" style={{ paddingBlock: 80 }}>
         <Page>
-          <SectionHeader
-            eyebrow="Como funciona"
-            title="Da primeira pergunta ao relatório em 30 minutos."
-            description="O fluxo foi desenhado como uma jornada operacional: contexto mínimo, avaliação guiada, score local e relatório exportável. O objetivo é transformar maturidade em decisões, não em burocracia."
-          />
+          <Reveal>
+            <SectionHeader
+              eyebrow="Como funciona"
+              title="Da primeira pergunta ao relatório em 30 minutos."
+              description="O fluxo foi desenhado como uma jornada operacional: contexto mínimo, avaliação guiada, score local e relatório exportável. O objetivo é transformar maturidade em decisões, não em burocracia."
+            />
+          </Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 32 }}>
             {HOW_IT_WORKS.map((item) => (
               <Card key={item.step}>
@@ -192,11 +196,13 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* DIMENSÕES */}
       <section id="dimensoes" style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
         <Page>
-          <SectionHeader
-            eyebrow="Dimensões avaliadas"
-            title="5 dimensões, 45 práticas, 6 níveis."
-            description="A maturidade é observada por um conjunto balanceado de governança, tecnologia, confiança, cultura e cooperação."
-          />
+          <Reveal>
+            <SectionHeader
+              eyebrow="Dimensões avaliadas"
+              title="5 dimensões, 45 práticas, 6 níveis."
+              description="A maturidade é observada por um conjunto balanceado de governança, tecnologia, confiança, cultura e cooperação."
+            />
+          </Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 32 }}>
             {(DIMENSION_ORDER as DimensionId[]).map((id) => {
               const d = DIMENSIONS[id];
@@ -219,7 +225,9 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* SERVIÇOS */}
       <section id="servicos" style={{ paddingBlock: 80 }}>
         <Page>
-          <SectionHeader eyebrow="Serviços" title="O que a plataforma entrega." description="Uma base prática para equipes públicas, privadas e do terceiro setor medirem governança de IA e priorizarem evolução." />
+          <Reveal>
+            <SectionHeader eyebrow="Serviços" title="O que a plataforma entrega." description="Uma base prática para equipes públicas, privadas e do terceiro setor medirem governança de IA e priorizarem evolução." />
+          </Reveal>
           <div className="mg-stack" style={{ gap: 16, marginTop: 32 }}>
             <Card large>
               <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 320px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'center' }}>
@@ -272,6 +280,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
         <PlexusBackground />
         <div style={{ position: 'relative', zIndex: 1 }}>
         <Page>
+          <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <Card large style={{ background: 'var(--ink-raised)', border: '1px solid var(--ink-raised)' }}>
               <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>POST /v1/submissions</p>
@@ -309,6 +318,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               </div>
             </div>
           </div>
+          </Reveal>
         </Page>
         </div>
       </section>
@@ -316,6 +326,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* METODOLOGIA */}
       <section id="metodologia" style={{ paddingBlock: 80 }}>
         <Page>
+          <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <div>
               <p className="mg-eyebrow">Metodologia</p>
@@ -345,12 +356,14 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               </div>
             </Card>
           </div>
+          </Reveal>
         </Page>
       </section>
 
       {/* ALINHAMENTO REGULATÓRIO */}
       <section style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
         <Page>
+          <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <div>
               <p className="mg-eyebrow">Alinhamento regulatório</p>
@@ -372,13 +385,16 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               rows={ALIGNMENT_ROWS}
             />
           </div>
+          </Reveal>
         </Page>
       </section>
 
       {/* NÍVEIS */}
       <section style={{ paddingBlock: 80 }}>
         <Page>
-          <SectionHeader eyebrow="Escala de maturidade" title="6 níveis, do inexistente ao otimizado." />
+          <Reveal>
+            <SectionHeader eyebrow="Escala de maturidade" title="6 níveis, do inexistente ao otimizado." />
+          </Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(6,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12, marginTop: 32 }}>
             {[0, 1, 2, 3, 4, 5].map((lvl) => (
               <Card key={lvl} style={{ textAlign: 'center' }}>
@@ -397,6 +413,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
         <PlexusBackground />
         <div style={{ position: 'relative', zIndex: 1 }}>
         <Page>
+          <Reveal>
           <div className="mg-row" style={{ justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
             <div style={{ maxWidth: 640 }}>
               <p className="mg-eyebrow">Dados agregados e anonimizados</p>
@@ -405,6 +422,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             </div>
             <Button variant="primary" size="lg" onInk onClick={() => onChangeTab('mapa')}>Ver painel público</Button>
           </div>
+          </Reveal>
         </Page>
         </div>
       </section>
@@ -412,6 +430,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* FAQ */}
       <section id="faq" style={{ paddingBlock: 80, background: 'var(--surface-raised)' }}>
         <Page>
+          <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1.4fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40 }}>
             <div>
               <p className="mg-eyebrow">Perguntas frequentes</p>
@@ -430,12 +449,14 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               ))}
             </div>
           </div>
+          </Reveal>
         </Page>
       </section>
 
       {/* NOTÍCIAS */}
       <section id="noticias" style={{ paddingBlock: 80 }}>
         <Page>
+          <Reveal>
           <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
             <div>
               <p className="mg-eyebrow">Notícias</p>
@@ -456,6 +477,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               </Card>
             ))}
           </div>
+          </Reveal>
         </Page>
       </section>
 

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { DIMENSIONS, type DimensionId } from '../../types';
 import { DIMENSION_ORDER, LEVEL_LABELS, SCORE_GOAL, SCORE_MAX, cx, formatNumber, type Level } from '../tokens';
 
@@ -35,19 +35,26 @@ interface DimensionBarsProps {
   short?: boolean;
 }
 
-/** Barras por dimensão na escala 0–3, cor categórica = identidade. */
+/** Barras por dimensão na escala 0–3, cor categórica = identidade. Preenche do zero ao montar. */
 export function DimensionBars({ scores, goal = true, short = false }: DimensionBarsProps) {
+  const [filled, setFilled] = useState(false);
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => setFilled(true));
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   return (
     <div className="mg-bars">
       {DIMENSION_ORDER.map((id) => {
         const v = scores[id];
         const d = DIMENSIONS[id];
+        const pct = Math.min(100, (v / SCORE_MAX) * 100);
         return (
           <div className="mg-bars-row" key={id}>
             <DimensionTag dimension={id} short={short} />
             <span className="v">{formatNumber(v)}</span>
             <div className="mg-bar" role="img" aria-label={`${d.name}: ${formatNumber(v)} de ${SCORE_MAX}`}>
-              <span style={{ width: `${Math.min(100, (v / SCORE_MAX) * 100)}%`, background: `var(--dim-${id})` }} />
+              <span className="mg-bar-fill" style={{ width: filled ? `${pct}%` : 0, background: `var(--dim-${id})` }} />
               {goal && <span className="mg-goal" style={{ left: `${(SCORE_GOAL / SCORE_MAX) * 100}%` }} aria-hidden="true" />}
             </div>
           </div>

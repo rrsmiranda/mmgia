@@ -32,6 +32,7 @@ import {
 } from '@mmgia/shared/scoring';
 import RadarChart from './RadarChart';
 import PlexusBackground from './PlexusBackground';
+import CountUp from './CountUp';
 import {
   ActionBar,
   Banner,
@@ -203,9 +204,16 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           <PlexusBackground />
           <div style={{ position: 'relative', zIndex: 1 }}>
           <p className="mg-eyebrow">Diagnóstico finalizado · Score Global MMGIA</p>
-          <p style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 64, lineHeight: 1, margin: '16px 0' }}>
-            {formatNumber(globalScore)} <span style={{ fontSize: 28, opacity: 0.7 }}>/ 3</span>
-          </p>
+          <div style={{ position: 'relative', display: 'inline-block', margin: '16px 0' }}>
+            <span
+              className="mg-ring-spin"
+              aria-hidden="true"
+              style={{ position: 'absolute', inset: -18, border: '2px dashed var(--on-ink-accent)', opacity: 0.3, borderRadius: 'var(--radius-pill)' }}
+            />
+            <p style={{ position: 'relative', fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 64, lineHeight: 1, margin: 0 }}>
+              <CountUp value={globalScore} decimals={2} formatter={(n) => formatNumber(n)} /> <span style={{ fontSize: 28, opacity: 0.7 }}>/ 3</span>
+            </p>
+          </div>
           <div className="mg-row" style={{ justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
             <LevelBadge level={levelInfo.num as Level} />
             <RiskBadge level={levelInfo.num as Level} />

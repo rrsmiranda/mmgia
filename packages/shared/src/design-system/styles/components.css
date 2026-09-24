@@ -32,6 +32,14 @@
 .mg-micro { font-family: var(--mg-font-sans); font-size: var(--font-size-scale-down-01); line-height: var(--font-line-height-low); font-weight: var(--font-weight-bold); text-transform: uppercase; }
 .mg-mono { font-family: var(--mg-font-mono); font-weight: 500; }
 
+/* Título em gradiente (marca) — uso pontual, só em destaques editoriais. */
+.mg-heading-gradient { background: linear-gradient(90deg, var(--brand) 0%, var(--brand-accent) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mg-hero .mg-heading-gradient, [data-ink] .mg-heading-gradient { background: linear-gradient(90deg, var(--on-ink) 0%, var(--on-ink-accent) 100%); -webkit-background-clip: text; background-clip: text; }
+
+/* Anel decorativo girando (uso pontual, ex.: em volta de um número de destaque). */
+@keyframes mg-spin { to { transform: rotate(360deg); } }
+.mg-ring-spin { animation: mg-spin 18s linear infinite; }
+
 /* ---------- Botão: 1 componente, 3 variantes + desabilitado ---------- */
 .mg-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); height: 40px; padding: 0 var(--space-5); border-radius: var(--radius-md); border: 1px solid transparent; font: 600 var(--font-size-scale-up-01)/1 var(--mg-font-sans); white-space: nowrap; cursor: pointer; text-decoration: none; background: transparent; color: var(--text); transition: background-color .15s ease, border-color .15s ease, color .15s ease; }
 .mg-btn--lg { height: var(--control-height); padding: 0 var(--space-5); font-size: var(--font-size-scale-up-01); }
@@ -76,8 +84,10 @@
 .mg-level b { font-weight: 600; font-size: var(--font-size-scale-base); font-variant-numeric: lining-nums tabular-nums; }
 
 /* ---------- Card ---------- */
-.mg-card { color: var(--text); background: var(--surface-raised); border: 1px solid var(--surface-deep); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: var(--space-6); }
+.mg-card { color: var(--text); background: var(--surface-raised); border: 1px solid var(--surface-deep); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); padding: var(--space-6); transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease; }
+.mg-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-modal); border-color: var(--border-control); }
 .mg-card--flush { padding: 0; overflow: hidden; }
+.mg-card--flush:hover { transform: none; box-shadow: var(--shadow-card); }
 .mg-card-head { display: flex; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-6); border-bottom: 1px solid var(--surface-deep); min-height: 56px; }
 .mg-card-head .mg-title { flex: 1; }
 .mg-card-body { padding: var(--space-6); }
@@ -231,6 +241,7 @@
 .mg-bars-row .v { font-variant-numeric: lining-nums tabular-nums; font-weight: 700; font-size: var(--font-size-scale-base); text-align: right; }
 .mg-bar { grid-column: 1 / -1; height: 8px; border-radius: var(--radius-pill); background: var(--surface-sunken); position: relative; }
 .mg-bar > span { position: absolute; inset: 0 auto 0 0; border-radius: var(--radius-pill); }
+.mg-bar .mg-bar-fill { transition: width 1s cubic-bezier(.16,1,.3,1); }
 .mg-bar .mg-goal { position: absolute; top: -5px; bottom: -5px; border-left: 2px dashed var(--text-muted); }
 .mg-legend { display: flex; flex-wrap: wrap; gap: var(--space-4); font-size: var(--font-size-scale-down-01); color: var(--text-muted); }
 .mg-legend span { display: inline-flex; align-items: center; gap: 6px; }
