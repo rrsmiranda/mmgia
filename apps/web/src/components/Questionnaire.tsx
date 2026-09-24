@@ -70,20 +70,6 @@ export default function Questionnaire({
     if (currentPractice) {
       onSaveAnswer(currentPractice.id, level);
       setLatestSavedId(currentPractice.id);
-
-      // Auto advance after short delay for snappy UX
-      setTimeout(() => {
-        if (currentPracticeIndex < filteredPractices.length - 1) {
-          setCurrentPracticeIndex(currentPracticeIndex + 1);
-        } else {
-          // If of this dimension, auto transition to next tab if needed, or guide to revision
-          const currentTabIdx = DIM_KEYS.indexOf(activeDimension);
-          if (currentTabIdx < DIM_KEYS.length - 1) {
-            setActiveDimension(DIM_KEYS[currentTabIdx + 1]);
-            setCurrentPracticeIndex(0);
-          }
-        }
-      }, 150);
     }
   };
 
@@ -252,7 +238,7 @@ export default function Questionnaire({
                 ))}
               </RadioGroup>
               <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-                Atalhos de teclado: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> votam e avançam ·{' '}
+                Atalhos de teclado: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> votam ·{' '}
                 <kbd>←</kbd> <kbd>→</kbd> navegam entre práticas.
               </p>
             </fieldset>
