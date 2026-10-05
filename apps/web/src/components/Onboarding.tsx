@@ -234,12 +234,12 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             {step === 1 && (
               <motion.div key="step-1" {...slideProps}>
                 <p className="mg-eyebrow">Etapa 1 de 4</p>
-                <h3 className="mg-h4" style={{ marginTop: 4 }}>A organização é do…</h3>
+                <h1 className="mg-h4" style={{ marginTop: 4 }}>A organização é do…</h1>
                 <p className="mg-small mg-muted" style={{ marginTop: 4, marginBottom: 20 }}>
                   Escolha o setor. Na próxima etapa você indica a área de atuação.
                 </p>
                 <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-                  <RadioGroup label="Setor" columns={['repeat(2,1fr)', 'repeat(2,1fr)', '1fr']}>
+                  <RadioGroup label="Setor" required columns={['repeat(2,1fr)', 'repeat(2,1fr)', '1fr']}>
                     {SETORES.map((s) => (
                       <OptionCard
                         key={s.id}
@@ -282,18 +282,18 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       Alterar setor
                     </button>
                   </div>
-                  <h3 className="mg-h4">
+                  <h1 className="mg-h4">
                     {setor === 'publico' && 'Qual é a esfera e a área da organização?'}
                     {setor === 'privado' && 'Qual é a área de atuação da empresa?'}
                     {setor === 'terceiro' && 'Qual é a área de atuação da organização?'}
-                  </h3>
+                  </h1>
                 </div>
 
                 {setor === 'publico' && (
                   <>
                     <div className="mg-stack" style={{ gap: 12 }}>
                       <p className="mg-label">Esfera</p>
-                      <RadioGroup label="Esfera" columns={['repeat(3,1fr)', 'repeat(3,1fr)', '1fr']}>
+                      <RadioGroup label="Esfera" required columns={['repeat(3,1fr)', 'repeat(3,1fr)', '1fr']}>
                         {ESFERAS.map((e) => (
                           <OptionCard key={e.id} centered checked={esfera === e.id} onSelect={() => handleSelectEsfera(e.id)} title={e.label} description={e.desc} />
                         ))}
@@ -308,6 +308,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       <div aria-disabled={!esfera} style={{ opacity: esfera ? 1 : 0.5, pointerEvents: esfera ? 'auto' : 'none' }}>
                         <OptionList
                           label="Área principal"
+                          required
                           footer={area === 'estatal' ? (
                             <div className="mg-stack" style={{ gap: 8 }}>
                               <p className="mg-label" style={{ margin: 0 }}>Atividade principal da empresa</p>
@@ -340,7 +341,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 )}
 
                 {setor === 'privado' && (
-                  <RadioGroup label="Área de atuação" columns={['repeat(3,1fr)', 'repeat(2,1fr)', '1fr']}>
+                  <RadioGroup label="Área de atuação" required columns={['repeat(3,1fr)', 'repeat(2,1fr)', '1fr']}>
                     {AREAS_PRIVADAS.map((a) => (
                       <OptionCard key={a.id} checked={area === a.id} onSelect={() => setArea(a.id)} title={a.label} description={a.desc} />
                     ))}
@@ -348,7 +349,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 )}
 
                 {setor === 'terceiro' && (
-                  <RadioGroup label="Área de atuação" columns={['repeat(2,1fr)', 'repeat(2,1fr)', '1fr']}>
+                  <RadioGroup label="Área de atuação" required columns={['repeat(2,1fr)', 'repeat(2,1fr)', '1fr']}>
                     {AREAS_TERCEIRO.map((a) => (
                       <OptionCard key={a.id} checked={area === a.id} onSelect={() => setArea(a.id)} title={a.label} description={a.desc} />
                     ))}
@@ -361,7 +362,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
               <motion.div key="step-3" {...slideProps} className="mg-stack" style={{ gap: 32 }}>
                 <div>
                   <p className="mg-eyebrow">Etapa 3 de 4</p>
-                  <h3 className="mg-h4" style={{ marginTop: 4 }}>Onde a organização atua e qual é o porte?</h3>
+                  <h1 className="mg-h4" style={{ marginTop: 4 }}>Onde a organização atua e qual é o porte?</h1>
                 </div>
 
                 <div className="mg-grid" style={{ ['--cols-d' as string]: '55% 45%', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
@@ -390,7 +391,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                     {viewMode === 'map' ? (
                       <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} theme="light" variant="plain" />
                     ) : (
-                      <RadioGroup label="Estado (UF)" columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
+                      <RadioGroup label="Estado (UF)" required columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
                         {UFS.map((uf) => (
                           <OptionCard key={uf} centered checked={estado === uf} onSelect={() => setEstado(uf)} title={uf} />
                         ))}
@@ -403,7 +404,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       <h4 className="mg-title">Porte da organização</h4>
                       <p className="mg-small mg-muted">Quantidade aproximada de colaboradores.</p>
                     </div>
-                    <OptionList label="Porte">
+                    <OptionList label="Porte" required>
                       {PORTES.map((item) => (
                         <OptionCard key={item.id} inline checked={porte === item.id} onSelect={() => setPorte(item.id)} title={item.label} trailing={item.trailing} />
                       ))}
@@ -417,7 +418,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
               <motion.div key="step-4" {...slideProps} className="mg-stack" style={{ gap: 32 }}>
                 <div>
                   <p className="mg-eyebrow">Etapa 4 de 4</p>
-                  <h3 className="mg-h4" style={{ marginTop: 4 }}>Qual é a relação da organização com IA?</h3>
+                  <h1 className="mg-h4" style={{ marginTop: 4 }}>Qual é a relação da organização com IA?</h1>
                   <p className="mg-small mg-muted" style={{ marginTop: 4 }}>Ajuda a interpretar os resultados no painel nacional.</p>
                 </div>
 
@@ -428,7 +429,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 </RadioGroup>
 
                 <Card>
-                  <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldAlert className="mg-ico" aria-hidden="true" />Compromisso anônimo de privacidade</span>} />
+                  <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldAlert className="mg-ico mg-ico-sm" aria-hidden="true" />Compromisso anônimo de privacidade</span>} />
                   <CardBody>
                     <p className="mg-small mg-muted">
                       Garantimos total integridade de seus dados confidenciais de negócio. Não há dados sensíveis persistidos.
@@ -453,7 +454,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                       </div>
                     </div>
                     <div style={{ marginTop: 20 }}>
-                      <Checkbox checked={termosAceitos} onChange={(e) => setTermosAceitos(e.target.checked)}>
+                      <Checkbox checked={termosAceitos} onChange={(e) => setTermosAceitos(e.target.checked)} aria-required="true">
                         Entendo e aceito que os dados inseridos serão utilizados de forma anônima e agregada para traçar o Painel Nacional de Maturidade em IA brasileiro. <span className="mg-muted">Obrigatório</span>
                       </Checkbox>
                     </div>

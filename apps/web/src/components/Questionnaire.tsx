@@ -80,6 +80,7 @@ export default function Questionnaire({
   };
 
   const handleNextPractice = () => {
+    if (!answers[currentPractice.id]) return;
     if (currentPracticeIndex < filteredPractices.length - 1) {
       setCurrentPracticeIndex(currentPracticeIndex + 1);
     } else {
@@ -208,7 +209,7 @@ export default function Questionnaire({
               <div>
                 <h2 className="mg-h5">Em que grau a prática está implementada?</h2>
                 <p className="mg-small mg-muted" style={{ marginTop: 4, marginBottom: 16 }}>Use as teclas 1 a 4 para responder.</p>
-                <OptionList label="Escala NPLF" onKeyNav={move}>
+                <OptionList label="Escala NPLF" required onKeyNav={move}>
                   {ORDER.map((v) => (
                     <OptionCard
                       key={v}
@@ -239,7 +240,7 @@ export default function Questionnaire({
         <span className="mg-small mg-muted mg-hide-mobile">
           Prática {currentPracticeIndex + 1} de {filteredPractices.length} · salvo automaticamente
         </span>
-        <Button variant="primary" size="lg" iconRight={ArrowRight} onClick={handleNextPractice}>
+        <Button variant="primary" size="lg" iconRight={ArrowRight} onClick={handleNextPractice} disabled={!answers[currentPractice.id]}>
           {nextLabel}
         </Button>
       </ActionBar>

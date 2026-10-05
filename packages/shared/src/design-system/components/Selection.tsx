@@ -64,7 +64,7 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
 }
 
 /** Lista em linhas (borda única, divisórias) para opções com descrição longa — ex.: áreas do setor público. */
-export function OptionList({ label, children, footer, onKeyNav }: { label: string; children: ReactNode; footer?: ReactNode; onKeyNav?: (direction: 1 | -1) => void }) {
+export function OptionList({ label, children, footer, onKeyNav, required }: { label: string; children: ReactNode; footer?: ReactNode; onKeyNav?: (direction: 1 | -1) => void; required?: boolean }) {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!onKeyNav) return;
     if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); onKeyNav(1); }
@@ -72,7 +72,7 @@ export function OptionList({ label, children, footer, onKeyNav }: { label: strin
   };
   return (
     <div className="mg-sector-list">
-      <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown}>{children}</div>
+      <div role="radiogroup" aria-label={label} aria-required={required || undefined} onKeyDown={onKeyDown}>{children}</div>
       {footer && <div className="mg-option-note" style={{ padding: '0 16px 14px 46px', margin: 0 }}>{footer}</div>}
     </div>
   );
