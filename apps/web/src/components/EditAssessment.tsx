@@ -6,6 +6,7 @@
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import { AssessmentMetadata, ScoreLevel } from '@mmgia/shared/types';
+import { migrarMetadataV1 } from '@mmgia/shared/taxonomy';
 import { Banner, Button, Card, DsRoot, Field, Input, Page } from '@mmgia/shared/design-system';
 
 interface EditAssessmentProps {
@@ -35,9 +36,12 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        const metadata: AssessmentMetadata = parsed.metadata?.taxonomiaVersao === 2
+          ? parsed.metadata
+          : migrarMetadataV1(parsed.metadata);
         setSuccessText('Avaliação integrada com sucesso! Redirecionando...');
         setTimeout(() => {
-          onLoadAssessment(trimmed, parsed.answers, parsed.metadata);
+          onLoadAssessment(trimmed, parsed.answers, metadata);
         }, 1200);
         return;
       } catch {
@@ -58,10 +62,12 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
         '5.1': 'L', '5.2': 'N',
       };
 
-      const mockMeta = {
-        natureza: 'Pública estadual',
+      const mockMeta: AssessmentMetadata = {
+        taxonomiaVersao: 2,
+        setor: 'publico',
+        esfera: 'estadual',
+        area: 'saude',
         estado: 'SP',
-        setor: 'Saúde',
         porte: 'Grande',
         termosAceitos: true,
         code: trimmed,
