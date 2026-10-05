@@ -22,6 +22,7 @@ import {
   X,
 } from 'lucide-react';
 import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { descreverClassificacao, rotuloArea } from '@mmgia/shared/taxonomy';
 import {
   DIMENSION_WEIGHTS,
   getAllDimensionScores,
@@ -157,8 +158,10 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const globalScore = getGlobalScore(answers);
   const levelInfo = getMaturityLevel(globalScore);
 
-  const sectorBenchmarks = getSectorBenchmarks(metadata.setor || 'Saúde');
-  const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
+  const sectorBenchmarks = getSectorBenchmarks(metadata.area, metadata.atividadeEstatal);
+  const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
+  const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
+  const classificacaoLabel = descreverClassificacao(metadata);
 
   const gaps = LIST_PRACTICES.filter((practice) => {
     const ans = answers[practice.id];
@@ -219,7 +222,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             <RiskBadge level={levelInfo.num as Level} />
           </div>
           <p className="mg-lead" style={{ maxWidth: 640, margin: '16px auto 0' }}>
-            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais de governança no setor de <strong>{metadata.setor}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
+            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais de governança no grupo de <strong>{areaLabel}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
           </p>
           <ActionBar inline>
             <Button variant="secondary" onInk icon={Info} onClick={() => setShowDetails((v) => !v)}>
@@ -331,7 +334,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
           {/* BENCHMARK */}
           <Card id="group-benchmark-panel">
-            <CardHeader title={`Grupo comparativo: ${metadata.setor} · ${metadata.porte}`} />
+            <CardHeader title={`Grupo comparativo: ${areaLabel} · ${metadata.porte}`} />
             <CardBody>
               <div className="mg-only-desktop">
                 <RadarChart scores={currentScores} benchmarkScores={sectorBenchmarks} />
@@ -369,7 +372,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               </div>
 
               <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-                Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo econômico de {metadata.setor} em todo o Brasil.
+                Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo de {areaLabel} em todo o Brasil.
               </p>
             </CardBody>
           </Card>
@@ -549,12 +552,12 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                       <span className="mg-title">Mapeamento Anônimo</span>
                     </div>
                     <div>
-                      <span className="mg-code block">Segmento de Atuação</span>
-                      <span className="mg-title">{metadata.setor || 'N/A'}</span>
+                      <span className="mg-code block">Classificação</span>
+                      <span className="mg-title">{classificacaoLabel || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="mg-code block">Natureza Governamental</span>
-                      <span className="mg-title">{metadata.natureza || 'N/A'}</span>
+                      <span className="mg-code block">Área de atuação</span>
+                      <span className="mg-title">{areaLabel}</span>
                     </div>
                     <div>
                       <span className="mg-code block">Porte Organizacional</span>
@@ -652,7 +655,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                   <p className="mg-code">Score Global Final Regido (Total): {formatNumber(globalScore)} / 3,00</p>
 
                   <div className="space-y-3 pt-2">
-                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Setor: {metadata.setor})</h4>
+                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Área: {areaLabel})</h4>
                     <p className="text-xs leading-relaxed mg-lead">
                       Sua pontuação ponderada final é de <strong>{formatNumber(globalScore)}</strong>, enquanto o benchmark ilustrativo da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{formatNumber(peerAverageGlobal)}</strong>.
                     </p>

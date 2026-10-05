@@ -21,6 +21,7 @@ import {
   Check
 } from 'lucide-react';
 import { ScoreLevel, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { descreverClassificacao, rotuloArea } from '@mmgia/shared/taxonomy';
 import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel, getPeerAverageGlobal } from '@mmgia/shared/scoring';
 
 interface Html2PdfWorker {
@@ -57,7 +58,9 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
   const dimensionLevels = getAllDimensionLevels(answers);
 
   // Sector stats benchmarks
-  const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
+  const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
+  const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'Não especificado';
+  const classificacaoLabel = descreverClassificacao(metadata) || 'Não especificado';
 
   // Gaps calculation (unmet criteria)
   const gaps = LIST_PRACTICES.filter((practice) => {
@@ -240,12 +243,12 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
 
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 24px; border-radius: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-family: monospace; font-size: 11px; color: #475569; margin: 40px 0;">
         <div>
-          <span style="color: #94a3b8; display: block; font-size: 9px; margin-bottom: 2px;">Segmento Institucional</span>
-          <b style="color: #0f172a;">${metadata.setor || 'Não especificado'}</b>
+          <span style="color: #94a3b8; display: block; font-size: 9px; margin-bottom: 2px;">Classificação</span>
+          <b style="color: #0f172a;">${classificacaoLabel}</b>
         </div>
         <div>
-          <span style="color: #94a3b8; display: block; font-size: 9px; margin-bottom: 2px;">Natureza Governamental</span>
-          <b style="color: #0f172a;">${metadata.natureza || 'Pública'}</b>
+          <span style="color: #94a3b8; display: block; font-size: 9px; margin-bottom: 2px;">Área de atuação</span>
+          <b style="color: #0f172a;">${areaLabel}</b>
         </div>
         <div>
           <span style="color: #94a3b8; display: block; font-size: 9px; margin-bottom: 2px;">Porte Corporativo</span>
@@ -408,7 +411,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
         <div style="margin-top: 30px;">
           <h3 style="font-family: sans-serif; font-size: 13px; font-weight: bold; color: #0f172a; text-transform: uppercase; margin-bottom: 10px;">Comparativo Setorial Nacional</h3>
           <p style="font-size: 12px; color: #475569; line-height: 1.6;">
-            A organização registra pontuação de <b>${globalScore.toFixed(2)}</b>. Ao confrontar o barômetro com os respondentes do grupo de <b>${metadata.setor}</b> no Brasil, a média geral do segmento localiza-se em <b>${peerAverageGlobal.toFixed(2)}</b>. Isso confere à instituição o patamar correspondente de percentil aproximado de <b>68%</b> no compliance estatístico nacional de IA.
+            A organização registra pontuação de <b>${globalScore.toFixed(2)}</b>. Ao confrontar o barômetro com os respondentes do grupo de <b>${areaLabel}</b> no Brasil, a média geral do segmento localiza-se em <b>${peerAverageGlobal.toFixed(2)}</b>. Isso confere à instituição o patamar correspondente de percentil aproximado de <b>68%</b> no compliance estatístico nacional de IA.
           </p>
         </div>
       </div>
@@ -910,12 +913,12 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
             {/* Metadata info cards */}
             <div className="bg-slate-50 border border-slate-200/80 p-6 rounded-2xl grid grid-cols-2 gap-y-4 gap-x-6 text-left font-mono text-[10px] text-slate-600 uppercase leading-snug">
               <div>
-                <span className="text-[9px] text-slate-400 block font-light">Segmento Institucional</span>
-                <span className="font-bold text-slate-900">{metadata.setor || 'Não especificado'}</span>
+                <span className="text-[9px] text-slate-400 block font-light">Classificação</span>
+                <span className="font-bold text-slate-900">{classificacaoLabel}</span>
               </div>
               <div>
-                <span className="text-[9px] text-slate-400 block font-light">Natureza Governamental</span>
-                <span className="font-bold text-slate-900">{metadata.natureza || 'Pública'}</span>
+                <span className="text-[9px] text-slate-400 block font-light">Área de atuação</span>
+                <span className="font-bold text-slate-900">{areaLabel}</span>
               </div>
               <div>
                 <span className="text-[9px] text-slate-400 block font-light">Porte Corporativo</span>
@@ -1104,7 +1107,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
               <div className="space-y-3 pt-2">
                 <h3 className="font-bold text-slate-900 text-xs uppercase tracking-tight font-sans">Comparativo Setorial Nacional</h3>
                 <p className="text-xs text-slate-650 leading-relaxed font-light">
-                  A organização registra pontuação de <strong className="text-slate-950 font-bold">{globalScore.toFixed(2)}</strong>. Ao confrontar o barômetro com os respondentes do grupo de <strong className="text-slate-900">{metadata.setor}</strong> no Brasil, a média geral do segmento localiza-se em <strong className="text-slate-900">{peerAverageGlobal.toFixed(2)}</strong>. Isso confere à instituição o patamar correspondente de percentil aproximado de <strong className="text-indigo-805">68%</strong> no compliance estatístico nacional de IA.
+                  A organização registra pontuação de <strong className="text-slate-950 font-bold">{globalScore.toFixed(2)}</strong>. Ao confrontar o barômetro com os respondentes do grupo de <strong className="text-slate-900">{areaLabel}</strong> no Brasil, a média geral do segmento localiza-se em <strong className="text-slate-900">{peerAverageGlobal.toFixed(2)}</strong>. Isso confere à instituição o patamar correspondente de percentil aproximado de <strong className="text-indigo-805">68%</strong> no compliance estatístico nacional de IA.
                 </p>
               </div>
             </div>

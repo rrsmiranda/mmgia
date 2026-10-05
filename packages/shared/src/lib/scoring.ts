@@ -21,6 +21,7 @@
  */
 
 import { LIST_PRACTICES, DIMENSIONS, DimensionId, ScoreLevel } from '../types';
+import type { Area, AreaPrivada } from './taxonomy';
 
 const NPLF_VALUE: Record<ScoreLevel, number> = { N: 0, P: 1, L: 2, F: 3 };
 
@@ -145,8 +146,9 @@ export function getAllDimensionLevels(answers: Record<string, ScoreLevel>): Reco
  * Benchmark ilustrativo de pares do setor (dado sintético, não vem de submissões
  * reais — usado até o painel público ter dados agregados suficientes).
  */
-export function getSectorBenchmarks(sector: string): Record<DimensionId, number> {
-  const isSectorStrong = ['Financeiro', 'Tecnologia'].includes(sector);
+export function getSectorBenchmarks(area?: Area, atividadeEstatal?: AreaPrivada): Record<DimensionId, number> {
+  const chave = area === 'estatal' ? atividadeEstatal : area;
+  const isSectorStrong = ['financas', 'tecnologia'].includes(chave ?? '');
   const scale = isSectorStrong ? 1.25 : 0.88;
   return {
     gov: 1.45 * scale,
@@ -158,7 +160,7 @@ export function getSectorBenchmarks(sector: string): Record<DimensionId, number>
 }
 
 /** Média simples dos 5 benchmarks setoriais — usada como referência de comparação nacional. */
-export function getPeerAverageGlobal(sector: string): number {
-  const benchmarks = getSectorBenchmarks(sector);
+export function getPeerAverageGlobal(area?: Area, atividadeEstatal?: AreaPrivada): number {
+  const benchmarks = getSectorBenchmarks(area, atividadeEstatal);
   return Object.values(benchmarks).reduce((a, b) => a + b, 0) / 5;
 }

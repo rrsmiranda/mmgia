@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { descreverClassificacao, rotuloArea } from '@mmgia/shared/taxonomy';
 import {
   DIMENSION_WEIGHTS,
   getAllDimensionLevels,
@@ -147,7 +148,9 @@ export default function Revision({
   const levelInfo = getMaturityLevel(globalScore);
   const dimensionLevels = getAllDimensionLevels(answers);
 
-  const peerAverageGlobal = getPeerAverageGlobal(metadata.setor || 'Saúde');
+  const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
+  const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
+  const classificacaoLabel = descreverClassificacao(metadata);
 
   const weightRows: WeightRow[] = DIMENSION_ORDER.map((id) => ({
     id,
@@ -433,12 +436,12 @@ export default function Revision({
                       <span className="mg-title">Mapeamento Anônimo</span>
                     </div>
                     <div>
-                      <span className="mg-code block">Segmento de Atuação</span>
-                      <span className="mg-title">{metadata.setor || 'N/A'}</span>
+                      <span className="mg-code block">Classificação</span>
+                      <span className="mg-title">{classificacaoLabel || 'N/A'}</span>
                     </div>
                     <div>
-                      <span className="mg-code block">Natureza Governamental</span>
-                      <span className="mg-title">{metadata.natureza || 'N/A'}</span>
+                      <span className="mg-code block">Área de atuação</span>
+                      <span className="mg-title">{areaLabel}</span>
                     </div>
                     <div>
                       <span className="mg-code block">Porte Organizacional</span>
@@ -538,7 +541,7 @@ export default function Revision({
                   <p className="mg-code">Score Global Prévia (Total): {formatNumber(globalScore)} / 3,00</p>
 
                   <div className="space-y-3 pt-2">
-                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Setor: {metadata.setor})</h4>
+                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Área: {areaLabel})</h4>
                     <p className="text-xs leading-relaxed text-justify mg-lead">
                       Sua pontuação ponderada final é de <strong>{formatNumber(globalScore)}</strong>, enquanto o benchmark ilustrativo da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{formatNumber(peerAverageGlobal)}</strong>.
                     </p>
