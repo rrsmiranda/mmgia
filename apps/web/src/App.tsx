@@ -109,13 +109,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Onboarding and the questionnaire render their own flow header (logo + steps + "Sair"), so the public site header/footer stay hidden during both.
+  const isFlowScreen = currentTab === 'diagnostico' && (assessStep === 'onboarding' || assessStep === 'questions');
+
   return (
     <div className={`min-h-screen flex flex-col justify-between selection:bg-brand-primary selection:text-white font-sans transition-all duration-500 ${
       theme === 'dark' ? 'bg-slate-950 text-slate-100 dark' : 'bg-slate-50 text-slate-700'
     }`} id="mmgia-root-viewport">
 
-      {/* Renders global header navigation unless user sits inside the fullscreen dashboard or the questionnaire's own flow header */}
-      {currentTab !== 'relatorio-viewer' && !(currentTab === 'diagnostico' && assessStep === 'questions') && (
+      {/* Renders global header navigation unless user sits inside the fullscreen dashboard or a screen with its own flow header */}
+      {currentTab !== 'relatorio-viewer' && !isFlowScreen && (
         <Header
           currentTab={currentTab}
           onChangeTab={(tab) => {
@@ -228,7 +231,7 @@ export default function App() {
       </Suspense>
 
       {/* Footer is also excluded on deep custom administrative viewports and home landing, which renders its own complete brand footer */}
-      {currentTab !== 'home' && currentTab !== 'relatorio-viewer' && !(currentTab === 'diagnostico' && assessStep === 'questions') && (
+      {currentTab !== 'home' && currentTab !== 'relatorio-viewer' && !isFlowScreen && (
         <footer className={`py-12 px-6 border-t text-center select-none transition-colors duration-500 ${
           theme === 'dark' ? 'bg-slate-950 text-slate-400 border-slate-900' : 'bg-slate-900 text-slate-400 border-slate-800'
         }`} id="global-application-footer">

@@ -43,14 +43,12 @@ import {
   CardHeader,
   Checkbox,
   DsRoot,
+  FlowHeader,
   OptionCard,
   OptionList,
-  Page,
-  PageHeader,
   Pill,
   RadioGroup,
   Segmented,
-  Steps,
 } from '@mmgia/shared/design-system';
 import BrazilMap from './BrazilMap';
 
@@ -225,18 +223,13 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
 
   return (
     <DsRoot>
-      <Page>
-        <Card large style={{ maxWidth: 880, margin: '0 auto' }}>
-          <PageHeader
-            level="h2"
-            title="Configurar organização"
-            description="Personalize os parâmetros para obtermos grupos de benchmarking coerentes de forma anônima."
-          />
+      <FlowHeader
+        steps={['Setor', 'Área de atuação', 'Local e porte', 'IA e privacidade']}
+        current={step}
+        onExit={onCancel}
+      />
 
-          <div style={{ maxWidth: 420, margin: '0 auto 40px' }}>
-            <Steps steps={['Setor', 'Área de atuação', 'Local e porte', 'IA e privacidade']} current={step} />
-          </div>
-
+      <div className="mg-flow-body">
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="step-1" {...slideProps}>
@@ -434,7 +427,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                   ))}
                 </RadioGroup>
 
-                <Card style={{ maxWidth: 560, margin: '0 auto' }}>
+                <Card>
                   <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldAlert className="mg-ico" aria-hidden="true" />Compromisso anônimo de privacidade</span>} />
                   <CardBody>
                     <p className="mg-small mg-muted">
@@ -469,15 +462,24 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
               </motion.div>
             )}
           </AnimatePresence>
+      </div>
 
-          <ActionBar>
-            <Button variant="ghost" icon={ArrowLeft} onClick={handlePrev}>Voltar</Button>
-            <Button variant="primary" iconRight={ArrowRight} onClick={handleNext} disabled={!isStepValid()}>
-              {step === 4 ? 'Gerar código e iniciar' : 'Continuar'}
-            </Button>
-          </ActionBar>
-        </Card>
-      </Page>
+      <ActionBar>
+        <Button
+          variant="ghost"
+          icon={ArrowLeft}
+          onClick={handlePrev}
+          style={step === 1 ? { visibility: 'hidden' } : undefined}
+          aria-hidden={step === 1 || undefined}
+          tabIndex={step === 1 ? -1 : undefined}
+        >
+          Voltar
+        </Button>
+        <span className="mg-small mg-muted mg-hide-mobile">Etapa {step} de 4</span>
+        <Button variant="primary" iconRight={ArrowRight} onClick={handleNext} disabled={!isStepValid()}>
+          {step === 4 ? 'Gerar código e iniciar' : 'Continuar'}
+        </Button>
+      </ActionBar>
     </DsRoot>
   );
 }
