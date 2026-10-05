@@ -37,6 +37,7 @@ import {
 } from '@mmgia/shared/taxonomy';
 import {
   ActionBar,
+  Badge,
   Button,
   Card,
   CardBody,
@@ -270,10 +271,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 <div>
                   <p className="mg-eyebrow">Etapa 2 de 4</p>
                   <div className="mg-row mg-nowrap" style={{ gap: 12, marginTop: 4, marginBottom: 12 }}>
-                    <span className="mg-row" style={{ gap: 6, padding: '6px 12px', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-pill)', fontSize: 'var(--font-size-scale-down-01)', fontWeight: 600 }}>
-                      {SetorIcon && <SetorIcon className="mg-ico mg-ico-sm" aria-hidden="true" />}
-                      {setorInfo?.label}
-                    </span>
+                    <Badge icon={SetorIcon}>{setorInfo?.label}</Badge>
                     <button
                       type="button"
                       onClick={() => setStep(1)}
