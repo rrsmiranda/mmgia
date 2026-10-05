@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useMemo, useEffect } from 'react';
+import React, { useState, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sun, Moon, Info } from 'lucide-react';
@@ -53,6 +53,9 @@ interface BrazilMapProps {
   selectedState?: string;
   showHeatmap?: boolean;
   theme?: 'light' | 'dark';
+  /** 'card' (padrão): moldura própria com cabeçalho e "Modo Preview" — usado no Painel Público.
+   *  'plain': sem moldura, sem cabeçalho, sem seletor de tema — o mapa fica solto na página. */
+  variant?: 'card' | 'plain';
 }
 
 export default function BrazilMap({
@@ -60,8 +63,9 @@ export default function BrazilMap({
   selectedState = '',
   showHeatmap = true,
   theme: propTheme,
+  variant = 'card',
 }: BrazilMapProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+  const [theme, setTheme] = useState<'light' | 'dark'>(propTheme ?? 'light');
 
   useEffect(() => {
     if (propTheme) {
@@ -69,15 +73,55 @@ export default function BrazilMap({
     }
   }, [propTheme]);
 
+  const isPlain = variant === 'plain';
+
   const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [adjustedPos, setAdjustedPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  // Esconde o tooltip em qualquer rolagem da página (captura, pois scroll não borbulha).
+  useEffect(() => {
+    if (!hoveredLocation) return;
+    const hide = () => setHoveredLocation(null);
+    window.addEventListener('scroll', hide, { capture: true, passive: true });
+    return () => window.removeEventListener('scroll', hide, true);
+  }, [hoveredLocation]);
+
+  // Mede o tooltip já renderizado e vira para o lado oposto perto das bordas da janela.
+  useLayoutEffect(() => {
+    if (!hoveredLocation || !tooltipRef.current) {
+      setAdjustedPos(tooltipPos);
+      return;
+    }
+    const rect = tooltipRef.current.getBoundingClientRect();
+    const margin = 12;
+    let x = tooltipPos.x;
+    let y = tooltipPos.y;
+    if (x + rect.width + margin > window.innerWidth) {
+      x = tooltipPos.x - rect.width - 30;
+    }
+    if (y + rect.height + margin > window.innerHeight) {
+      y = tooltipPos.y - rect.height - 10;
+    }
+    x = Math.max(margin, x);
+    y = Math.max(margin, y);
+    setAdjustedPos({ x, y });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hoveredLocation, tooltipPos]);
 
   // Parse state scores and assign colors for Heatmap Mode
   const getStateFillColor = (uf: string, isHovered: boolean, isSelected: boolean) => {
     const ufUpper = uf.toUpperCase();
     const stateData = STATE_SCORES[ufUpper];
-    
+
+    // Na variante solta (onboarding), a seleção usa o azul da marca — a cor de
+    // status (verde) fica reservada para indicar bom desempenho no painel.
+    if (isSelected && isPlain) {
+      return 'var(--brand-accent, #1B98E0)';
+    }
+
     if (!showHeatmap) {
       if (isSelected) {
         return theme === 'dark' ? '#10B981' : '#0F6E56'; // Emerald
@@ -126,7 +170,7 @@ export default function BrazilMap({
 
   const getStrokeColor = (uf: string, isHovered: boolean, isSelected: boolean) => {
     if (isSelected) {
-      return theme === 'dark' ? '#FBBF24' : '#D97706'; // Gold Border
+      return isPlain ? 'var(--brand, #006494)' : (theme === 'dark' ? '#FBBF24' : '#D97706'); // Gold Border (card) / marca (plain)
     }
     if (isHovered) {
       return theme === 'dark' ? '#FFFFFF' : '#0F172A';
@@ -167,6 +211,143 @@ export default function BrazilMap({
       return 0;
     });
   }, [hoveredLocation, selectedUfUpper]);
+
+  const mapFrame = (
+    <svg
+      viewBox={brazilMapData.viewBox}
+      className="w-full h-full p-4 pointer-events-auto select-none"
+      preserveAspectRatio="xMidYMid meet"
+      id="brazil-svg-map"
+      aria-hidden={isPlain || undefined}
+      onPointerLeave={() => setHoveredLocation(null)}
+    >
+      {orderedLocations.map((loc) => {
+        const uf = loc.id.toUpperCase();
+        const isSelected = selectedUfUpper === uf;
+        const isHovered = hoveredLocation === loc.id;
+        const fillColor = getStateFillColor(loc.id, isHovered, isSelected);
+        const strokeColor = getStrokeColor(loc.id, isHovered, isSelected);
+        const strokeWidth = isSelected ? 2.5 : isHovered ? 2.0 : 1.0;
+
+        return (
+          <motion.path
+            key={loc.id}
+            d={loc.path}
+            name={loc.name}
+            id={`state-path-${loc.id}`}
+            fill={fillColor}
+            stroke={strokeColor}
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+            onHoverStart={() => setHoveredLocation(loc.id)}
+            onHoverEnd={() => setHoveredLocation(null)}
+            onClick={() => handleStateClick(loc.id)}
+            className="cursor-pointer"
+            animate={{
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              filter: isHovered
+                ? (theme === 'dark'
+                    ? 'brightness(1.22) drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))'
+                    : 'brightness(1.06) drop-shadow(0px 3px 8px rgba(15, 110, 86, 0.25))')
+                : 'brightness(1) drop-shadow(0px 0px 0px rgba(0,0,0,0))'
+            }}
+            transition={{
+              duration: 0.2,
+              ease: [0.4, 0, 0.2, 1]
+            }}
+          />
+        );
+      })}
+    </svg>
+  );
+
+  const tooltipPortal = typeof document !== 'undefined' && createPortal(
+    <AnimatePresence>
+      {hoveredLocation && (
+        <motion.div
+          ref={tooltipRef}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.12 }}
+          style={{
+            position: 'fixed',
+            top: adjustedPos.y,
+            left: adjustedPos.x,
+            zIndex: 60,
+          }}
+          className={`pointer-events-none p-4 rounded-2xl shadow-2xl backdrop-blur-md font-sans max-w-[240px] border ${
+            theme === 'dark' ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
+          }`}
+        >
+          {(() => {
+            const ufUpper = hoveredLocation.toUpperCase();
+            const info = STATE_SCORES[ufUpper];
+            const stateDataFromMap = brazilMapData.locations.find((l) => l.id === hoveredLocation);
+            const stateName = stateDataFromMap ? stateDataFromMap.name : ufUpper;
+            const mutedClass = theme === 'dark' ? 'text-slate-300' : 'text-slate-500';
+
+            return (
+              <div>
+                {showHeatmap && info ? (
+                  <>
+                    <div className={`flex justify-between items-center mb-1.5 border-b pb-1.5 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+                      <span className="font-bold text-xs tracking-wide">
+                        {stateName} ({ufUpper})
+                      </span>
+                      <span className="text-[9px] uppercase font-mono tracking-wider font-semibold bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        {info.region}
+                      </span>
+                    </div>
+                    <div className={`space-y-1 font-mono text-[10.5px] ${mutedClass}`}>
+                      <p className="flex justify-between gap-4">
+                        <span>Índice Maturidade:</span>
+                        <span className="font-bold text-emerald-500">{info.score.toFixed(2)}</span>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span>Amostras Coletadas:</span>
+                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{info.count}</span>
+                      </p>
+                      <p className="flex justify-between gap-4">
+                        <span>Nível Progresso:</span>
+                        <span className="font-bold text-amber-500">
+                          {info.score < 1.0
+                            ? 'Iniciado'
+                            : info.score < 1.5
+                            ? 'Gerenciado'
+                            : info.score < 2.0
+                            ? 'Definido'
+                            : 'Otimizado'}
+                        </span>
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <div>
+                    <p className="font-bold text-sm">{stateName} ({ufUpper})</p>
+                    {info && <p className={`text-xs mt-0.5 ${mutedClass}`}>Região {info.region}</p>}
+                    <p className={`text-xs mt-1 ${mutedClass}`}>Clique para selecionar</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
+  );
+
+  if (isPlain) {
+    return (
+      <div ref={containerRef} onPointerMove={handlePointerMove} className="relative w-full aspect-[1/1] sm:aspect-[1.1/1]">
+        {mapFrame}
+        {tooltipPortal}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -242,128 +423,10 @@ export default function BrazilMap({
           theme === 'dark' ? 'bg-[#0F172A] border-slate-800' : 'bg-[#F8FAFC] border-slate-200/50'
         }`}
       >
-        <svg
-          viewBox={brazilMapData.viewBox}
-          className="w-full h-full p-4 pointer-events-auto select-none"
-          preserveAspectRatio="xMidYMid meet"
-          id="brazil-svg-map"
-        >
-          {orderedLocations.map((loc) => {
-            const uf = loc.id.toUpperCase();
-            const isSelected = selectedUfUpper === uf;
-            const isHovered = hoveredLocation === loc.id;
-            const fillColor = getStateFillColor(loc.id, isHovered, isSelected);
-            const strokeColor = getStrokeColor(loc.id, isHovered, isSelected);
-            const strokeWidth = isSelected ? 2.5 : isHovered ? 2.0 : 1.0;
-
-            return (
-              <motion.path
-                key={loc.id}
-                d={loc.path}
-                name={loc.name}
-                id={`state-path-${loc.id}`}
-                fill={fillColor}
-                stroke={strokeColor}
-                strokeWidth={strokeWidth}
-                strokeLinejoin="round"
-                onHoverStart={() => setHoveredLocation(loc.id)}
-                onHoverEnd={() => setHoveredLocation(null)}
-                onClick={() => handleStateClick(loc.id)}
-                className="cursor-pointer"
-                animate={{
-                  fill: fillColor,
-                  stroke: strokeColor,
-                  strokeWidth: strokeWidth,
-                  filter: isHovered 
-                    ? (theme === 'dark' 
-                        ? 'brightness(1.22) drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))' 
-                        : 'brightness(1.06) drop-shadow(0px 3px 8px rgba(15, 110, 86, 0.25))')
-                    : 'brightness(1) drop-shadow(0px 0px 0px rgba(0,0,0,0))'
-                }}
-                transition={{
-                  duration: 0.2,
-                  ease: [0.4, 0, 0.2, 1]
-                }}
-              />
-            );
-          })}
-        </svg>
-
+        {mapFrame}
       </div>
 
-      {/* Tooltip de hover: renderizado via portal em document.body com position:fixed,
-          para nunca ser cortado pelo overflow:hidden dos containers do mapa ou da
-          tela que o envolve — aparece sempre por cima de tudo. */}
-      {typeof document !== 'undefined' && createPortal(
-        <AnimatePresence>
-          {hoveredLocation && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.12 }}
-              style={{
-                position: 'fixed',
-                top: tooltipPos.y,
-                left: tooltipPos.x,
-                zIndex: 9999,
-              }}
-              className="pointer-events-none bg-slate-950/95 border border-slate-800 text-white p-4 rounded-2xl shadow-2xl backdrop-blur-md font-sans max-w-[240px]"
-            >
-              {(() => {
-                const ufUpper = hoveredLocation.toUpperCase();
-                const info = STATE_SCORES[ufUpper];
-                const stateDataFromMap = brazilMapData.locations.find((l) => l.id === hoveredLocation);
-                const stateName = stateDataFromMap ? stateDataFromMap.name : ufUpper;
-
-                return (
-                  <div>
-                    <div className="flex justify-between items-center mb-1.5 border-b border-slate-800 pb-1.5">
-                      <span className="font-bold text-xs text-white tracking-wide">
-                        {stateName} ({ufUpper})
-                      </span>
-                      {info && (
-                        <span className="text-[9px] uppercase font-mono tracking-wider font-semibold bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                          {info.region}
-                        </span>
-                      )}
-                    </div>
-                    {showHeatmap && info ? (
-                      <div className="space-y-1 font-mono text-[10.5px] text-slate-300">
-                        <p className="flex justify-between gap-4">
-                          <span>Índice Maturidade:</span>
-                          <span className="font-bold text-emerald-400">{info.score.toFixed(2)}</span>
-                        </p>
-                        <p className="flex justify-between gap-4">
-                          <span>Amostras Coletadas:</span>
-                          <span className="font-bold text-white">{info.count}</span>
-                        </p>
-                        <p className="flex justify-between gap-4">
-                          <span>Nível Progresso:</span>
-                          <span className="font-bold text-amber-400">
-                            {info.score < 1.0
-                              ? 'Iniciado'
-                              : info.score < 1.5
-                              ? 'Gerenciado'
-                              : info.score < 2.0
-                              ? 'Definido'
-                              : 'Otimizado'}
-                          </span>
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="text-[10px] text-slate-300 leading-normal font-sans">
-                        Selecione {stateName} para registrar-se no Diagnóstico Nacional.
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </motion.div>
-          )}
-        </AnimatePresence>,
-        document.body
-      )}
+      {tooltipPortal}
 
       {/* Map Legend */}
       <div
