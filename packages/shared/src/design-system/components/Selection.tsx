@@ -13,10 +13,23 @@ interface OptionCardProps {
   /** No celular vira linha (badge à esquerda, texto à direita) — use na escala NPLF. */
   list?: boolean;
   centered?: boolean;
+  /** Linha compacta (rádio à esquerda, nome e descrição) para listas longas — use dentro de `OptionList`. */
+  row?: boolean;
+  disabled?: boolean;
 }
 
 /** Opção em card, para grupos exclusivos (role="radio" dentro de um RadioGroup). */
-export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered }: OptionCardProps) {
+export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered, row, disabled }: OptionCardProps) {
+  if (row) {
+    return (
+      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className="mg-option mg-option--sector">
+        <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
+        <span className="mg-title">{title}</span>
+        {description && <span className="mg-small mg-muted">{description}</span>}
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -31,6 +44,16 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
       {description && <span className="mg-small mg-muted">{description}</span>}
       <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
     </button>
+  );
+}
+
+/** Lista em linhas (borda única, divisórias) para opções com descrição longa — ex.: áreas do setor público. */
+export function OptionList({ label, children, footer }: { label: string; children: ReactNode; footer?: ReactNode }) {
+  return (
+    <div className="mg-sector-list">
+      <div role="radiogroup" aria-label={label}>{children}</div>
+      {footer && <div className="mg-option-note" style={{ padding: '0 16px 14px 46px', margin: 0 }}>{footer}</div>}
+    </div>
   );
 }
 

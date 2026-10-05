@@ -8,5 +8,5 @@ export { Badge, DimensionBadge, LevelBadge, StatusBadge, RiskBadge, NplfBadge, L
 export { LevelMeter, DimensionTag, DimensionBars, DataTable, type Column } from './components/Data';
 export { Card, CardHeader, CardBody, CardFooter, KpiCard, InsightCard, PracticeCard } from './components/Card';
 export { Field, Input, Select, Textarea, Checkbox } from './components/Form';
-export { OptionCard, RadioGroup, Pill, Segmented, Tabs } from './components/Selection';
+export { OptionCard, OptionList, RadioGroup, Pill, Segmented, Tabs } from './components/Selection';
 export { DsRoot, PageHeader, Page, Grid, ActionBar, Steps, Banner } from './components/Layout';
