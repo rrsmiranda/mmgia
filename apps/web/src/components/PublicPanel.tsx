@@ -24,6 +24,7 @@ import {
   Setor,
   SETORES,
 } from '@mmgia/shared/taxonomy';
+import { agregarComAnonimato, MENSAGEM_DADOS_INSUFICIENTES } from '@mmgia/shared/privacy';
 import {
   Button,
   Card,
@@ -120,17 +121,15 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
     return true;
   });
 
-  const areaGroups = new Map<string, { total: number; count: number }>();
-  filteredRecords.forEach((r) => {
-    const label = rotuloArea(r.setor, r.area) ?? (r.setor === 'outro' ? 'Outro' : 'Não classificado');
-    const g = areaGroups.get(label) ?? { total: 0, count: 0 };
-    g.total += r.score_global;
-    g.count += 1;
-    areaGroups.set(label, g);
+  // Agregação com k-anonimato (k=5): grupos pequenos sobem de nível (área → setor,
+  // estado → região, ...) até atingir 5 avaliações; os que não atingem são suprimidos.
+  const { grupos: areaGroups, registrosSuprimidos } = agregarComAnonimato(filteredRecords, ['setor', 'area'], 5);
+  const areaRows: AreaRow[] = areaGroups.map((g) => {
+    const setorChave = (g.chave.setor as Setor | undefined) ?? '';
+    const areaChave = g.chave.area as Area | undefined;
+    const label = rotuloArea(setorChave, areaChave) ?? SETORES.find((s) => s.id === setorChave)?.label ?? 'Outro';
+    return { label, amostras: g.amostras, score: g.scoreMedio };
   });
-  const areaRows: AreaRow[] = Array.from(areaGroups.entries())
-    .map(([label, g]) => ({ label, amostras: g.count, score: g.total / g.count }))
-    .sort((a, b) => b.score - a.score);
 
   return (
     <DsRoot>
@@ -311,6 +310,11 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
                   />
                 ) : (
                   <p className="mg-small mg-muted">Nenhuma avaliação encontrada para os filtros selecionados.</p>
+                )}
+                {registrosSuprimidos > 0 && (
+                  <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
+                    {MENSAGEM_DADOS_INSUFICIENTES} ({registrosSuprimidos} {registrosSuprimidos === 1 ? 'avaliação não exibida' : 'avaliações não exibidas'})
+                  </p>
                 )}
 
                 <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }} id="opendata-links">
