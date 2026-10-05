@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sun, Moon, Info } from 'lucide-react';
 import brazilMapData from '@svg-maps/brazil';
@@ -134,13 +135,10 @@ export default function BrazilMap({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      setTooltipPos({
-        x: e.clientX - rect.left + 15,
-        y: e.clientY - rect.top - 15,
-      });
-    }
+    // Posição em viewport (clientX/Y): o tooltip é renderizado via portal em
+    // document.body com position:fixed, para nunca ser cortado por overflow
+    // dos containers do mapa ou da tela que o envolve.
+    setTooltipPos({ x: e.clientX + 15, y: e.clientY - 15 });
   };
 
   const handleStateClick = (uf: string) => {
@@ -291,7 +289,12 @@ export default function BrazilMap({
           })}
         </svg>
 
-        {/* Hover Popup Tooltip Overlay */}
+      </div>
+
+      {/* Tooltip de hover: renderizado via portal em document.body com position:fixed,
+          para nunca ser cortado pelo overflow:hidden dos containers do mapa ou da
+          tela que o envolve — aparece sempre por cima de tudo. */}
+      {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {hoveredLocation && (
             <motion.div
@@ -300,11 +303,12 @@ export default function BrazilMap({
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.12 }}
               style={{
-                position: 'absolute',
+                position: 'fixed',
                 top: tooltipPos.y,
                 left: tooltipPos.x,
+                zIndex: 9999,
               }}
-              className="pointer-events-none bg-slate-950/95 border border-slate-800 text-white p-4 rounded-2xl shadow-2xl backdrop-blur-md z-30 font-sans max-w-[240px]"
+              className="pointer-events-none bg-slate-950/95 border border-slate-800 text-white p-4 rounded-2xl shadow-2xl backdrop-blur-md font-sans max-w-[240px]"
             >
               {(() => {
                 const ufUpper = hoveredLocation.toUpperCase();
@@ -357,8 +361,9 @@ export default function BrazilMap({
               })()}
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Map Legend */}
       <div

@@ -167,6 +167,11 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
+    if (step === 3) {
+      setStep(4);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     const code = generateUniqueCode();
     onComplete({
       taxonomiaVersao: 2,
@@ -187,7 +192,9 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
       onCancel();
       return;
     }
-    if (step === 3 && setor === 'outro') {
+    if (step === 4) {
+      setStep(3);
+    } else if (step === 3 && setor === 'outro') {
       setStep(1);
     } else {
       setStep(step - 1);
@@ -198,7 +205,8 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
   const isStepValid = () => {
     if (step === 1) return setor !== '';
     if (step === 2) return classificacaoValida({ setor, esfera, area, atividadeEstatal });
-    if (step === 3) return estado !== '' && porte !== '' && termosAceitos;
+    if (step === 3) return estado !== '' && porte !== '';
+    if (step === 4) return relacaoIA !== undefined && termosAceitos;
     return false;
   };
 
@@ -226,13 +234,13 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
           />
 
           <div style={{ maxWidth: 420, margin: '0 auto 40px' }}>
-            <Steps steps={['Setor', 'Área de atuação', 'Local e porte']} current={step} />
+            <Steps steps={['Setor', 'Área de atuação', 'Local e porte', 'IA e privacidade']} current={step} />
           </div>
 
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div key="step-1" {...slideProps}>
-                <p className="mg-eyebrow">Etapa 1 de 3</p>
+                <p className="mg-eyebrow">Etapa 1 de 4</p>
                 <h3 className="mg-h4" style={{ marginTop: 4 }}>A organização é do…</h3>
                 <p className="mg-small mg-muted" style={{ marginTop: 4, marginBottom: 20 }}>
                   Escolha o setor. Na próxima etapa você indica a área de atuação.
@@ -267,7 +275,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             {step === 2 && setor !== '' && setor !== 'outro' && (
               <motion.div key="step-2" {...slideProps} className="mg-stack" style={{ gap: 24 }}>
                 <div>
-                  <p className="mg-eyebrow">Etapa 2 de 3</p>
+                  <p className="mg-eyebrow">Etapa 2 de 4</p>
                   <div className="mg-row mg-nowrap" style={{ gap: 12, marginTop: 4, marginBottom: 12 }}>
                     <span className="mg-row" style={{ gap: 6, padding: '6px 12px', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-pill)', fontSize: 'var(--font-size-scale-down-01)', fontWeight: 600 }}>
                       {SetorIcon && <SetorIcon className="mg-ico mg-ico-sm" aria-hidden="true" />}
@@ -359,63 +367,72 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
             {step === 3 && (
               <motion.div key="step-3" {...slideProps} className="mg-stack" style={{ gap: 32 }}>
                 <div>
-                  <p className="mg-eyebrow">Etapa 3 de 3</p>
+                  <p className="mg-eyebrow">Etapa 3 de 4</p>
                   <h3 className="mg-h4" style={{ marginTop: 4 }}>Onde a organização atua e qual é o porte?</h3>
                 </div>
 
-                <div className="mg-stack" style={{ gap: 16 }}>
-                  <div className="mg-row mg-nowrap" style={{ justifyContent: 'space-between' }}>
-                    <h4 className="mg-title">Estado (UF) de atuação principal</h4>
-                    <Segmented<'map' | 'grid'>
-                      label="Modo de seleção do estado"
-                      value={viewMode}
-                      onChange={(v) => setViewMode(v)}
-                      options={[
-                        { value: 'map', label: 'Mapa dinâmico', icon: MapIcon },
-                        { value: 'grid', label: 'Grade rápida', icon: LayoutGrid },
-                      ]}
-                    />
+                <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 280px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
+                  <div className="mg-stack" style={{ gap: 16 }}>
+                    <div className="mg-row mg-nowrap" style={{ justifyContent: 'space-between' }}>
+                      <h4 className="mg-title">Estado (UF) de atuação principal</h4>
+                      <Segmented<'map' | 'grid'>
+                        label="Modo de seleção do estado"
+                        value={viewMode}
+                        onChange={(v) => setViewMode(v)}
+                        options={[
+                          { value: 'map', label: 'Mapa dinâmico', icon: MapIcon },
+                          { value: 'grid', label: 'Grade rápida', icon: LayoutGrid },
+                        ]}
+                      />
+                    </div>
+
+                    <Card flush style={{ padding: 16 }}>
+                      {estado ? (
+                        <p className="mg-small">
+                          <strong>{selectedState ? `${selectedState.name} (${selectedState.uf})` : estado}</strong>
+                          {selectedState && ` · Região ${selectedState.region}`}
+                        </p>
+                      ) : (
+                        <p className="mg-small mg-muted">Nenhum estado selecionado. Clique no mapa ou na grade para marcar seu estado.</p>
+                      )}
+                    </Card>
+
+                    {viewMode === 'map' ? (
+                      <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} theme="light" />
+                    ) : (
+                      <RadioGroup label="Estado (UF)" columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
+                        {UFS.map((uf) => (
+                          <OptionCard key={uf} centered checked={estado === uf} onSelect={() => setEstado(uf)} title={uf} />
+                        ))}
+                      </RadioGroup>
+                    )}
                   </div>
 
-                  <Card flush style={{ padding: 16 }}>
-                    {estado ? (
-                      <p className="mg-small">
-                        <strong>{selectedState ? `${selectedState.name} (${selectedState.uf})` : estado}</strong>
-                        {selectedState && ` · Região ${selectedState.region}`}
-                      </p>
-                    ) : (
-                      <p className="mg-small mg-muted">Nenhum estado selecionado. Clique no mapa ou na grade para marcar seu estado.</p>
-                    )}
-                  </Card>
-
-                  {viewMode === 'map' ? (
-                    <div style={{ maxWidth: 560, margin: '0 auto' }}>
-                      <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} />
+                  <div className="mg-stack" style={{ gap: 16 }}>
+                    <div>
+                      <h4 className="mg-title">Porte aproximado</h4>
+                      <p className="mg-small mg-muted">Quantidade de colaboradores.</p>
                     </div>
-                  ) : (
-                    <RadioGroup label="Estado (UF)" columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
-                      {UFS.map((uf) => (
-                        <OptionCard key={uf} centered checked={estado === uf} onSelect={() => setEstado(uf)} title={uf} />
+                    <RadioGroup label="Porte" columns={['1fr', '1fr', '1fr']}>
+                      {PORTES.map((item) => (
+                        <OptionCard key={item.id} checked={porte === item.id} onSelect={() => setPorte(item.id)} title={item.label} />
                       ))}
                     </RadioGroup>
-                  )}
-                </div>
-
-                <div className="mg-stack" style={{ gap: 16, borderTop: '1px solid var(--surface-deep)', paddingTop: 32 }}>
-                  <div>
-                    <h3 className="mg-h4" style={{ textAlign: 'center' }}>Porte aproximado</h3>
-                    <p className="mg-small mg-muted" style={{ textAlign: 'center' }}>Quantidade de colaboradores.</p>
                   </div>
-                  <RadioGroup label="Porte" columns={['repeat(4,1fr)', 'repeat(4,1fr)', 'repeat(2,1fr)']}>
-                    {PORTES.map((item) => (
-                      <OptionCard key={item.id} centered checked={porte === item.id} onSelect={() => setPorte(item.id)} title={item.label} />
-                    ))}
-                  </RadioGroup>
+                </div>
+              </motion.div>
+            )}
+
+            {step === 4 && (
+              <motion.div key="step-4" {...slideProps} className="mg-stack" style={{ gap: 32 }}>
+                <div>
+                  <p className="mg-eyebrow">Etapa 4 de 4</p>
+                  <h3 className="mg-h4" style={{ marginTop: 4 }}>Relação com IA e compromisso de privacidade</h3>
                 </div>
 
-                <div className="mg-stack" style={{ gap: 16, borderTop: '1px solid var(--surface-deep)', paddingTop: 32 }}>
+                <div className="mg-stack" style={{ gap: 16 }}>
                   <div>
-                    <h3 className="mg-h4" style={{ textAlign: 'center' }}>Relação da organização com IA <span className="mg-muted" style={{ fontWeight: 400 }}>(opcional)</span></h3>
+                    <h3 className="mg-h4" style={{ textAlign: 'center' }}>Relação da organização com IA</h3>
                     <p className="mg-small mg-muted" style={{ textAlign: 'center' }}>Ajuda a interpretar os resultados no painel nacional.</p>
                   </div>
                   <RadioGroup label="Relação com IA" columns={['repeat(3,1fr)', 'repeat(3,1fr)', '1fr']}>
@@ -464,7 +481,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
           <ActionBar>
             <Button variant="ghost" icon={ArrowLeft} onClick={handlePrev}>Voltar</Button>
             <Button variant="primary" iconRight={ArrowRight} onClick={handleNext} disabled={!isStepValid()}>
-              {step === 3 ? 'Gerar código e iniciar' : 'Continuar'}
+              {step === 4 ? 'Gerar código e iniciar' : 'Continuar'}
             </Button>
           </ActionBar>
         </Card>
