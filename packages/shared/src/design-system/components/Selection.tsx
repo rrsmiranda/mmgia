@@ -20,13 +20,15 @@ interface OptionCardProps {
   /** Valor à direita, só para `inline` (ex.: "até 19"). */
   trailing?: ReactNode;
   disabled?: boolean;
+  /** Classe extra (ex.: `mg-option--stack` para empilhar título e descrição em `row`). */
+  className?: string;
 }
 
 /** Opção em card, para grupos exclusivos (role="radio" dentro de um RadioGroup). */
-export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered, row, inline, trailing, disabled }: OptionCardProps) {
+export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered, row, inline, trailing, disabled, className }: OptionCardProps) {
   if (row) {
     return (
-      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className="mg-option mg-option--sector">
+      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className={cx('mg-option mg-option--sector', className)}>
         <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
         <span className="mg-title">{title}</span>
         {description && <span className="mg-small mg-muted">{description}</span>}
@@ -36,7 +38,7 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
 
   if (inline) {
     return (
-      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className="mg-option mg-option--inline">
+      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className={cx('mg-option mg-option--inline', className)}>
         <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
         <span className="mg-title" style={{ flex: 1 }}>{title}</span>
         {trailing && <span className="mg-small mg-muted">{trailing}</span>}
@@ -50,7 +52,7 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
       role="radio"
       aria-checked={checked}
       onClick={onSelect}
-      className={cx('mg-option', list && 'mg-option--list', centered && 'mg-option--centered')}
+      className={cx('mg-option', list && 'mg-option--list', centered && 'mg-option--centered', className)}
     >
       {Icon && <span className="mg-option-ico"><Icon className="mg-ico" aria-hidden="true" /></span>}
       {leading}
@@ -62,10 +64,15 @@ export function OptionCard({ checked, onSelect, title, description, icon: Icon, 
 }
 
 /** Lista em linhas (borda única, divisórias) para opções com descrição longa — ex.: áreas do setor público. */
-export function OptionList({ label, children, footer }: { label: string; children: ReactNode; footer?: ReactNode }) {
+export function OptionList({ label, children, footer, onKeyNav }: { label: string; children: ReactNode; footer?: ReactNode; onKeyNav?: (direction: 1 | -1) => void }) {
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!onKeyNav) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); onKeyNav(1); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); onKeyNav(-1); }
+  };
   return (
     <div className="mg-sector-list">
-      <div role="radiogroup" aria-label={label}>{children}</div>
+      <div role="radiogroup" aria-label={label} onKeyDown={onKeyDown}>{children}</div>
       {footer && <div className="mg-option-note" style={{ padding: '0 16px 14px 46px', margin: 0 }}>{footer}</div>}
     </div>
   );

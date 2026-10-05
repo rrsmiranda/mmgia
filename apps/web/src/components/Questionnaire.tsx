@@ -3,25 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowRight, Layers } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2, FileText } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shared/types';
 import {
   ActionBar,
-  Banner,
   Button,
-  Card,
-  DimensionTag,
   DsRoot,
-  Grid,
+  FlowHeader,
+  LegalBadge,
   NPLF,
   NplfBadge,
   OptionCard,
-  Page,
-  PracticeCard,
-  RadioGroup,
-  formatNumber,
+  OptionList,
 } from '@mmgia/shared/design-system';
 
 interface QuestionnaireProps {
@@ -34,42 +29,39 @@ interface QuestionnaireProps {
 
 const ORDER: ScoreLevel[] = ['N', 'P', 'L', 'F'];
 const DIM_KEYS: DimensionId[] = ['gov', 'tec', 'seg', 'edu', 'eco'];
+const FLOW_STEPS = [...DIM_KEYS.map((k) => DIMENSIONS[k].shortName), 'Revisão'];
 
 export default function Questionnaire({
   answers,
   onSaveAnswer,
   onGoToRevision,
+  onGoBackToOnboarding,
 }: QuestionnaireProps) {
   const [activeDimension, setActiveDimension] = useState<DimensionId>('gov');
   const [currentPracticeIndex, setCurrentPracticeIndex] = useState(0);
-  const [latestSavedId, setLatestSavedId] = useState<string | null>(null);
-  const [showMobileDimensions, setShowMobileDimensions] = useState(false);
+  const [liveMessage, setLiveMessage] = useState('');
   const prefersReducedMotion = useReducedMotion();
 
   // Filter practices to current active dimension
   const filteredPractices = LIST_PRACTICES.filter(p => p.dimensionId === activeDimension);
   const currentPractice = filteredPractices[currentPracticeIndex] || filteredPractices[0];
+  const isFirstPracticeOverall = activeDimension === 'gov' && currentPracticeIndex === 0;
   const isLastDimensionAndPractice = activeDimension === 'eco' && currentPracticeIndex === filteredPractices.length - 1;
-
-  // Handle toast notification dismiss
-  useEffect(() => {
-    if (latestSavedId) {
-      const timer = setTimeout(() => {
-        setLatestSavedId(null);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [latestSavedId]);
 
   // Overall calculations
   const totalPractices = LIST_PRACTICES.length;
   const totalAnswered = LIST_PRACTICES.filter(p => !!answers[p.id]).length;
-  const progressPercent = Math.round((totalAnswered / totalPractices) * 100);
+  const progressPercent = (totalAnswered / totalPractices) * 100;
+
+  const getDimRespondedCount = (dimId: DimensionId) => {
+    const list = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
+    return list.filter(p => !!answers[p.id]).length;
+  };
 
   const handleSelectLevel = (level: ScoreLevel) => {
     if (currentPractice) {
       onSaveAnswer(currentPractice.id, level);
-      setLatestSavedId(currentPractice.id);
+      setLiveMessage(`Resposta salva: ${NPLF[level].label}.`);
     }
   };
 
@@ -99,6 +91,29 @@ export default function Questionnaire({
         onGoToRevision();
       }
     }
+  };
+
+  const handleSelectFlowStep = (index: number) => {
+    if (index === DIM_KEYS.length) {
+      if (totalAnswered === totalPractices) onGoToRevision();
+      return;
+    }
+    const dim = DIM_KEYS[index];
+    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dim);
+    const firstUnanswered = dimPractices.findIndex(p => !answers[p.id]);
+    setActiveDimension(dim);
+    setCurrentPracticeIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
+  };
+
+  const isFlowStepDisabled = (index: number) => index === DIM_KEYS.length && totalAnswered < totalPractices;
+
+  const flowStepAriaLabel = (index: number) => {
+    if (index === DIM_KEYS.length) {
+      return totalAnswered === totalPractices ? 'Revisão — disponível' : `Revisão — disponível após responder as ${totalPractices} práticas`;
+    }
+    const dim = DIM_KEYS[index];
+    const count = LIST_PRACTICES.filter(p => p.dimensionId === dim).length;
+    return `${DIMENSIONS[dim].name} — ${getDimRespondedCount(dim)} de ${count} respondidas`;
   };
 
   // Keyboard Shortcuts for Rapid Audit
@@ -131,11 +146,6 @@ export default function Questionnaire({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPracticeIndex, activeDimension, answers]);
 
-  const getDimRespondedCount = (dimId: DimensionId) => {
-    const list = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-    return list.filter(p => !!answers[p.id]).length;
-  };
-
   const move = (dir: 1 | -1) => {
     const val = answers[currentPractice?.id ?? ''];
     const i = val ? ORDER.indexOf(val) : -1;
@@ -143,131 +153,96 @@ export default function Questionnaire({
     handleSelectLevel(next);
   };
 
-  const dimensionList = (onPick: (id: DimensionId) => void) => (
-    <RadioGroup label="Dimensões" columns={['1fr', '1fr', '1fr']}>
-      {DIM_KEYS.map((key) => (
-        <OptionCard
-          key={key}
-          list
-          checked={activeDimension === key}
-          onSelect={() => onPick(key)}
-          leading={<DimensionTag dimension={key} short />}
-          title=""
-          description={`${getDimRespondedCount(key)}/9 práticas respondidas`}
-        />
-      ))}
-    </RadioGroup>
-  );
-
   if (!currentPractice) return null;
+
+  const dimension = DIMENSIONS[activeDimension];
+  const nextLabel = isLastDimensionAndPractice
+    ? 'Ir para a revisão'
+    : currentPracticeIndex === filteredPractices.length - 1
+      ? 'Próxima dimensão'
+      : 'Próxima prática';
 
   return (
     <DsRoot>
-      <Page>
-        <Card style={{ marginBottom: 24 }}>
-          <div className="mg-row mg-nowrap" style={{ gap: 16, justifyContent: 'space-between' }}>
-            <div>
-              <p className="mg-eyebrow">Progresso geral do diagnóstico</p>
-              <h3 className="mg-h4" style={{ marginTop: 2 }}>{totalAnswered} de {totalPractices} práticas respondidas</h3>
-            </div>
-            <span className="mg-code">{formatNumber(progressPercent, 0)}% concluído</span>
-          </div>
-          <div className="mg-bar" style={{ marginTop: 14 }} role="img" aria-label={`${progressPercent}% concluído`}>
-            <motion.span
-              style={{ background: 'var(--brand)' }}
-              initial={{ width: 0 }}
-              animate={{ width: `${progressPercent}%` }}
-              transition={prefersReducedMotion ? { duration: 0 } : { type: 'spring', stiffness: 100, damping: 15 }}
-            />
-          </div>
-        </Card>
+      <FlowHeader
+        steps={FLOW_STEPS}
+        current={DIM_KEYS.indexOf(activeDimension) + 1}
+        onExit={onGoBackToOnboarding}
+        onSelect={handleSelectFlowStep}
+        isDisabled={isFlowStepDisabled}
+        ariaLabel={flowStepAriaLabel}
+        progress={progressPercent}
+      />
 
-        <Grid columns={['300px 1fr', '1fr', '1fr']} gap={40}>
-          <nav aria-label="Dimensões" className="mg-only-desktop">
-            {dimensionList((id) => { setActiveDimension(id); setCurrentPracticeIndex(0); })}
-          </nav>
+      <div className="mg-flow-body">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentPractice.id}
+            initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
+            transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
+          >
+            <p className="mg-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: dimension.color, display: 'inline-block', flex: 'none' }} />
+              {dimension.shortName} · prática {currentPracticeIndex + 1} de {filteredPractices.length}
+            </p>
+            <h1 className="mg-h3" style={{ marginTop: 8 }}>{currentPractice.name}</h1>
 
-          <div className="mg-stack" style={{ gap: 24 }}>
-            <Card className="mg-qprogress mg-only-mobile" style={{ padding: 16 }}>
-              <div className="mg-row mg-nowrap" style={{ gap: 10 }}>
-                <span className="mg-title" style={{ flex: 1 }}>
-                  {DIMENSIONS[activeDimension].shortName} · prática {currentPracticeIndex + 1} de {filteredPractices.length}
-                </span>
-                <Button size="sm" icon={Layers} onClick={() => setShowMobileDimensions((v) => !v)} aria-expanded={showMobileDimensions}>
-                  Dimensões
-                </Button>
-              </div>
-              {showMobileDimensions && (
-                <div style={{ marginTop: 16 }}>
-                  {dimensionList((id) => { setActiveDimension(id); setCurrentPracticeIndex(0); setShowMobileDimensions(false); })}
+            <div className="mg-grid" style={{ ['--cols-d' as string]: 'minmax(0,1.15fr) minmax(0,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, marginTop: 32 }}>
+              <div>
+                <div className="mg-row mg-nowrap" style={{ gap: 10 }}>
+                  <span className="mg-code">{currentPractice.id} · prática de nível {currentPractice.level}</span>
+                  {currentPractice.legalReference && <LegalBadge>{currentPractice.legalReference}</LegalBadge>}
                 </div>
-              )}
-            </Card>
+                <p className="mg-body" style={{ marginTop: 12 }}>{currentPractice.description}</p>
+                <div className="mg-crit">
+                  <p className="mg-label"><CheckCircle2 className="mg-ico mg-ico-sm" aria-hidden="true" />Critério de verificação</p>
+                  <p>{currentPractice.criterion}</p>
+                </div>
+                <div className="mg-meta">
+                  <span><FileText className="mg-ico mg-ico-sm" aria-hidden="true" />Evidência sugerida: {currentPractice.evidence}</span>
+                </div>
+              </div>
 
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentPractice.id}
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, x: -20 }}
-                transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
-              >
-                <PracticeCard
-                  practice={currentPractice}
-                  position={`prática ${currentPracticeIndex + 1} de ${filteredPractices.length}`}
-                  headingLevel={1}
-                />
-              </motion.div>
-            </AnimatePresence>
-
-            <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
-              <legend className="mg-field-label" style={{ marginBottom: 12 }}>
-                Escolha o grau de conformidade atual de sua organização
-              </legend>
-              <RadioGroup label="Escala NPLF" columns={['repeat(4,1fr)', 'repeat(2,1fr)', '1fr']} onKeyNav={move}>
-                {ORDER.map((v, i) => (
-                  <OptionCard
-                    key={v}
-                    list
-                    checked={answers[currentPractice.id] === v}
-                    onSelect={() => handleSelectLevel(v)}
-                    leading={<NplfBadge value={v} />}
-                    title={`${NPLF[v].label} (${v}) · tecla ${i + 1}`}
-                    description={`${NPLF[v].subtitle}. ${NPLF[v].description}`}
-                  />
-                ))}
-              </RadioGroup>
-              <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-                Atalhos de teclado: <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> <kbd>4</kbd> votam ·{' '}
-                <kbd>←</kbd> <kbd>→</kbd> navegam entre práticas.
-              </p>
-            </fieldset>
-
-            <ActionBar inline>
-              <Button variant="ghost" icon={ArrowLeft} onClick={handlePrevPractice}>Anterior</Button>
-              <Button variant="primary" size="lg" iconRight={ArrowRight} onClick={handleNextPractice}>
-                {isLastDimensionAndPractice ? 'Finalizar avaliação' : 'Próxima prática'}
-              </Button>
-            </ActionBar>
-          </div>
-        </Grid>
-
-        <AnimatePresence>
-          {latestSavedId && (
-            <motion.div
-              initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20, scale: 0.95 }}
-              transition={prefersReducedMotion ? { duration: 0.1 } : { type: 'spring', stiffness: 350, damping: 25 }}
-              style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 150, maxWidth: 320 }}
-            >
-              <Banner tone="good" title="Resposta salva">
-                Salva localmente no seu navegador.
-              </Banner>
-            </motion.div>
-          )}
+              <div>
+                <h2 className="mg-h5">Em que grau a prática está implementada?</h2>
+                <p className="mg-small mg-muted" style={{ marginTop: 4, marginBottom: 16 }}>Use as teclas 1 a 4 para responder.</p>
+                <OptionList label="Escala NPLF" onKeyNav={move}>
+                  {ORDER.map((v) => (
+                    <OptionCard
+                      key={v}
+                      row
+                      className="mg-option--stack"
+                      checked={answers[currentPractice.id] === v}
+                      onSelect={() => handleSelectLevel(v)}
+                      title={
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                          <NplfBadge value={v} />
+                          {NPLF[v].label}
+                        </span>
+                      }
+                      description={`${NPLF[v].subtitle}. ${NPLF[v].description}`}
+                    />
+                  ))}
+                </OptionList>
+              </div>
+            </div>
+          </motion.div>
         </AnimatePresence>
-      </Page>
+
+        <p className="mg-sr" role="status" aria-live="polite">{liveMessage}</p>
+      </div>
+
+      <ActionBar>
+        <Button variant="ghost" icon={ArrowLeft} onClick={handlePrevPractice} disabled={isFirstPracticeOverall}>Anterior</Button>
+        <span className="mg-small mg-muted mg-hide-mobile">
+          Prática {currentPracticeIndex + 1} de {filteredPractices.length} · salvo automaticamente
+        </span>
+        <Button variant="primary" size="lg" iconRight={ArrowRight} onClick={handleNextPractice}>
+          {nextLabel}
+        </Button>
+      </ActionBar>
     </DsRoot>
   );
 }

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { AlertTriangle, Check, CheckCircle2, Info, XCircle, type LucideIcon } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, Info, X, XCircle, type LucideIcon } from 'lucide-react';
 import { cx } from '../tokens';
 
 /** Envolve telas que usam o sistema: aplica fonte, cor de texto e fundo do MMGIA sem afetar o resto do app. */
@@ -50,21 +50,74 @@ export function ActionBar({ children, inline = false }: { children: ReactNode; i
 }
 
 /** Trilha de etapas do onboarding. No celular só a etapa atual mostra o rótulo. */
-export function Steps({ steps, current }: { steps: string[]; current: number }) {
+export function Steps({ steps, current, compact, onSelect, isDisabled, ariaLabel }: {
+  steps: string[];
+  current: number;
+  /** Só a etapa atual mostra o nome; no celular só a etapa atual aparece. */
+  compact?: boolean;
+  /** Quando informado, cada etapa vira um botão clicável. */
+  onSelect?: (index: number) => void;
+  isDisabled?: (index: number) => boolean;
+  /** Rótulo acessível completo por etapa (ex.: "Tecnologia — 3 de 9 respondidas"). Sem isso, usa o texto visível. */
+  ariaLabel?: (index: number) => string;
+}) {
   return (
-    <ol className="mg-steps" aria-label="Etapas">
+    <ol className={cx('mg-steps', compact && 'mg-steps--compact')} aria-label="Etapas">
       {steps.map((label, i) => {
         const n = i + 1;
         const done = n < current;
-        return (
-          <li key={label} className={done ? 'done' : undefined} aria-current={n === current ? 'step' : undefined}>
+        const content = (
+          <>
             <span className="n">{done ? <Check className="mg-ico mg-ico-sm" aria-hidden="true" /> : n}</span>
             <span className="t">{label}</span>
+          </>
+        );
+        return (
+          <li key={label} className={done ? 'done' : undefined} aria-current={n === current ? 'step' : undefined}>
+            {onSelect ? (
+              <button type="button" onClick={() => onSelect(i)} disabled={isDisabled?.(i)} aria-label={ariaLabel?.(i) ?? label}>
+                {content}
+              </button>
+            ) : content}
             {n < steps.length && <span className={cx('line', done && 'done')} aria-hidden="true" />}
           </li>
         );
       })}
     </ol>
+  );
+}
+
+/** Cabeçalho do fluxo (onboarding e questionário): logotipo, trilha de etapas e "Sair". */
+export function FlowHeader({ steps, current, onExit, exitLabel = 'Sair', onSelect, isDisabled, ariaLabel, progress }: {
+  steps: string[];
+  current: number;
+  onExit: () => void;
+  exitLabel?: string;
+  onSelect?: (index: number) => void;
+  isDisabled?: (index: number) => boolean;
+  ariaLabel?: (index: number) => string;
+  /** 0–100; quando informado, mostra uma barra fina de progresso abaixo do cabeçalho. */
+  progress?: number;
+}) {
+  return (
+    <div className="mg-flowbar">
+      <div className="mg-flowbar-row">
+        <span className="mg-logo" aria-hidden="true">
+          <span className="mg-flow-logo-sq">M</span>
+          <span className="mg-logo-word"><b>MMG<span style={{ color: 'var(--brand)' }}>IA</span></b></span>
+        </span>
+        <Steps steps={steps} current={current} compact onSelect={onSelect} isDisabled={isDisabled} ariaLabel={ariaLabel} />
+        <button type="button" className="mg-flow-exit" onClick={onExit}>
+          <X className="mg-ico" aria-hidden="true" />
+          <span className="mg-exit-label">{exitLabel}</span>
+        </button>
+      </div>
+      {progress !== undefined && (
+        <div className="mg-progress" role="img" aria-label={`${Math.round(progress)}% concluído`}>
+          <span style={{ width: `${progress}%`, transition: 'width .4s ease' }} />
+        </div>
+      )}
+    </div>
   );
 }
 
