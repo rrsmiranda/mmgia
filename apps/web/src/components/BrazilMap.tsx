@@ -127,9 +127,9 @@ export default function BrazilMap({
         return theme === 'dark' ? '#10B981' : '#0F6E56'; // Emerald
       }
       if (isHovered) {
-        return theme === 'dark' ? '#334155' : '#E2E8F0'; // Styled gray
+        return theme === 'dark' ? '#334155' : '#CBD5E1'; // Styled gray
       }
-      return theme === 'dark' ? '#1E293B' : '#F1F5F9'; // neutral background
+      return theme === 'dark' ? '#1E293B' : '#E2E8F0'; // neutral background
     }
 
     // Heatmap Mode - custom color scale based on maturity score (0.0 to 3.0)
@@ -175,7 +175,7 @@ export default function BrazilMap({
     if (isHovered) {
       return theme === 'dark' ? '#FFFFFF' : '#0F172A';
     }
-    return theme === 'dark' ? '#0F172A' : '#FFFFFF'; // Clean separate borders
+    return theme === 'dark' ? '#0F172A' : '#CBD5E1'; // Clean separate borders
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
