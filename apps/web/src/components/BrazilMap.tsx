@@ -342,7 +342,7 @@ export default function BrazilMap({
 
   if (isPlain) {
     return (
-      <div ref={containerRef} onPointerMove={handlePointerMove} className="relative w-full aspect-[1/1] sm:aspect-[1.1/1]">
+      <div ref={containerRef} onPointerMove={handlePointerMove} className="relative w-full aspect-[1/1] sm:aspect-[1.1/1] overflow-hidden">
         {mapFrame}
         {tooltipPortal}
       </div>
