@@ -31,6 +31,19 @@ import {
   DimensionId,
 } from '@mmgia/shared/types';
 import {
+  Area,
+  AreaPrivada,
+  areasPublicasPara,
+  AREAS_PRIVADAS,
+  AREAS_TERCEIRO,
+  classificacaoValida,
+  descreverClassificacao,
+  Esfera,
+  ESFERAS,
+  Setor,
+  SETORES,
+} from '@mmgia/shared/taxonomy';
+import {
   Badge,
   Button,
   DataTable,
@@ -76,7 +89,13 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   // Tab 1: Gestão de dados
   const [historicalRecords, setHistoricalRecords] = useState<HistoricalRecord[]>(SEED_HISTORICAL_RECORDS);
   const [searchCode, setSearchCode] = useState('');
-  const [sectorFilter, setSectorFilter] = useState('Todos');
+  const [sectorFilter, setSectorFilter] = useState<Setor | 'Todos'>('Todos');
+  const [revisarFilter, setRevisarFilter] = useState<'Todos' | 'Sim'>('Todos');
+  const [reclassifyRecord, setReclassifyRecord] = useState<HistoricalRecord | null>(null);
+  const [reclassifySetor, setReclassifySetor] = useState<Setor | ''>('');
+  const [reclassifyEsfera, setReclassifyEsfera] = useState<Esfera | undefined>(undefined);
+  const [reclassifyArea, setReclassifyArea] = useState<Area | undefined>(undefined);
+  const [reclassifyAtividade, setReclassifyAtividade] = useState<AreaPrivada | undefined>(undefined);
 
   // Tab 2: Gestão de usuários
   const [usersList, setUsersList] = useState<AdminUser[]>(SEED_ADMIN_USERS);
@@ -141,8 +160,31 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     const matchesSearch = rec.id.toLowerCase().includes(searchCode.toLowerCase()) ||
                           rec.estado.toLowerCase().includes(searchCode.toLowerCase());
     const matchesSector = sectorFilter === 'Todos' || rec.setor === sectorFilter;
-    return matchesSearch && matchesSector;
+    const matchesRevisar = revisarFilter === 'Todos' || rec.revisar === true;
+    return matchesSearch && matchesSector && matchesRevisar;
   });
+
+  const openReclassify = (rec: HistoricalRecord) => {
+    setReclassifyRecord(rec);
+    setReclassifySetor(rec.setor);
+    setReclassifyEsfera(rec.esfera);
+    setReclassifyArea(rec.area);
+    setReclassifyAtividade(rec.atividadeEstatal);
+  };
+
+  const handleSaveReclassify = (e: FormEvent) => {
+    e.preventDefault();
+    if (!reclassifyRecord || reclassifySetor === '') return;
+    setHistoricalRecords(historicalRecords.map((r) => r.id === reclassifyRecord.id ? {
+      ...r,
+      setor: reclassifySetor,
+      esfera: reclassifySetor === 'publico' ? reclassifyEsfera : undefined,
+      area: reclassifyArea,
+      atividadeEstatal: reclassifyArea === 'estatal' ? reclassifyAtividade : undefined,
+      revisar: undefined,
+    } : r));
+    setReclassifyRecord(null);
+  };
 
   return (
     <DsRoot>
@@ -242,13 +284,17 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   </div>
                   <Field label="Setor">
                     {({ id }) => (
-                      <Select id={id} value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value)}>
+                      <Select id={id} value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value as Setor | 'Todos')}>
                         <option value="Todos">Todos</option>
-                        <option value="Financeiro">Financeiro</option>
-                        <option value="Saúde">Saúde</option>
-                        <option value="Educação">Educação</option>
-                        <option value="Gov. federal">Gov. federal</option>
-                        <option value="Gov. municipal">Gov. municipal</option>
+                        {SETORES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                      </Select>
+                    )}
+                  </Field>
+                  <Field label="Classificação">
+                    {({ id }) => (
+                      <Select id={id} value={revisarFilter} onChange={(e) => setRevisarFilter(e.target.value as 'Todos' | 'Sim')}>
+                        <option value="Todos">Todos os registros</option>
+                        <option value="Sim">A revisar</option>
                       </Select>
                     )}
                   </Field>
@@ -260,9 +306,13 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     rowKey={(r) => r.id}
                     columns={[
                       { key: 'id', header: 'ID sessão', render: (r) => <span className="mg-code" style={{ fontWeight: 700 }}>{r.id}</span> },
-                      { key: 'natureza', header: 'Natureza jurídica', render: (r) => r.natureza },
+                      { key: 'classificacao', header: 'Setor · Esfera · Área', render: (r) => (
+                        <span className="mg-row" style={{ gap: 6 }}>
+                          {descreverClassificacao(r) || 'N/A'}
+                          {r.revisar && <StatusBadge status="attention">A revisar</StatusBadge>}
+                        </span>
+                      ) },
                       { key: 'estado', header: 'UF', render: (r) => r.estado },
-                      { key: 'setor', header: 'Setor', render: (r) => r.setor },
                       { key: 'porte', header: 'Porte', render: (r) => r.porte },
                       { key: 'score', header: 'Score', numeric: true, render: (r) => <strong>{formatNumber(r.score_global)}</strong> },
                       { key: 'nivel', header: 'Maturidade', render: (r) => {
@@ -271,12 +321,71 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                         return <StatusBadge status={status}>{scoreLevel}</StatusBadge>;
                       } },
                       { key: 'acoes', header: 'Ações', render: (r) => (
-                        <Button variant="danger" size="sm" iconOnly icon={Trash2} aria-label="Excluir diagnóstico" onClick={() => handleDeleteRecord(r.id)} />
+                        <div className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                          {r.revisar && <Button variant="secondary" size="sm" onClick={() => openReclassify(r)}>Reclassificar</Button>}
+                          <Button variant="danger" size="sm" iconOnly icon={Trash2} aria-label="Excluir diagnóstico" onClick={() => handleDeleteRecord(r.id)} />
+                        </div>
                       ) },
                     ]}
                     rows={filteredRecords}
                   />
                 </div>
+
+                {reclassifyRecord && (
+                  <div className="mg-scrim" style={{ position: 'fixed' }} id="reclassify-modal">
+                    <form onSubmit={handleSaveReclassify} className="mg-modal" id="reclassify-form">
+                      <div className="mg-modal-head">
+                        <p className="mg-title">Reclassificar {reclassifyRecord.id}</p>
+                      </div>
+                      <div className="mg-modal-body">
+                        <Field label="Setor">
+                          {({ id }) => (
+                            <Select id={id} value={reclassifySetor} onChange={(e) => { setReclassifySetor(e.target.value as Setor); setReclassifyEsfera(undefined); setReclassifyArea(undefined); setReclassifyAtividade(undefined); }}>
+                              <option value="">Selecione…</option>
+                              {SETORES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                            </Select>
+                          )}
+                        </Field>
+                        {reclassifySetor === 'publico' && (
+                          <Field label="Esfera">
+                            {({ id }) => (
+                              <Select id={id} value={reclassifyEsfera ?? ''} onChange={(e) => { setReclassifyEsfera(e.target.value as Esfera); setReclassifyArea(undefined); }}>
+                                <option value="">Selecione…</option>
+                                {ESFERAS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+                              </Select>
+                            )}
+                          </Field>
+                        )}
+                        {reclassifySetor !== '' && reclassifySetor !== 'outro' && (reclassifySetor !== 'publico' || reclassifyEsfera) && (
+                          <Field label="Área">
+                            {({ id }) => (
+                              <Select id={id} value={reclassifyArea ?? ''} onChange={(e) => { setReclassifyArea(e.target.value as Area); setReclassifyAtividade(undefined); }}>
+                                <option value="">Selecione…</option>
+                                {(reclassifySetor === 'publico' ? areasPublicasPara(reclassifyEsfera as Esfera)
+                                  : reclassifySetor === 'privado' ? AREAS_PRIVADAS
+                                  : AREAS_TERCEIRO).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                              </Select>
+                            )}
+                          </Field>
+                        )}
+                        {reclassifyArea === 'estatal' && (
+                          <Field label="Atividade principal da empresa">
+                            {({ id }) => (
+                              <Select id={id} value={reclassifyAtividade ?? ''} onChange={(e) => setReclassifyAtividade(e.target.value as AreaPrivada)}>
+                                <option value="">Selecione…</option>
+                                {AREAS_PRIVADAS.map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                              </Select>
+                            )}
+                          </Field>
+                        )}
+                      </div>
+                      <div className="mg-modal-foot">
+                        <Button type="button" variant="ghost" onClick={() => setReclassifyRecord(null)}>Cancelar</Button>
+                        <Button type="submit" variant="primary" disabled={!classificacaoValida({ setor: reclassifySetor, esfera: reclassifyEsfera, area: reclassifyArea, atividadeEstatal: reclassifyAtividade })}>Salvar classificação</Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             )}
 
