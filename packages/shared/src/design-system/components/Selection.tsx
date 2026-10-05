@@ -15,17 +15,31 @@ interface OptionCardProps {
   centered?: boolean;
   /** Linha compacta (rádio à esquerda, nome e descrição) para listas longas — use dentro de `OptionList`. */
   row?: boolean;
+  /** Linha com nome à esquerda e valor à direita (ex.: faixas de porte) — use dentro de `OptionList`. */
+  inline?: boolean;
+  /** Valor à direita, só para `inline` (ex.: "até 19"). */
+  trailing?: ReactNode;
   disabled?: boolean;
 }
 
 /** Opção em card, para grupos exclusivos (role="radio" dentro de um RadioGroup). */
-export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered, row, disabled }: OptionCardProps) {
+export function OptionCard({ checked, onSelect, title, description, icon: Icon, leading, list, centered, row, inline, trailing, disabled }: OptionCardProps) {
   if (row) {
     return (
       <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className="mg-option mg-option--sector">
         <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
         <span className="mg-title">{title}</span>
         {description && <span className="mg-small mg-muted">{description}</span>}
+      </button>
+    );
+  }
+
+  if (inline) {
+    return (
+      <button type="button" role="radio" aria-checked={checked} aria-disabled={disabled || undefined} disabled={disabled} onClick={onSelect} className="mg-option mg-option--inline">
+        <span className="mg-option-check" aria-hidden="true">{checked && <Check className="mg-ico" />}</span>
+        <span className="mg-title" style={{ flex: 1 }}>{title}</span>
+        {trailing && <span className="mg-small mg-muted">{trailing}</span>}
       </button>
     );
   }
@@ -58,12 +72,13 @@ export function OptionList({ label, children, footer }: { label: string; childre
 }
 
 /** Grupo de rádio acessível: setas movem a seleção. */
-export function RadioGroup({ label, columns, children, onKeyNav }: {
+export function RadioGroup({ label, columns, children, onKeyNav, required }: {
   label: string;
   /** Colunas por faixa: desktop, tablet, celular (ex.: ['repeat(4,1fr)','repeat(2,1fr)','1fr']). */
   columns: [string, string, string];
   children: ReactNode;
   onKeyNav?: (direction: 1 | -1) => void;
+  required?: boolean;
 }) {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!onKeyNav) return;
@@ -72,7 +87,7 @@ export function RadioGroup({ label, columns, children, onKeyNav }: {
   };
   const style = { ['--cols-d' as string]: columns[0], ['--cols-t' as string]: columns[1], ['--cols-m' as string]: columns[2], gap: 12 };
   return (
-    <div className="mg-grid" role="radiogroup" aria-label={label} style={style} onKeyDown={onKeyDown}>
+    <div className="mg-grid" role="radiogroup" aria-label={label} aria-required={required || undefined} style={style} onKeyDown={onKeyDown}>
       {children}
     </div>
   );

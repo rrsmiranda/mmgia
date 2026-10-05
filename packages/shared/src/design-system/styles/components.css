@@ -334,6 +334,12 @@
 .mg-option--sector .mg-small { line-height: var(--font-line-height-medium); }
 .mg-option-note { grid-column: 2 / -1; display: flex; gap: 6px; margin-top: var(--space-2); font-size: var(--font-size-scale-down-01); color: var(--text); line-height: var(--font-line-height-medium); }
 .mg-option-note .mg-ico { width: 14px; height: 14px; flex: none; margin-top: 2px; color: var(--brand); }
+/* Linha com nome à esquerda e valor à direita (ex.: faixas de porte) — use dentro de OptionList. */
+.mg-option--inline { width: 100%; display: flex; align-items: center; gap: var(--space-3); padding: 14px var(--space-4); border: 0; border-radius: 0; box-shadow: none; background: transparent; text-align: left; }
+.mg-option--inline + .mg-option--inline { border-top: 1px solid var(--surface-deep); }
+.mg-option--inline:hover { background: var(--surface-sunken); }
+.mg-option--inline[aria-checked="true"] { background: var(--brand-soft); box-shadow: inset 3px 0 0 var(--brand); }
+.mg-option--inline .mg-option-check { position: static; }
 .mg-hint { border: 1px solid var(--surface-deep); border-radius: var(--radius-md); background: var(--surface-raised); margin-top: var(--space-6); }
 .mg-hint > summary { list-style: none; cursor: pointer; display: flex; gap: var(--space-2); align-items: center; padding: var(--space-3) var(--space-4); font-weight: 600; color: var(--brand); font-size: var(--font-size-scale-down-01); }
 .mg-hint > summary::-webkit-details-marker { display: none; }

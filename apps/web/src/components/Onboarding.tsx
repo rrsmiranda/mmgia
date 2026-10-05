@@ -96,10 +96,10 @@ const SETOR_ICONS: Record<Setor, LucideIcon> = {
 };
 
 const PORTES = [
-  { id: 'Micro', label: 'Micro (até 19)' },
-  { id: 'Pequena', label: 'Pequena (20–99)' },
-  { id: 'Média', label: 'Média (100–999)' },
-  { id: 'Grande', label: 'Grande (1.000+)' },
+  { id: 'Micro', label: 'Micro', trailing: 'até 19' },
+  { id: 'Pequena', label: 'Pequena', trailing: '20 a 99' },
+  { id: 'Média', label: 'Média', trailing: '100 a 999' },
+  { id: 'Grande', label: 'Grande', trailing: '1.000 ou mais' },
 ];
 
 interface OnboardingProps {
@@ -371,8 +371,8 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                   <h3 className="mg-h4" style={{ marginTop: 4 }}>Onde a organização atua e qual é o porte?</h3>
                 </div>
 
-                <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 280px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
-                  <div className="mg-stack" style={{ gap: 16 }}>
+                <div className="mg-grid" style={{ ['--cols-d' as string]: '55% 45%', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
+                  <div className="mg-stack" style={{ gap: 12 }}>
                     <div className="mg-row mg-nowrap" style={{ justifyContent: 'space-between' }}>
                       <h4 className="mg-title">Estado (UF) de atuação principal</h4>
                       <Segmented<'map' | 'grid'>
@@ -380,25 +380,22 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                         value={viewMode}
                         onChange={(v) => setViewMode(v)}
                         options={[
-                          { value: 'map', label: 'Mapa dinâmico', icon: MapIcon },
-                          { value: 'grid', label: 'Grade rápida', icon: LayoutGrid },
+                          { value: 'map', label: 'Mapa', icon: MapIcon },
+                          { value: 'grid', label: 'Grade', icon: LayoutGrid },
                         ]}
                       />
                     </div>
 
-                    <Card flush style={{ padding: 16 }}>
+                    <p className="mg-small" aria-live="polite">
                       {estado ? (
-                        <p className="mg-small">
-                          <strong>{selectedState ? `${selectedState.name} (${selectedState.uf})` : estado}</strong>
-                          {selectedState && ` · Região ${selectedState.region}`}
-                        </p>
+                        <>Selecionado: <strong>{selectedState ? `${selectedState.name} (${selectedState.uf})` : estado}</strong>{selectedState && ` · ${selectedState.region}`}</>
                       ) : (
-                        <p className="mg-small mg-muted">Nenhum estado selecionado. Clique no mapa ou na grade para marcar seu estado.</p>
+                        <span className="mg-muted">Nenhum estado selecionado. Clique no mapa ou na grade para marcar seu estado.</span>
                       )}
-                    </Card>
+                    </p>
 
                     {viewMode === 'map' ? (
-                      <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} theme="light" />
+                      <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} theme="light" variant="plain" />
                     ) : (
                       <RadioGroup label="Estado (UF)" columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
                         {UFS.map((uf) => (
@@ -408,16 +405,16 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                     )}
                   </div>
 
-                  <div className="mg-stack" style={{ gap: 16 }}>
+                  <div className="mg-stack" style={{ gap: 12 }}>
                     <div>
-                      <h4 className="mg-title">Porte aproximado</h4>
-                      <p className="mg-small mg-muted">Quantidade de colaboradores.</p>
+                      <h4 className="mg-title">Porte da organização</h4>
+                      <p className="mg-small mg-muted">Quantidade aproximada de colaboradores.</p>
                     </div>
-                    <RadioGroup label="Porte" columns={['1fr', '1fr', '1fr']}>
+                    <OptionList label="Porte">
                       {PORTES.map((item) => (
-                        <OptionCard key={item.id} checked={porte === item.id} onSelect={() => setPorte(item.id)} title={item.label} />
+                        <OptionCard key={item.id} inline checked={porte === item.id} onSelect={() => setPorte(item.id)} title={item.label} trailing={item.trailing} />
                       ))}
-                    </RadioGroup>
+                    </OptionList>
                   </div>
                 </div>
               </motion.div>
@@ -427,20 +424,15 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
               <motion.div key="step-4" {...slideProps} className="mg-stack" style={{ gap: 32 }}>
                 <div>
                   <p className="mg-eyebrow">Etapa 4 de 4</p>
-                  <h3 className="mg-h4" style={{ marginTop: 4 }}>Relação com IA e compromisso de privacidade</h3>
+                  <h3 className="mg-h4" style={{ marginTop: 4 }}>Qual é a relação da organização com IA?</h3>
+                  <p className="mg-small mg-muted" style={{ marginTop: 4 }}>Ajuda a interpretar os resultados no painel nacional.</p>
                 </div>
 
-                <div className="mg-stack" style={{ gap: 16 }}>
-                  <div>
-                    <h3 className="mg-h4" style={{ textAlign: 'center' }}>Relação da organização com IA</h3>
-                    <p className="mg-small mg-muted" style={{ textAlign: 'center' }}>Ajuda a interpretar os resultados no painel nacional.</p>
-                  </div>
-                  <RadioGroup label="Relação com IA" columns={['repeat(3,1fr)', 'repeat(3,1fr)', '1fr']}>
-                    {RELACOES_IA.map((r) => (
-                      <OptionCard key={r.id} checked={relacaoIA === r.id} onSelect={() => setRelacaoIA(r.id)} title={r.label} description={r.desc} />
-                    ))}
-                  </RadioGroup>
-                </div>
+                <RadioGroup label="Relação com IA" required columns={['repeat(3,1fr)', 'repeat(3,1fr)', '1fr']}>
+                  {RELACOES_IA.map((r) => (
+                    <OptionCard key={r.id} checked={relacaoIA === r.id} onSelect={() => setRelacaoIA(r.id)} title={r.label} description={r.desc} />
+                  ))}
+                </RadioGroup>
 
                 <Card style={{ maxWidth: 560, margin: '0 auto' }}>
                   <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldAlert className="mg-ico" aria-hidden="true" />Compromisso anônimo de privacidade</span>} />
@@ -463,13 +455,13 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                           <li>E-mail corporativo</li>
                           <li>Nomes de projetos</li>
                           <li>Chaves de sistemas</li>
-                          <li>Código CNPJ</li>
+                          <li>CNPJ</li>
                         </ul>
                       </div>
                     </div>
                     <div style={{ marginTop: 20 }}>
                       <Checkbox checked={termosAceitos} onChange={(e) => setTermosAceitos(e.target.checked)}>
-                        Entendo e aceito que os dados inseridos serão utilizados de forma anônima e agregada para traçar o Painel Nacional de Maturidade em IA brasileiro.
+                        Entendo e aceito que os dados inseridos serão utilizados de forma anônima e agregada para traçar o Painel Nacional de Maturidade em IA brasileiro. <span className="mg-muted">Obrigatório</span>
                       </Checkbox>
                     </div>
                   </CardBody>
