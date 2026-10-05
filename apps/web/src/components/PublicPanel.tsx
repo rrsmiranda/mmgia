@@ -7,8 +7,23 @@ import { useState } from 'react';
 import { Database, LineChart, LayoutGrid, MapPin } from 'lucide-react';
 import BrazilMap from './BrazilMap';
 import CountUp from './CountUp';
-import { DimensionId } from '@mmgia/shared/types';
+import { DimensionId, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
+import {
+  AREAS_PRIVADAS,
+  AREAS_PUBLICAS,
+  AREAS_TERCEIRO,
+  Area,
+  Esfera,
+  ESFERAS,
+  Poder,
+  RelacaoIA,
+  RELACOES_IA,
+  Regiao,
+  rotuloArea,
+  Setor,
+  SETORES,
+} from '@mmgia/shared/taxonomy';
 import {
   Button,
   Card,
@@ -38,15 +53,21 @@ const TREND_DATA = [
   { m: 'Mar26', score: 1.36 }, { m: 'Abr26', score: 1.40 }, { m: 'Mai26', score: 1.42 }, { m: 'Jun26', score: 1.42 },
 ];
 
-interface SectorRow { setor: string; amostras: number; score: number }
-const SECTOR_RANKING: SectorRow[] = [
-  { setor: 'Tecnologia', amostras: 412, score: 1.88 },
-  { setor: 'Financeiro', amostras: 380, score: 1.77 },
-  { setor: 'Governo Federal', amostras: 512, score: 1.54 },
-  { setor: 'Educação', amostras: 185, score: 1.35 },
-  { setor: 'Agronegócio', amostras: 110, score: 1.12 },
-  { setor: 'Saúde', amostras: 144, score: 1.08 },
+interface AreaRow { label: string; amostras: number; score: number }
+
+const REGIOES: Regiao[] = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
+const PODERES: { id: Poder; label: string }[] = [
+  { id: 'executivo', label: 'Executivo' },
+  { id: 'judiciario', label: 'Judiciário' },
+  { id: 'legislativo', label: 'Legislativo' },
 ];
+
+function areaOptionsFor(setor: Setor | 'Todos'): { id: string; label: string }[] {
+  if (setor === 'publico') return AREAS_PUBLICAS.map((a) => ({ id: a.id, label: a.label }));
+  if (setor === 'privado') return AREAS_PRIVADAS.map((a) => ({ id: a.id, label: a.label }));
+  if (setor === 'terceiro') return AREAS_TERCEIRO.map((a) => ({ id: a.id, label: a.label }));
+  return [];
+}
 
 function scoreStatus(score: number) {
   if (score >= 1.6) return 'var(--status-good)';
@@ -62,9 +83,21 @@ const UF_SCORES: Record<string, number> = { DF: 2.12, SP: 1.89 };
 const DEFAULT_UF_SCORE = 1.38;
 
 export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
-  const [sectorFilter, setSectorFilter] = useState('Todos');
+  const [setorFilter, setSetorFilter] = useState<Setor | 'Todos'>('Todos');
+  const [esferaFilter, setEsferaFilter] = useState<Esfera | 'Todas'>('Todas');
+  const [areaFilter, setAreaFilter] = useState<Area | 'Todas'>('Todas');
+  const [poderFilter, setPoderFilter] = useState<Poder | 'Todos'>('Todos');
+  const [regiaoFilter, setRegiaoFilter] = useState<Regiao | 'Todas'>('Todas');
+  const [relacaoIAFilter, setRelacaoIAFilter] = useState<RelacaoIA | 'Todas'>('Todas');
   const [porteFilter, setPorteFilter] = useState('Todos');
   const [selectedUf, setSelectedUf] = useState<string>('DF');
+
+  const handleSetorFilterChange = (value: string) => {
+    setSetorFilter(value as Setor | 'Todos');
+    setEsferaFilter('Todas');
+    setAreaFilter('Todas');
+    setPoderFilter('Todos');
+  };
 
   const nationalLevel = getMaturityLevel(NATIONAL_AVERAGE_SCORE);
   const metaGap = Math.max(0, 1.5 - NATIONAL_AVERAGE_SCORE);
@@ -72,6 +105,32 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
   const ufScore = UF_SCORES[selectedUf] ?? DEFAULT_UF_SCORE;
   const ufLevel = getMaturityLevel(ufScore);
   const ufScoreLabel = `${formatNumber(ufScore)} / 3 (Nível ${ufLevel.num})`;
+
+  // Registros filtrados pela taxonomia v2 — base para o ranking por área abaixo.
+  const filteredRecords = SEED_HISTORICAL_RECORDS.filter((r) => {
+    if (setorFilter !== 'Todos' && r.setor !== setorFilter) return false;
+    if (setorFilter === 'publico') {
+      if (esferaFilter !== 'Todas' && r.esfera !== esferaFilter) return false;
+      if (poderFilter !== 'Todos' && r.poder !== poderFilter) return false;
+    }
+    if (areaFilter !== 'Todas' && r.area !== areaFilter) return false;
+    if (regiaoFilter !== 'Todas' && r.regiao !== regiaoFilter) return false;
+    if (relacaoIAFilter !== 'Todas' && r.relacaoIA !== relacaoIAFilter) return false;
+    if (porteFilter !== 'Todos' && r.porte !== porteFilter) return false;
+    return true;
+  });
+
+  const areaGroups = new Map<string, { total: number; count: number }>();
+  filteredRecords.forEach((r) => {
+    const label = rotuloArea(r.setor, r.area) ?? (r.setor === 'outro' ? 'Outro' : 'Não classificado');
+    const g = areaGroups.get(label) ?? { total: 0, count: 0 };
+    g.total += r.score_global;
+    g.count += 1;
+    areaGroups.set(label, g);
+  });
+  const areaRows: AreaRow[] = Array.from(areaGroups.entries())
+    .map(([label, g]) => ({ label, amostras: g.count, score: g.total / g.count }))
+    .sort((a, b) => b.score - a.score);
 
   return (
     <DsRoot>
@@ -90,12 +149,49 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
             <div className="mg-row" style={{ gap: 12, flexWrap: 'wrap' }} id="filters-dropdowns">
               <Field label="Setor">
                 {({ id }) => (
-                  <Select id={id} value={sectorFilter} onChange={(e) => setSectorFilter(e.target.value)}>
+                  <Select id={id} value={setorFilter} onChange={(e) => handleSetorFilterChange(e.target.value)}>
                     <option value="Todos">Todos</option>
-                    <option value="Financeiro">Financeiro</option>
-                    <option value="Saúde">Saúde</option>
-                    <option value="Gov. federal">Gov. federal</option>
-                    <option value="Tecnologia">Tecnologia</option>
+                    {SETORES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Esfera">
+                {({ id }) => (
+                  <Select id={id} value={esferaFilter} disabled={setorFilter !== 'publico'} onChange={(e) => { setEsferaFilter(e.target.value as Esfera | 'Todas'); setAreaFilter('Todas'); }}>
+                    <option value="Todas">Todas</option>
+                    {ESFERAS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Área">
+                {({ id }) => (
+                  <Select id={id} value={areaFilter} disabled={setorFilter === 'Todos' || setorFilter === 'outro'} onChange={(e) => setAreaFilter(e.target.value as Area | 'Todas')}>
+                    <option value="Todas">Todas</option>
+                    {areaOptionsFor(setorFilter).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Poder">
+                {({ id }) => (
+                  <Select id={id} value={poderFilter} disabled={setorFilter !== 'publico'} onChange={(e) => setPoderFilter(e.target.value as Poder | 'Todos')}>
+                    <option value="Todos">Todos</option>
+                    {PODERES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Região">
+                {({ id }) => (
+                  <Select id={id} value={regiaoFilter} onChange={(e) => setRegiaoFilter(e.target.value as Regiao | 'Todas')}>
+                    <option value="Todas">Todas</option>
+                    {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
+                  </Select>
+                )}
+              </Field>
+              <Field label="Relação com IA">
+                {({ id }) => (
+                  <Select id={id} value={relacaoIAFilter} onChange={(e) => setRelacaoIAFilter(e.target.value as RelacaoIA | 'Todas')}>
+                    <option value="Todas">Todas</option>
+                    {RELACOES_IA.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
                   </Select>
                 )}
               </Field>
@@ -195,23 +291,27 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
             </Card>
 
             <Card id="panel-sector-rank">
-              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><LayoutGrid className="mg-ico mg-ico-sm" aria-hidden="true" />Médias por setor de atuação</span>} />
+              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><LayoutGrid className="mg-ico mg-ico-sm" aria-hidden="true" />Médias por área de atuação</span>} />
               <CardBody>
-                <DataTable<SectorRow>
-                  caption="Score ponderado médio por setor econômico"
-                  rowKey={(r) => r.setor}
-                  columns={[
-                    { key: 'setor', header: 'Setor econômico', render: (r) => r.setor },
-                    { key: 'amostras', header: 'Amostras', numeric: true, render: (r) => `${r.amostras} avaliações` },
-                    { key: 'score', header: 'Score ponderado', numeric: true, render: (r) => (
-                      <span className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-pill)', background: scoreStatus(r.score), display: 'inline-block' }} />
-                        <strong>{formatNumber(r.score)}</strong>
-                      </span>
-                    ) },
-                  ]}
-                  rows={SECTOR_RANKING}
-                />
+                {areaRows.length > 0 ? (
+                  <DataTable<AreaRow>
+                    caption="Score ponderado médio por área de atuação, conforme os filtros selecionados"
+                    rowKey={(r) => r.label}
+                    columns={[
+                      { key: 'label', header: 'Área de atuação', render: (r) => r.label },
+                      { key: 'amostras', header: 'Amostras', numeric: true, render: (r) => `${r.amostras} avaliações` },
+                      { key: 'score', header: 'Score ponderado', numeric: true, render: (r) => (
+                        <span className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
+                          <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-pill)', background: scoreStatus(r.score), display: 'inline-block' }} />
+                          <strong>{formatNumber(r.score)}</strong>
+                        </span>
+                      ) },
+                    ]}
+                    rows={areaRows}
+                  />
+                ) : (
+                  <p className="mg-small mg-muted">Nenhuma avaliação encontrada para os filtros selecionados.</p>
+                )}
 
                 <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }} id="opendata-links">
                   <p className="mg-small mg-muted">Deseja utilizar os microdados brutos? Baixe o dataset completo sob CC BY 4.0.</p>
