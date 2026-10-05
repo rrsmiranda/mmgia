@@ -48,9 +48,9 @@ export default function App() {
   };
 
   const [metadata, setMetadata] = useState<AssessmentMetadata>({
-    natureza: '',
-    estado: 'DF',
+    taxonomiaVersao: 2,
     setor: '',
+    estado: 'DF',
     porte: '',
     termosAceitos: false,
     code: generateSessionCode(),
@@ -72,9 +72,9 @@ export default function App() {
     setAnswers({});
     const newCode = generateSessionCode();
     setMetadata({
-      natureza: '',
-      estado: 'DF',
+      taxonomiaVersao: 2,
       setor: '',
+      estado: 'DF',
       porte: '',
       termosAceitos: false,
       code: newCode,

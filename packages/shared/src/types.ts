@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { Area, AreaPrivada, Esfera, Poder, RelacaoIA, Regiao, Setor } from './lib/taxonomy';
+
 export type DimensionId = 'gov' | 'tec' | 'seg' | 'edu' | 'eco';
 
 export interface Dimension {
@@ -28,9 +30,18 @@ export interface Practice {
 export type ScoreLevel = 'N' | 'P' | 'L' | 'F';
 
 export interface AssessmentMetadata {
-  natureza: string;
+  taxonomiaVersao: 2;
+  setor: Setor | '';
+  /** Só setor público. */
+  esfera?: Esfera;
+  area?: Area;
+  /** Só quando area === 'estatal'. */
+  atividadeEstatal?: AreaPrivada;
+  /** Opcional. */
+  relacaoIA?: RelacaoIA;
+  /** Registro migrado da v1 sem conversão segura — entra no painel só nos totais gerais. */
+  revisar?: boolean;
   estado: string;
-  setor: string;
   porte: string;
   termosAceitos: boolean;
   code: string;
@@ -620,9 +631,18 @@ export const SEED_ADMIN_USERS: AdminUser[] = [
 export interface HistoricalRecord {
   id: string;
   periodo: string;
-  natureza: string;
+  taxonomiaVersao: 2;
+  setor: Setor | '';
+  esfera?: Esfera;
+  area?: Area;
+  atividadeEstatal?: AreaPrivada;
+  relacaoIA?: RelacaoIA;
+  revisar?: boolean;
+  /** Materializado na migração para filtrar sem recalcular (só setor público). */
+  poder?: Poder;
+  /** Materializado a partir de `estado`. */
+  regiao: Regiao;
   estado: string;
-  setor: string;
   porte: string;
   score_global: number;
   score_gov: number;
@@ -633,12 +653,12 @@ export interface HistoricalRecord {
 }
 
 export const SEED_HISTORICAL_RECORDS: HistoricalRecord[] = [
-  { id: 'av1', periodo: 'Jun/2026', natureza: 'Pública federal', estado: 'DF', setor: 'Gov. federal', porte: 'Grande', score_global: 2.12, score_gov: 2.33, score_tec: 1.88, score_seg: 2.44, score_edu: 2.11, score_eco: 1.95 },
-  { id: 'av2', periodo: 'Jun/2026', natureza: 'Privada', estado: 'SP', setor: 'Financeiro', porte: 'Grande', score_global: 1.89, score_gov: 2.05, score_tec: 1.77, score_seg: 2.10, score_edu: 1.66, score_eco: 1.88 },
-  { id: 'av3', periodo: 'Mai/2026', natureza: 'Academia', estado: 'RJ', setor: 'Educação', porte: 'Grande', score_global: 1.54, score_gov: 1.20, score_tec: 2.05, score_seg: 1.10, score_edu: 2.10, score_eco: 1.25 },
-  { id: 'av4', periodo: 'Mai/2026', natureza: 'Pública estadual', estado: 'MG', setor: 'Saúde', porte: 'Média', score_global: 1.34, score_gov: 1.45, score_tec: 1.22, score_seg: 1.55, score_edu: 1.10, score_eco: 1.40 },
-  { id: 'av5', periodo: 'Abr/2026', natureza: 'Pública municipal', estado: 'RS', setor: 'Gov. municipal', porte: 'Pequena', score_global: 0.98, score_gov: 1.10, score_tec: 0.88, score_seg: 0.90, score_edu: 1.20, score_eco: 0.80 },
-  { id: 'av6', periodo: 'Abr/2026', natureza: 'Terceiro setor', estado: 'BA', setor: 'Outro', porte: 'Micro', score_global: 0.72, score_gov: 0.80, score_tec: 0.66, score_seg: 0.70, score_edu: 0.88, score_eco: 0.55 },
-  { id: 'av7', periodo: 'Mar/2026', natureza: 'Privada', estado: 'SC', setor: 'Tecnologia', porte: 'Pequena', score_global: 1.62, score_gov: 1.44, score_tec: 1.88, score_seg: 1.50, score_edu: 1.40, score_eco: 1.88 },
-  { id: 'av8', periodo: 'Mar/2026', natureza: 'Pública estadual', estado: 'AM', setor: 'Saúde', porte: 'Grande', score_global: 1.11, score_gov: 1.20, score_tec: 1.05, score_seg: 1.30, score_edu: 0.90, score_eco: 1.10 },
+  { id: 'av1', periodo: 'Jun/2026', taxonomiaVersao: 2, setor: 'publico', esfera: 'federal', area: 'gestao', poder: 'executivo', estado: 'DF', regiao: 'Centro-Oeste', porte: 'Grande', score_global: 2.12, score_gov: 2.33, score_tec: 1.88, score_seg: 2.44, score_edu: 2.11, score_eco: 1.95 },
+  { id: 'av2', periodo: 'Jun/2026', taxonomiaVersao: 2, setor: 'privado', area: 'financas', estado: 'SP', regiao: 'Sudeste', porte: 'Grande', score_global: 1.89, score_gov: 2.05, score_tec: 1.77, score_seg: 2.10, score_edu: 1.66, score_eco: 1.88 },
+  { id: 'av3', periodo: 'Mai/2026', taxonomiaVersao: 2, setor: 'outro', revisar: true, estado: 'RJ', regiao: 'Sudeste', porte: 'Grande', score_global: 1.54, score_gov: 1.20, score_tec: 2.05, score_seg: 1.10, score_edu: 2.10, score_eco: 1.25 },
+  { id: 'av4', periodo: 'Mai/2026', taxonomiaVersao: 2, setor: 'publico', esfera: 'estadual', area: 'saude', poder: 'executivo', estado: 'MG', regiao: 'Sudeste', porte: 'Média', score_global: 1.34, score_gov: 1.45, score_tec: 1.22, score_seg: 1.55, score_edu: 1.10, score_eco: 1.40 },
+  { id: 'av5', periodo: 'Abr/2026', taxonomiaVersao: 2, setor: 'publico', esfera: 'municipal', area: 'gestao', poder: 'executivo', estado: 'RS', regiao: 'Sul', porte: 'Pequena', score_global: 0.98, score_gov: 1.10, score_tec: 0.88, score_seg: 0.90, score_edu: 1.20, score_eco: 0.80 },
+  { id: 'av6', periodo: 'Abr/2026', taxonomiaVersao: 2, setor: 'terceiro', area: 'causas', estado: 'BA', regiao: 'Nordeste', porte: 'Micro', score_global: 0.72, score_gov: 0.80, score_tec: 0.66, score_seg: 0.70, score_edu: 0.88, score_eco: 0.55 },
+  { id: 'av7', periodo: 'Mar/2026', taxonomiaVersao: 2, setor: 'privado', area: 'tecnologia', estado: 'SC', regiao: 'Sul', porte: 'Pequena', score_global: 1.62, score_gov: 1.44, score_tec: 1.88, score_seg: 1.50, score_edu: 1.40, score_eco: 1.88 },
+  { id: 'av8', periodo: 'Mar/2026', taxonomiaVersao: 2, setor: 'publico', esfera: 'estadual', area: 'saude', poder: 'executivo', estado: 'AM', regiao: 'Norte', porte: 'Grande', score_global: 1.11, score_gov: 1.20, score_tec: 1.05, score_seg: 1.30, score_edu: 0.90, score_eco: 1.10 },
 ];
