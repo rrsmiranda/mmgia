@@ -54,7 +54,7 @@ interface LandingPageProps {
 const SAMPLE_SCORES: Record<DimensionId, number> = { gov: 2.1, tec: 1.7, seg: 1.9, edu: 1.5, eco: 1.4 };
 
 const HOW_IT_WORKS = [
-  { step: '01', icon: Building2, title: 'Contexto institucional', desc: 'Natureza jurídica, estado, setor e porte. Quatro perguntas objetivas — nenhuma de identidade.', tags: ['sem_nome', 'sem_cnpj', 'sem_email'] },
+  { step: '01', icon: Building2, title: 'Contexto institucional', desc: 'Setor, área de atuação, estado e porte. Perguntas objetivas — nenhuma de identidade.', tags: ['sem_nome', 'sem_cnpj', 'sem_email'] },
   { step: '02', icon: ListChecks, title: 'Avaliação guiada', desc: '45 práticas com escala NPLF: Nulo, Parcial, Larga e Total. O progresso fica salvo automaticamente no browser.', tags: [] },
   { step: '03', icon: BarChart3, title: 'Score e diagnóstico', desc: 'Nível de maturidade de 0 a 5, gaps priorizados e posicionamento frente ao benchmark do setor.', tags: [] },
   { step: '04', icon: FileText, title: 'Relatório PDF', desc: 'Gerado localmente no browser, em versão executiva ou técnica. Nenhum dado identificador é transmitido ao servidor.', tags: [] },
@@ -286,9 +286,10 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>POST /v1/submissions</p>
               <div style={{ marginTop: 16, fontFamily: 'var(--mg-font-mono)', fontSize: 13, lineHeight: 2, color: 'var(--on-ink)' }}>
                 <div style={{ color: 'var(--on-ink-muted)' }}>// dados armazenados</div>
-                <div>"natureza": <span style={{ color: 'var(--status-good-text)' }}>"publica_estadual"</span></div>
+                <div>"setor": <span style={{ color: 'var(--status-good-text)' }}>"publico"</span></div>
+                <div>"esfera": <span style={{ color: 'var(--status-good-text)' }}>"estadual"</span></div>
+                <div>"area": <span style={{ color: 'var(--status-good-text)' }}>"saude"</span></div>
                 <div>"estado": <span style={{ color: 'var(--status-good-text)' }}>"GO"</span></div>
-                <div>"setor": <span style={{ color: 'var(--status-good-text)' }}>"saude"</span></div>
                 <div>"score_global": <span style={{ color: 'var(--status-good-text)' }}>1.82</span></div>
                 <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--ink-raised)', color: 'var(--on-ink-muted)' }}>// nunca coletado</div>
                 <div style={{ opacity: 0.6 }}>"ip_address": <span style={{ color: 'var(--status-critical-text)', textDecoration: 'line-through' }}>203.0.113.42</span></div>

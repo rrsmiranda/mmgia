@@ -24,9 +24,16 @@ interface SchemaField { name: string; type: string; desc: string; ex: string }
 const SCHEMA_FIELDS: SchemaField[] = [
   { name: 'id', type: 'string', desc: 'Hash UUID de 12 caracteres anonimizado que indexa a avaliação.', ex: 'a3f8-2b91-4c7d' },
   { name: 'periodo', type: 'string', desc: 'Mês e ano consolidados de submissão do formulário.', ex: 'Jun/2026' },
-  { name: 'natureza', type: 'string', desc: 'Esfera jurídica ou institucional declarada.', ex: 'Pública federal' },
+  { name: 'taxonomia_versao', type: 'integer', desc: 'Versão da taxonomia de classificação da organização.', ex: '2' },
+  { name: 'setor', type: 'string', desc: 'Setor da organização: publico, privado, terceiro ou outro.', ex: 'publico' },
+  { name: 'esfera', type: 'string', desc: 'Esfera federativa — só para setor público: federal, estadual ou municipal.', ex: 'federal' },
+  { name: 'area', type: 'string', desc: 'Área de atuação dentro do setor (ex.: gestao, regulacao, financas, tecnologia).', ex: 'regulacao' },
+  { name: 'poder', type: 'string', desc: 'Poder — só para setor público: executivo, judiciario ou legislativo.', ex: 'executivo' },
+  { name: 'regiao', type: 'string', desc: 'Região do Brasil derivada do estado (UF).', ex: 'Sudeste' },
+  { name: 'cnae_secao', type: 'string', desc: 'Letra da seção CNAE correspondente à área de atuação.', ex: 'O' },
+  { name: 'relacao_ia', type: 'string', desc: 'Relação declarada com IA (opcional): desenvolve, usa ou nao_usa.', ex: 'usa' },
   { name: 'estado', type: 'string', desc: 'Unidade Federativa de atuação principal.', ex: 'SP' },
-  { name: 'setor', type: 'string', desc: 'Vertical econômica ou atividade prática principal.', ex: 'Financeiro' },
+  { name: 'porte', type: 'string', desc: 'Porte aproximado da organização por número de colaboradores.', ex: 'Grande' },
   { name: 'score_global', type: 'float', desc: 'Média global recalculada de 0.00 a 3.00.', ex: '1.82' },
   { name: 'nivel_global', type: 'integer', desc: 'Maturidade apurada de nível 0 a 5.', ex: '3' },
 ];
@@ -108,6 +115,9 @@ export default function OpenData() {
                   ]}
                   rows={SCHEMA_FIELDS}
                 />
+                <p className="mg-small mg-muted" style={{ marginTop: 16 }}>
+                  Por privacidade, cada linha publica no máximo três campos de classificação (por exemplo, setor + área + região) e só combinações com 5 ou mais avaliações.
+                </p>
               </CardBody>
             </Card>
           </div>
@@ -123,14 +133,15 @@ export default function OpenData() {
                 <span className="mg-code" style={{ color: 'var(--on-ink-muted)', textTransform: 'uppercase' }}>Read-only API console</span>
               </div>
               <pre className="mg-code" style={{ marginTop: 16, whiteSpace: 'pre-wrap', overflowX: 'auto', color: 'var(--on-ink)' }}>
-{`-- Consulta média de score global por setor governamental
+{`-- Consulta média de score global por área, no setor público
 SELECT
-  setor,
+  area,
   COUNT(id) AS amostras,
   ROUND(AVG(score_global)::numeric, 2) AS score_medio_geral
 FROM microdados_mmgia
-WHERE natureza LIKE 'Pública%'
-GROUP BY setor
+WHERE setor = 'publico'
+GROUP BY area
+HAVING COUNT(id) >= 5
 ORDER BY score_medio_geral DESC;`}
               </pre>
             </Card>
