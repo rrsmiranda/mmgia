@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -49,6 +49,54 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
   const [showSaveModal, setShowSaveModal] = useState<boolean>(false);
   const [copiedHtml, setCopiedHtml] = useState<boolean>(false);
   const [exportingPdf, setExportingPdf] = useState<boolean>(false);
+
+  // Vertical-scroll page viewing: refs para as 4 páginas + o container de rolagem,
+  // usados pelo seletor de página (scrollIntoView) e pelo scroll-spy (IntersectionObserver)
+  const pageRefs = useRef<Array<HTMLDivElement | null>>([null, null, null, null]);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const visibilityRatios = useRef<number[]>([0, 0, 0, 0]);
+
+  useEffect(() => {
+    const root = canvasRef.current;
+    if (!root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const idx = pageRefs.current.findIndex((el) => el === entry.target);
+          if (idx !== -1) {
+            visibilityRatios.current[idx] = entry.intersectionRatio;
+          }
+        });
+
+        let maxIdx = 0;
+        let maxRatio = 0;
+        visibilityRatios.current.forEach((ratio, idx) => {
+          if (ratio > maxRatio) {
+            maxRatio = ratio;
+            maxIdx = idx;
+          }
+        });
+        if (maxRatio > 0) {
+          setActivePdfPage(maxIdx + 1);
+        }
+      },
+      { root, threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] }
+    );
+
+    pageRefs.current.forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const scrollToPage = (page: number) => {
+    const el = pageRefs.current[page - 1];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   // Score Calculations (ver src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
   const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
@@ -540,9 +588,6 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
       // Inject temporary styles to make sure all pages print properly and are structured as A4 page blocks
       const style = document.createElement('style');
       style.innerHTML = `
-        .screen-hidden-page {
-          display: block !important;
-        }
         .printable-report-page {
           display: block !important;
           width: 210mm !important;
@@ -559,14 +604,6 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
         }
       `;
       clone.appendChild(style);
-
-      // Find all pages within the clone and ensure they don't have screen-hidden-page class
-      const hiddenPages = clone.querySelectorAll('.screen-hidden-page');
-      hiddenPages.forEach(el => {
-        el.classList.remove('screen-hidden-page');
-        el.classList.add('block');
-        (el as HTMLElement).style.display = 'block';
-      });
 
       // Position the clone fixed behind the current page content so it has actual DOM layouts calculated by browser
       clone.style.position = 'fixed';
@@ -701,7 +738,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
   };
 
   return (
-    <div className="bg-slate-900 border-none min-h-screen text-slate-100 flex flex-col justify-between font-sans relative select-text" id="realtime-pdf-document-viewer">
+    <div className="bg-slate-900 border-none h-screen text-slate-100 flex flex-col justify-between font-sans relative select-text" id="realtime-pdf-document-viewer">
       {/* Dynamic PRINT CSS overrides */}
       <style>{`
         @media print {
@@ -765,13 +802,6 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
             display: none !important;
           }
         }
-
-        /* Screen only visibility hidden class to support showing ALL pages in print layout but 1 on screen */
-        @media screen {
-          .screen-hidden-page {
-            display: none !important;
-          }
-        }
       `}</style>
 
       {/* 1. TOP BAR CONTROL CENTER */}
@@ -823,7 +853,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
           <div className="flex items-center bg-slate-850 text-slate-300 border border-slate-800 rounded-2xl p-1 font-mono text-xs shadow-inner">
             <button
               disabled={activePdfPage === 1}
-              onClick={() => setActivePdfPage(prev => Math.max(1, prev - 1))}
+              onClick={() => scrollToPage(Math.max(1, activePdfPage - 1))}
               className="p-1.5 hover:bg-slate-850 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
             >
               <ChevronLeft className="w-4 h-4" />
@@ -831,7 +861,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
             <span className="px-3 shrink-0 font-bold select-none">Página {activePdfPage} de 4</span>
             <button
               disabled={activePdfPage === 4}
-              onClick={() => setActivePdfPage(prev => Math.min(4, prev + 1))}
+              onClick={() => scrollToPage(Math.min(4, activePdfPage + 1))}
               className="p-1.5 hover:bg-slate-850 hover:text-white rounded-xl transition cursor-pointer disabled:opacity-35 disabled:cursor-not-allowed"
             >
               <ChevronRight className="w-4 h-4" />
@@ -850,7 +880,7 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
       </div>
 
       {/* 2. MAIN SCROLL CONTAINER FOR THE SIMULATED A4 PAPER DOCUMENT */}
-      <div className="flex-1 overflow-auto p-4 md:p-8 flex flex-col items-center justify-start bg-slate-900/60" id="printable-report-canvas">
+      <div ref={canvasRef} className="flex-1 min-h-0 overflow-auto p-4 md:p-8 flex flex-col items-center justify-start bg-slate-900/60" id="printable-report-canvas">
         {/* Container that implements active-page single view on screen, or sequential print pages layout */}
         <div
           id="printable-report-canvas-root"
@@ -863,9 +893,8 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
         >
           {/* ==================== PAGE 1 OF 4: THE COVER PAGE ==================== */}
           <div
-            className={`printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between ${
-              activePdfPage === 1 ? 'block' : 'screen-hidden-page'
-            }`}
+            ref={(el) => { pageRefs.current[0] = el; }}
+            className="printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between block mb-8 last:mb-0"
             style={{
               fontFamily: 'Georgia, serif',
               width: '210mm',
@@ -947,9 +976,8 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
 
           {/* ==================== PAGE 2 OF 4: INTERPRETATIONS & RISK SCORES ==================== */}
           <div
-            className={`printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between ${
-              activePdfPage === 2 ? 'block' : 'screen-hidden-page'
-            }`}
+            ref={(el) => { pageRefs.current[1] = el; }}
+            className="printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between block mb-8 last:mb-0"
             style={{
               fontFamily: 'Georgia, serif',
               width: '210mm',
@@ -1033,9 +1061,8 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
 
           {/* ==================== PAGE 3 OF 4: SCORES TABLE & DETAILED BREAKDOWN ==================== */}
           <div
-            className={`printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between ${
-              activePdfPage === 3 ? 'block' : 'screen-hidden-page'
-            }`}
+            ref={(el) => { pageRefs.current[2] = el; }}
+            className="printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between block mb-8 last:mb-0"
             style={{
               fontFamily: 'Georgia, serif',
               width: '210mm',
@@ -1121,9 +1148,8 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
 
           {/* ==================== PAGE 4 OF 4: GAPS & ACTION MITIGATION PLAN ==================== */}
           <div
-            className={`printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between ${
-              activePdfPage === 4 ? 'block' : 'screen-hidden-page'
-            }`}
+            ref={(el) => { pageRefs.current[3] = el; }}
+            className="printable-report-page bg-white shadow-2xl rounded-xs text-slate-800 select-text cursor-default relative flex flex-col justify-between block mb-8 last:mb-0"
             style={{
               fontFamily: 'Georgia, serif',
               width: '210mm',
