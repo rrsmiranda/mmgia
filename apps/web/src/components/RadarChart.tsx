@@ -94,8 +94,8 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
             </g>
           ))}
 
-          {/* Anel tracejado na meta (score 1,50) */}
-          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
+          {/* Anel tracejado na meta (score 1,50) — traço fino e recessivo para não competir com os valores */}
+          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
 
           {/* Grid axis spokes */}
           {DIMENSION_ORDER.map((_, i) => {
@@ -141,6 +141,16 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
                     strokeWidth="1.5"
                     className="cursor-pointer hover:scale-125 transition-transform"
                   />
+                  {/* Fundo sólido atrás do valor: legível mesmo sobre o anel da meta ou os raios do grid */}
+                  <rect
+                    x={x - 15}
+                    y={y - 25}
+                    width={30}
+                    height={14}
+                    rx={4}
+                    fill="var(--surface-raised)"
+                    className="pointer-events-none"
+                  />
                   <text
                     x={x}
                     y={y - 8}
@@ -180,10 +190,14 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex gap-6" id="radar-legend">
+      <div className="mt-4 flex flex-wrap gap-6" id="radar-legend">
         <div className="mg-row" style={{ gap: 8 }}>
           <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--brand-accent)', display: 'inline-block' }} />
           <span className="mg-small">Sua organização</span>
+        </div>
+        <div className="mg-row" style={{ gap: 8 }}>
+          <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', opacity: 0.6, display: 'inline-block' }} />
+          <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 1)}</span>
         </div>
         {benchmarkScores && (
           <div className="mg-row" style={{ gap: 8 }}>
