@@ -270,6 +270,18 @@
 .mg-acc-item:last-child { border-bottom: 0; }
 .mg-code { font-family: var(--mg-font-mono); font-size: var(--font-size-scale-down-01); font-weight: 500; color: var(--text-muted); }
 
+/* Acordeão de dimensões (revisão): nome do eixo com largura e quebra de linha
+   fixas — iguais nas 5 linhas, independente do tamanho do rótulo do nível ao
+   lado — e todo o cabeçalho alinhado ao topo da primeira linha do nome. */
+@media (min-width: 576px) {
+  #revision-accordions .mg-acc > summary { height: auto; min-height: 60px; align-items: flex-start; padding-top: 17px; padding-bottom: 17px; }
+  #revision-accordions .mg-acc > summary > .mg-dim { flex: 0 0 290px; min-width: 0; align-items: flex-start; text-align: left; }
+  #revision-accordions .mg-acc > summary > .mg-dim .mg-dot { margin-top: 7px; }
+  #revision-accordions .mg-acc > summary > .mg-code:first-of-type { flex: none; white-space: nowrap; padding-top: 2px; }
+  #revision-accordions .mg-acc > summary > .mg-badge { margin-top: 2px; }
+  #revision-accordions .mg-acc > summary > .mg-code:last-of-type { padding-top: 2px; }
+}
+
 /* Modal */
 .mg-scrim { position: absolute; inset: 0; background: rgba(11,17,32,.55); display: grid; place-items: center; }
 .mg-modal { width: 480px; background: var(--surface-raised); border-radius: var(--radius-xl); box-shadow: var(--shadow-modal); border: 1px solid var(--surface-deep); overflow: hidden; }
