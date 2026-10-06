@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState } from 'react';
 import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
-import { DIMENSION_ORDER, SCORE_GOAL, SCORE_MAX, formatNumber } from '@mmgia/shared/design-system';
+import { getMaturityLevel } from '@mmgia/shared/scoring';
+import { DIMENSION_ORDER, SCORE_GOAL, SCORE_MAX, formatNumber, LevelBadge, type Level } from '@mmgia/shared/design-system';
 
 interface RadarChartProps {
   scores: Record<DimensionId, number>;
@@ -12,11 +14,13 @@ interface RadarChartProps {
 }
 
 export default function RadarChart({ scores, benchmarkScores }: RadarChartProps) {
+  const [hovered, setHovered] = useState<DimensionId | null>(null);
+
   const width = 400;
   const height = 400;
   const centerX = width / 2;
   const centerY = height / 2;
-  const maxRadius = 100;
+  const maxRadius = 125;
   const maxScore = SCORE_MAX;
 
   const getCoordinates = (index: number, score: number) => {
@@ -56,15 +60,30 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
         .join(' ')
     : '';
 
+  // Sigla no eixo (GOV, TEC...); o nome completo de cada dimensão vira legenda, abaixo do gráfico.
   const labelPositions = DIMENSION_ORDER.map((dim, i) => {
     const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-    const labelDistance = maxRadius + 18;
+    const labelDistance = maxRadius + 16;
     return {
       dim,
+      i,
       x: centerX + labelDistance * Math.cos(angle),
       y: centerY + labelDistance * Math.sin(angle),
     };
   });
+
+  // Posição do balão de resumo: acima do ponto, exceto no eixo do topo (index 0),
+  // onde viraria para fora do canvas — ali o balão abre para baixo. Ancoragem
+  // horizontal segue o lado do pentágono (esquerda/direita/centro) para não
+  // estourar a borda do gráfico.
+  const tooltipPlacement = (i: number) => {
+    if (i === 0) return { translateX: '-50%', translateY: '12px' };
+    if (i === 1 || i === 2) return { translateX: '-6px', translateY: '-100%' };
+    return { translateX: 'calc(-100% + 6px)', translateY: '-100%' };
+  };
+
+  const hoveredInfo = hovered ? getMaturityLevel(scores[hovered] || 0) : null;
+  const hoveredPoint = hovered ? getCoordinates(DIMENSION_ORDER.indexOf(hovered), scores[hovered] || 0) : null;
 
   return (
     <div className="flex flex-col items-center justify-center" id="radar-chart-container">
@@ -130,17 +149,9 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
             <polygon points={userPointsStr} fill="var(--brand-soft)" stroke="var(--brand-accent)" strokeWidth="2.5" />
             {DIMENSION_ORDER.map((dim, i) => {
               const { x, y } = getCoordinates(i, scores[dim] || 0);
+              const isHovered = hovered === dim;
               return (
                 <g key={`u-${dim}`}>
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r="5.5"
-                    fill={`var(--dim-${dim})`}
-                    stroke="var(--surface-raised)"
-                    strokeWidth="1.5"
-                    className="cursor-pointer hover:scale-125 transition-transform"
-                  />
                   {/* Fundo sólido atrás do valor: legível mesmo sobre o anel da meta ou os raios do grid */}
                   <rect
                     x={x - 15}
@@ -163,34 +174,84 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
                   >
                     {formatNumber(scores[dim] || 0)}
                   </text>
+                  {/* Área de toque maior que o ponto visível, para facilitar o hover */}
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r="11"
+                    fill="transparent"
+                    onMouseEnter={() => setHovered(dim)}
+                    onMouseLeave={() => setHovered((prev) => (prev === dim ? null : prev))}
+                    style={{ cursor: 'default' }}
+                  />
+                  <circle
+                    cx={x}
+                    cy={y}
+                    r={isHovered ? 7.5 : 5.5}
+                    fill={`var(--dim-${dim})`}
+                    stroke="var(--surface-raised)"
+                    strokeWidth="1.5"
+                    className="pointer-events-none"
+                    style={{ transition: 'r 150ms ease' }}
+                  />
                 </g>
               );
             })}
           </g>
 
-          {/* Axis labels */}
-          {labelPositions.map((pos, i) => {
-            const metadata = DIMENSIONS[pos.dim];
-            const alignment = i === 0 ? 'middle' : i === 1 || i === 2 ? 'start' : 'end';
-            const verticalOffset = i === 0 ? -10 : i === 2 || i === 3 ? 15 : 0;
-            const horizontalOffset = i === 1 ? 5 : i === 4 ? -5 : 0;
-
+          {/* Axis labels: só a sigla (GOV, TEC...); o nome completo está na legenda abaixo */}
+          {labelPositions.map((pos) => {
+            const alignment = pos.i === 0 ? 'middle' : pos.i === 1 || pos.i === 2 ? 'start' : 'end';
             return (
-              <g key={pos.dim} transform={`translate(${pos.x + horizontalOffset}, ${pos.y + verticalOffset})`}>
-                <text fill="var(--text)" fontSize="11" fontWeight="800" fontFamily="var(--mg-font-sans)" textAnchor={alignment}>
-                  {metadata.shortName}
-                </text>
-                <text fill="var(--text-muted)" fontSize="8.5" fontFamily="var(--mg-font-mono)" textAnchor={alignment} y="12">
-                  {metadata.id.toUpperCase()}
-                </text>
-              </g>
+              <text
+                key={pos.dim}
+                x={pos.x}
+                y={pos.y}
+                fill="var(--text-muted)"
+                fontSize="10"
+                fontWeight="700"
+                fontFamily="var(--mg-font-mono)"
+                textAnchor={alignment}
+                dominantBaseline="middle"
+              >
+                {pos.dim.toUpperCase()}
+              </text>
             );
           })}
         </svg>
+
+        {/* Balão de resumo do eixo sob o ponteiro */}
+        {hovered && hoveredInfo && hoveredPoint && (
+          <div
+            className="mg-radar-tip"
+            style={{
+              left: hoveredPoint.x,
+              top: hoveredPoint.y,
+              transform: `translate(${tooltipPlacement(DIMENSION_ORDER.indexOf(hovered)).translateX}, ${tooltipPlacement(DIMENSION_ORDER.indexOf(hovered)).translateY})`,
+            }}
+          >
+            <p className="mg-radar-tip-title">{DIMENSIONS[hovered].name}</p>
+            <div className="mg-row" style={{ gap: 8, marginTop: 6 }}>
+              <LevelBadge level={hoveredInfo.num as Level} />
+              <span className="mg-code">{formatNumber(scores[hovered] || 0)} / 3</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Legend */}
-      <div className="mt-4 flex flex-wrap gap-6" id="radar-legend">
+      {/* Legenda: nome completo de cada dimensão (siglas do gráfico) + série e meta */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2" id="radar-dim-legend">
+        {DIMENSION_ORDER.map((dim) => (
+          <div className="mg-row" style={{ gap: 6 }} key={dim}>
+            <span
+              aria-hidden="true"
+              style={{ width: 8, height: 8, borderRadius: '50%', background: `var(--dim-${dim})`, display: 'inline-block', flex: 'none' }}
+            />
+            <span className="mg-small mg-muted">{DIMENSIONS[dim].shortName}</span>
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
         <div className="mg-row" style={{ gap: 8 }}>
           <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--brand-accent)', display: 'inline-block' }} />
           <span className="mg-small">Sua organização</span>
