@@ -320,7 +320,7 @@
 .mg-table-wrap { overflow-x: auto; }
 
 /* ===== Classificação da organização (taxonomia v2): lista de áreas, nota e ajuda ===== */
-.mg-option:not(.mg-option--sector) > .mg-title { padding-right: 24px; }
+.mg-option:not(.mg-option--sector):not(.mg-option--centered) > .mg-title { padding-right: 24px; }
 /* Setor de atuação (onboarding etapa 2): lista de rádios agrupada por macrossetor; nome e descrição na mesma linha no desktop */
 .mg-sector-group + .mg-sector-group { margin-top: var(--space-5); }
 .mg-sector-group > h3 { font-size: var(--font-size-scale-down-01); font-weight: var(--font-weight-semi-bold); letter-spacing: .04em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 var(--space-2); }
