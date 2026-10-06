@@ -320,7 +320,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </Card>
 
-        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 380px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start', marginBottom: 24 }}>
+        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 440px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start', marginBottom: 24 }}>
           {/* DIMENSION SCORES */}
           <Card id="dimension-scorebars">
             <CardHeader title="Scores por pilar de maturidade" />

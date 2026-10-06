@@ -260,7 +260,7 @@ export default function Revision({
           </Card>
         )}
 
-        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 380px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start' }}>
+        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 440px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start' }}>
           {/* LEFT COLUMN: ACCORDION OF DIMENSIONS */}
           <div className="mg-stack" style={{ gap: 16 }}>
             {overallUnansweredCount > 0 && (

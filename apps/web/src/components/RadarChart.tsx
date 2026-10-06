@@ -12,11 +12,11 @@ interface RadarChartProps {
 }
 
 export default function RadarChart({ scores, benchmarkScores }: RadarChartProps) {
-  const width = 360;
-  const height = 360;
+  const width = 400;
+  const height = 400;
   const centerX = width / 2;
   const centerY = height / 2;
-  const maxRadius = 120;
+  const maxRadius = 100;
   const maxScore = SCORE_MAX;
 
   const getCoordinates = (index: number, score: number) => {
@@ -58,7 +58,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
 
   const labelPositions = DIMENSION_ORDER.map((dim, i) => {
     const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-    const labelDistance = maxRadius + 30;
+    const labelDistance = maxRadius + 18;
     return {
       dim,
       x: centerX + labelDistance * Math.cos(angle),
