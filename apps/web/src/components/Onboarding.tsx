@@ -389,7 +389,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                     {viewMode === 'map' ? (
                       <BrazilMap onSelectState={(uf) => setEstado(uf)} selectedState={estado} showHeatmap={false} theme="light" variant="plain" />
                     ) : (
-                      <RadioGroup label="Estado (UF)" required columns={['repeat(9,1fr)', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
+                      <RadioGroup label="Estado (UF)" required columns={['repeat(auto-fill, minmax(60px, 1fr))', 'repeat(9,1fr)', 'repeat(5,1fr)']}>
                         {UFS.map((uf) => (
                           <OptionCard key={uf} centered checked={estado === uf} onSelect={() => setEstado(uf)} title={uf} />
                         ))}
