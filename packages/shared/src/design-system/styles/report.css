@@ -1,0 +1,79 @@
+/* ===== Relatório (PDF · A4) — mesma identidade do sistema, escala gov.br em pontos =====
+   base 10,5pt (= 14px) · up-01 12,6pt · up-03 18pt · up-05 26pt · down-01 8,75pt
+   corpo justificado com hifenização pt-BR; tabelas, títulos e listas curtas alinhados à esquerda */
+.rp { --font-sans: var(--mg-font-sans); --font-mono: var(--mg-font-mono); background: var(--surface-sunken); }
+.rp-page { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 18mm 20mm 14mm; display: flex; flex-direction: column; background: #FFFFFF; color: var(--text); font-family: var(--font-sans); font-size: 10.5pt; line-height: 1.5; font-variant-numeric: lining-nums; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.rp-body { flex: 1; }
+.rp-body p { margin: 0 0 8pt; text-align: justify; text-justify: inter-word; hyphens: auto; -webkit-hyphens: auto; }
+.rp-head { display: flex; align-items: center; gap: 10pt; padding-bottom: 6pt; margin-bottom: 18pt; border-bottom: .75pt solid var(--surface-deep); font-size: 8.75pt; color: var(--text-muted); }
+.rp-head > span:nth-child(2) { flex: 1; }
+.rp-head .mg-logo { gap: 6pt; }
+.rp-head .mg-flow-logo-sq { width: 18pt; height: 18pt; font-size: 8pt; border-radius: 4pt; }
+.rp-head .mg-logo-word b { font-size: 10.5pt; }
+.rp-foot { display: flex; justify-content: space-between; gap: 12pt; margin-top: 16pt; padding-top: 6pt; border-top: .75pt solid var(--surface-deep); font-size: 8pt; color: var(--text-muted); }
+.rp-eyebrow { margin: 0 0 4pt !important; font-size: 8pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); text-align: left !important; }
+.rp-h1 { margin: 0 0 12pt; font-size: 18pt; font-weight: 600; line-height: 1.2; color: var(--text); }
+.rp-h2 { margin: 16pt 0 6pt; font-size: 12.6pt; font-weight: 600; line-height: 1.25; color: var(--text); break-after: avoid; }
+.rp-h3 { margin: 12pt 0 4pt; font-size: 10.5pt; font-weight: 700; color: var(--text); }
+.rp-small, .rp-body p.rp-small { font-size: 8.75pt; line-height: 1.4; color: var(--text-muted); text-align: left; }
+.rp-label { margin: 0 !important; font-size: 8pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.rp-mono { font-family: var(--font-mono); font-size: .92em; }
+.rp-list { margin: 0 0 8pt; padding-left: 14pt; list-style: disc; }
+.rp-list li { margin-bottom: 4pt; }
+.rp-score { display: grid; grid-template-columns: 170pt 1fr; gap: 18pt; align-items: center; padding: 12pt 14pt; margin-bottom: 4pt; border: .75pt solid var(--surface-deep); border-radius: var(--radius-lg); }
+.rp-score > p { margin: 0; text-align: left; hyphens: manual; }
+.rp-score .mg-row { flex-wrap: wrap; }
+.rp-big { margin: 2pt 0 0 !important; font-size: 34pt; font-weight: 700; line-height: 1; text-align: left !important; font-variant-numeric: tabular-nums; }
+.rp-big span { margin-left: 4pt; font-size: 12.6pt; font-weight: 500; color: var(--text-muted); }
+.rp-table { width: 100%; border-collapse: collapse; margin: 4pt 0 8pt; font-size: 9pt; line-height: 1.35; }
+.rp-table th { padding: 5pt 6pt; text-align: left; font-size: 7.5pt; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-muted); background: var(--surface-sunken); border-bottom: .75pt solid var(--surface-deep); }
+.rp-table td { padding: 5pt 6pt; vertical-align: top; border-bottom: .5pt solid var(--surface-deep); }
+.rp-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rp-table tfoot td { font-weight: 700; border-top: .75pt solid var(--border-control); border-bottom: 0; }
+.rp-table thead { display: table-header-group; }
+.rp-table tr { break-inside: avoid; }
+.rp-table .mg-badge { font-size: 7.5pt; }
+.rp-matrix td, .rp-matrix th[scope="row"] { vertical-align: middle; }
+.rp-matrix th[scope="row"] { background: none; text-transform: none; letter-spacing: 0; font-size: 9pt; font-weight: 400; color: var(--text); }
+.rp-chip { display: inline-flex; align-items: center; gap: 3pt; margin: 1pt 4pt 1pt 0; white-space: nowrap; }
+.rp-gaps td { padding-top: 4pt; padding-bottom: 4pt; }
+.rp-gaps .rp-small { font-size: 8.25pt; }
+.rp-gaps td:nth-child(2) { width: 82pt; }
+.rp-gaps td:nth-child(4) { width: 92pt; }
+.rp-annex { font-size: 8pt; line-height: 1.25; }
+.rp-annex td, .rp-annex th { padding: 2.5pt 4pt; }
+.rp-annex .mg-badge { min-width: 0; height: 13pt; width: 13pt; font-size: 7pt; }
+.rp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; align-items: start; }
+.rp-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt 18pt; margin: 0; }
+.rp-dl--3 { grid-template-columns: repeat(3, 1fr); }
+.rp-dl dt { font-size: 8pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
+.rp-dl dd { margin: 2pt 0 0; font-size: 10.5pt; font-weight: 600; }
+.rp-note { display: flex; gap: 8pt; margin-top: 24pt; padding: 10pt 12pt; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 9pt; }
+.rp-note p { margin: 0 !important; }
+.rp-note .mg-ico { flex: none; margin-top: 2pt; color: var(--brand); }
+/* capa */
+.rp-page--cover { padding: 0; }
+.rp-page--cover .rp-foot { margin: 0 20mm 14mm; }
+.rp-cover-band { padding: 20mm 20mm 16mm; min-height: 118mm; box-sizing: border-box; background: var(--ink); color: var(--on-ink); }
+.rp-cover-band .mg-logo { color: var(--on-ink); }
+.rp-title { margin: 6pt 0 10pt; font-size: 26pt; font-weight: 600; line-height: 1.15; color: var(--on-ink); max-width: 140mm; }
+.rp-cover-sub { margin: 0 !important; font-size: 10.5pt; color: var(--on-ink-muted); text-align: left !important; }
+.rp-cover-body { padding: 14mm 20mm 0; }
+.rp .mg-badge { font-size: 7.5pt; padding: 1pt 5pt; gap: 3pt; }
+.rp .mg-badge--square { width: 12pt; height: 12pt; min-width: 0; padding: 0; justify-content: center; font-size: 7pt; vertical-align: middle; }
+.rp .mg-badge .mg-ico { width: 8pt; height: 8pt; }
+.rp .mg-dim { font-size: 9pt; gap: 5pt; }
+.rp .mg-dim .mg-dot { width: 6pt; height: 6pt; }
+.rp .mg-bars-row { font-size: 9pt; }
+.rp .mg-bar > span { transition: none !important; animation: none !important; }
+/* visualizador (tela) — barra fora da página impressa */
+.rp-viewer-bar.mg-flowbar { position: sticky; }
+.rp-viewer-title { flex: 1; text-align: center; font-size: var(--font-size-scale-up-01); font-weight: 600; color: var(--text); }
+.rp-stack { display: flex; flex-direction: column; align-items: center; gap: 24px; padding: 24px 0; background: var(--surface-sunken); }
+@page { size: A4; margin: 0; }
+@media print {
+  .rp { background: none; }
+  .rp-page { margin: 0; break-after: page; }
+  .rp-viewer-bar { display: none !important; }
+  .rp-stack { display: block; gap: 0; padding: 0; background: none; }
+}
