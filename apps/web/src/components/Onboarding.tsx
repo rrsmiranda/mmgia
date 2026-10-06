@@ -223,7 +223,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
       };
 
   return (
-    <DsRoot>
+    <DsRoot className="mg-root--flow">
       <FlowHeader
         steps={['Setor', 'Área de atuação', 'Local e porte', 'IA e privacidade']}
         current={step}

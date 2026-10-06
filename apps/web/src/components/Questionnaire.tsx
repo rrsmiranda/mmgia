@@ -164,7 +164,7 @@ export default function Questionnaire({
       : 'Próxima prática';
 
   return (
-    <DsRoot>
+    <DsRoot className="mg-root--flow">
       <FlowHeader
         steps={FLOW_STEPS}
         current={DIM_KEYS.indexOf(activeDimension) + 1}

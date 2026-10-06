@@ -310,7 +310,12 @@
 /* ---------- Estruturas do fluxo de avaliação ---------- */
 .mg-card--lg { padding: var(--space-8); }
 .mg-flow-body { max-width: 800px; margin: 0 auto; padding: 56px var(--grid-desktop-margin) 48px; }
-.mg-actionbar { border-top: 1px solid var(--surface-deep); background: var(--surface-raised); }
+/* Telas de fluxo (onboarding, questionário): o rodapé de ações fica sempre colado à borda
+   inferior da janela, mesmo quando o conteúdo é mais curto que a tela — igual ao cabeçalho
+   de fluxo, que já é sticky no topo. */
+.mg-root--flow { display: flex; flex-direction: column; min-height: 100vh; }
+.mg-root--flow .mg-flow-body { flex: 1 0 auto; }
+.mg-actionbar { position: sticky; bottom: 0; z-index: 5; border-top: 1px solid var(--surface-deep); background: var(--surface-raised); box-shadow: 0 -4px 12px rgba(19,41,61,.06); }
 .mg-actionbar > div { max-width: 800px; margin: 0 auto; padding: var(--space-4) var(--grid-desktop-margin); display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .mg-actionbar--inline { border: 0; background: transparent; }
 .mg-actionbar--inline > div { max-width: none; padding: var(--space-2) 0 0; }
@@ -429,7 +434,6 @@
   .mg-steps li:not([aria-current]) .t { display: none; }
   .mg-steps .line { width: 12px; }
   .mg-flowbar .mg-logo-word, .mg-flowbar .mg-exit-label { display: none; }
-  .mg-actionbar { position: sticky; bottom: 0; z-index: 5; box-shadow: 0 -4px 12px rgba(19,41,61,.06); }
   .mg-actionbar > div { padding-top: var(--space-3); padding-bottom: var(--space-3); }
   .mg-actionbar .mg-btn--primary { flex: 1; }
   .mg-actionbar--inline { position: sticky; bottom: 0; margin: 0 calc(-1 * var(--space-4)); border-top: 1px solid var(--surface-deep); background: var(--surface-raised); }
