@@ -129,7 +129,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <LevelBadge level={3 as Level} />
               </div>
               <div style={{ marginTop: 16 }}>
-                <DimensionBars scores={SAMPLE_SCORES} goal />
+                <DimensionBars scores={SAMPLE_SCORES} goal={false} />
               </div>
               <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(3,1fr)', gap: 8, marginTop: 20 }}>
                 <div style={{ textAlign: 'center', padding: 10, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)' }}>
