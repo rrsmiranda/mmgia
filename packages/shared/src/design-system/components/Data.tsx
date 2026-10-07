@@ -35,7 +35,7 @@ interface DimensionBarsProps {
   short?: boolean;
 }
 
-/** Barras por dimensão na escala 0–3, cor categórica = identidade. Preenche do zero ao montar. */
+/** Barras por dimensão na escala 0–3, todas em --brand (o comprimento mostra o valor, não a cor). A cor categórica fica só no marcador do DimensionTag. Preenche do zero ao montar. */
 export function DimensionBars({ scores, goal = true, short = false }: DimensionBarsProps) {
   const [filled, setFilled] = useState(false);
   useEffect(() => {
@@ -54,7 +54,7 @@ export function DimensionBars({ scores, goal = true, short = false }: DimensionB
             <DimensionTag dimension={id} short={short} />
             <span className="v">{formatNumber(v)}</span>
             <div className="mg-bar" role="img" aria-label={`${d.name}: ${formatNumber(v)} de ${SCORE_MAX}`}>
-              <span className="mg-bar-fill" style={{ width: filled ? `${pct}%` : 0, background: `var(--dim-${id})` }} />
+              <span className="mg-bar-fill" style={{ width: filled ? `${pct}%` : 0, background: 'var(--brand)' }} />
               {goal && <span className="mg-goal" style={{ left: `${(SCORE_GOAL / SCORE_MAX) * 100}%` }} aria-hidden="true" />}
             </div>
           </div>

@@ -113,8 +113,8 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
             </g>
           ))}
 
-          {/* Anel tracejado na meta (score 1,50) — traço fino e recessivo para não competir com os valores */}
-          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="3 3" opacity="0.6" />
+          {/* Anel pontilhado na meta (score 1,50) — traço fino, distinto do tracejado da média do grupo */}
+          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="2 3" />
 
           {/* Grid axis spokes */}
           {DIMENSION_ORDER.map((_, i) => {
@@ -133,10 +133,10 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
             );
           })}
 
-          {/* Benchmark polygon overlay (ilustrativo) */}
+          {/* Benchmark polygon overlay (ilustrativo) — tracejado mais longo que o da meta, para diferenciar os dois */}
           {benchmarkScores && (
             <g>
-              <polygon points={benchmarkPointsStr} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="3 3" />
+              <polygon points={benchmarkPointsStr} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
               {DIMENSION_ORDER.map((dim, i) => {
                 const { x, y } = getCoordinates(i, benchmarkScores[dim] || 0);
                 return <circle key={`b-${dim}`} cx={x} cy={y} r="3.5" fill="var(--text-muted)" />;
@@ -146,7 +146,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
 
           {/* User score filled polygon */}
           <g>
-            <polygon points={userPointsStr} fill="var(--brand-soft)" stroke="var(--brand-accent)" strokeWidth="2.5" />
+            <polygon points={userPointsStr} fill="var(--brand-soft)" stroke="var(--brand)" strokeWidth="2.5" />
             {DIMENSION_ORDER.map((dim, i) => {
               const { x, y } = getCoordinates(i, scores[dim] || 0);
               const isHovered = hovered === dim;
@@ -188,7 +188,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
                     cx={x}
                     cy={y}
                     r={isHovered ? 7.5 : 5.5}
-                    fill={`var(--dim-${dim})`}
+                    fill="var(--brand)"
                     stroke="var(--surface-raised)"
                     strokeWidth="1.5"
                     className="pointer-events-none"
@@ -253,17 +253,17 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
         <div className="mg-row" style={{ gap: 8 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 3, background: 'var(--brand-accent)', display: 'inline-block' }} />
+          <span style={{ width: 12, height: 0, borderTop: '2.5px solid var(--brand)', display: 'inline-block' }} />
           <span className="mg-small">Sua organização</span>
         </div>
         <div className="mg-row" style={{ gap: 8 }}>
-          <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', opacity: 0.6, display: 'inline-block' }} />
-          <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 1)}</span>
+          <span style={{ width: 12, height: 0, borderTop: '1.5px dotted var(--text-muted)', display: 'inline-block' }} />
+          <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 2)}</span>
         </div>
         {benchmarkScores && (
           <div className="mg-row" style={{ gap: 8 }}>
-            <span style={{ width: 12, height: 0, borderTop: '2px dashed var(--text-muted)', display: 'inline-block' }} />
-            <span className="mg-small mg-muted">Média grupo nacional (ilustrativo)</span>
+            <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', display: 'inline-block' }} />
+            <span className="mg-small mg-muted">Média do grupo (ilustrativo)</span>
           </div>
         )}
       </div>
