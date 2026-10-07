@@ -332,9 +332,9 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             <CardHeader title="Scores por pilar de maturidade" />
             <CardBody>
               <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
-                As barras comparam o desempenho de cada dimensão à meta de excelência regulatória (score 1,50 — Nível 3).
+                Score de cada dimensão na escala de 0 a 3.
               </p>
-              <DimensionBars scores={currentScores} goal />
+              <DimensionBars scores={currentScores} goal={false} />
             </CardBody>
           </Card>
 
