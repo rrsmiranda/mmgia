@@ -63,18 +63,19 @@
 /* ---------- Badges ---------- */
 .mg-badge { --c: transparent; display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 8px; border-radius: var(--radius-sm); font: 500 var(--font-size-scale-down-01)/1 var(--mg-font-sans); white-space: nowrap; vertical-align: middle; color: var(--text); background: var(--surface-raised); box-shadow: inset 0 0 0 1px var(--surface-deep); }
 .mg-badge .mg-ico { width: 14px; height: 14px; }
-.mg-badge--gov, .mg-badge--tec, .mg-badge--seg, .mg-badge--edu, .mg-badge--eco, .mg-badge--l0, .mg-badge--l1, .mg-badge--l2, .mg-badge--l3, .mg-badge--l4, .mg-badge--l5 { }
-.mg-badge--gov::before, .mg-badge--tec::before, .mg-badge--seg::before, .mg-badge--edu::before, .mg-badge--eco::before, .mg-badge--l0::before, .mg-badge--l1::before, .mg-badge--l2::before, .mg-badge--l3::before, .mg-badge--l4::before, .mg-badge--l5::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
-.mg-badge--gov { --c: var(--dim-gov); } .mg-badge--tec { --c: var(--dim-tec); } .mg-badge--seg { --c: var(--dim-seg); } .mg-badge--edu { --c: var(--dim-edu); } .mg-badge--eco { --c: var(--dim-eco); }
+.mg-badge--l0, .mg-badge--l1, .mg-badge--l2, .mg-badge--l3, .mg-badge--l4, .mg-badge--l5 { }
+.mg-badge--l0::before, .mg-badge--l1::before, .mg-badge--l2::before, .mg-badge--l3::before, .mg-badge--l4::before, .mg-badge--l5::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none; }
 .mg-badge--l0 { --c: var(--level-0); } .mg-badge--l1 { --c: var(--level-1); } .mg-badge--l2 { --c: var(--level-2); } .mg-badge--l3 { --c: var(--level-3); } .mg-badge--l4 { --c: var(--level-4); } .mg-badge--l5 { --c: var(--level-5); }
+.mg-badge--gov .mg-ico, .mg-badge--tec .mg-ico, .mg-badge--seg .mg-ico, .mg-badge--edu .mg-ico, .mg-badge--eco .mg-ico { color: var(--brand); }
 .mg-badge--n, .mg-badge--p, .mg-badge--l, .mg-badge--f { font-weight: 700; box-shadow: none; } .mg-badge--n { background: var(--nplf-n); color: var(--on-level-5); } .mg-badge--p { background: var(--nplf-p); color: var(--on-level); } .mg-badge--l { background: var(--nplf-l); color: var(--on-level); } .mg-badge--f { background: var(--nplf-f); color: var(--on-level); }
 .mg-badge--good .mg-ico { color: var(--status-good-text); } .mg-badge--attention .mg-ico { color: var(--status-attention-text); } .mg-badge--serious .mg-ico { color: var(--status-serious-text); } .mg-badge--critical .mg-ico { color: var(--status-critical-text); }
 .mg-badge--neutral { background: var(--surface-sunken); color: var(--text-muted); }
 .mg-badge--outline .mg-ico { color: var(--brand); } .mg-badge--brand { background: var(--brand-soft); color: var(--brand); box-shadow: none; font-weight: 600; }
 .mg-badge--square { width: 24px; padding: 0; justify-content: center; }
 
-/* Tag de dimensão: ponto + nome (listas, legendas) */
+/* Tag de dimensão: ícone + nome (listas, legendas). mg-dot segue existindo para legendas de série que ainda usam ponto. */
 .mg-dim { display: inline-flex; align-items: center; gap: 8px; font-size: var(--font-size-scale-base); color: var(--text); }
+.mg-dim-ico { color: var(--brand); flex: none; }
 .mg-dot { width: 8px; height: 8px; border-radius: var(--radius-pill); flex: none; display: inline-block; }
 
 /* Medidor de nível (ordinal) */
@@ -276,7 +277,7 @@
 @media (min-width: 576px) {
   #revision-accordions .mg-acc > summary { height: auto; min-height: 60px; align-items: flex-start; padding-top: 17px; padding-bottom: 17px; }
   #revision-accordions .mg-acc > summary > .mg-dim { flex: 0 0 290px; min-width: 0; align-items: flex-start; text-align: left; }
-  #revision-accordions .mg-acc > summary > .mg-dim .mg-dot { margin-top: 7px; }
+  #revision-accordions .mg-acc > summary > .mg-dim .mg-dim-ico { margin-top: 3px; }
   #revision-accordions .mg-acc > summary > .mg-code:first-of-type { flex: none; white-space: nowrap; padding-top: 2px; }
   #revision-accordions .mg-acc > summary > .mg-badge { margin-top: 2px; }
   #revision-accordions .mg-acc > summary > .mg-code:last-of-type { padding-top: 2px; }

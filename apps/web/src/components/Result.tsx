@@ -42,6 +42,7 @@ import {
   CardBody,
   CardHeader,
   DataTable,
+  DIMENSION_ICONS,
   DIMENSION_ORDER,
   DimensionBars,
   DimensionTag,
@@ -113,6 +114,11 @@ const LEVEL_MEANINGS: { lvl: Level; scoreRange: string; title: string; desc: str
     risco: 'A governança se torna adaptativa, ágil e diferencial competitivo forte. Riscos minimizados. O único desafio é evitar a complacência e manter o ritmo ativo de monitoramento em face às novas disrupções técnicas no cenário global.',
   },
 ];
+
+/** item.dim no plano abaixo guarda o nome curto da dimensão (texto); este mapa acha o ícone correspondente. */
+const SHORTNAME_TO_DIM_ID = Object.fromEntries(
+  (Object.keys(DIMENSIONS) as DimensionId[]).map((id) => [DIMENSIONS[id].shortName, id])
+) as Record<string, DimensionId>;
 
 const ACTION_PLAN = [
   { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
@@ -388,11 +394,15 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
 
             <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 16, marginBottom: 20 }} id="gap-filters">
               <Pill pressed={gapFilter === 'todas'} onClick={() => setGapFilter('todas')}>Todas ({gaps.length})</Pill>
-              {DIMENSION_ORDER.filter((key) => gaps.some((g) => g.dimensionId === key)).map((key) => (
-                <Pill key={key} pressed={gapFilter === key} onClick={() => setGapFilter(key)}>
-                  {DIMENSIONS[key].shortName} ({gaps.filter(g => g.dimensionId === key).length})
-                </Pill>
-              ))}
+              {DIMENSION_ORDER.filter((key) => gaps.some((g) => g.dimensionId === key)).map((key) => {
+                const DimIcon = DIMENSION_ICONS[key];
+                return (
+                  <Pill key={key} pressed={gapFilter === key} onClick={() => setGapFilter(key)}>
+                    <DimIcon className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--brand)' }} />
+                    {DIMENSIONS[key].shortName} ({gaps.filter(g => g.dimensionId === key).length})
+                  </Pill>
+                );
+              })}
             </div>
 
             {gapRows.length === 0 ? (
@@ -422,7 +432,9 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           <CardBody>
             <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>Mapeamento sequencial de rotinas voltadas para atingir robustez algorítmica.</p>
             <div className="mg-stack" style={{ gap: 12 }}>
-              {ACTION_PLAN.map((item) => (
+              {ACTION_PLAN.map((item) => {
+                const ItemDimIcon = DIMENSION_ICONS[SHORTNAME_TO_DIM_ID[item.dim]];
+                return (
                 <div key={item.step} className="mg-row" style={{ gap: 16, padding: 16, background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', flexWrap: 'wrap' }}>
                   <span className="mg-code" style={{ fontSize: 16, width: 36, height: 36, display: 'grid', placeItems: 'center', background: 'var(--brand)', color: 'var(--on-brand)', borderRadius: 'var(--radius-pill)', flexShrink: 0 }}>
                     {item.step}
@@ -432,12 +444,16 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                     <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{item.desc}</p>
                   </div>
                   <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                    <span className="mg-code">{item.dim}</span>
+                    <span className="mg-code" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <ItemDimIcon className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--brand)' }} />
+                      {item.dim}
+                    </span>
                     <span className="mg-code">{item.effort}</span>
                     <span className="mg-code">{item.time}</span>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CardBody>
         </Card>

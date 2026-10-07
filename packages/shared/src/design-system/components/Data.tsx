@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { DIMENSIONS, type DimensionId } from '../../types';
-import { DIMENSION_ORDER, LEVEL_LABELS, SCORE_GOAL, SCORE_MAX, cx, formatNumber, type Level } from '../tokens';
+import { DIMENSION_ICONS, DIMENSION_ORDER, LEVEL_LABELS, SCORE_GOAL, SCORE_MAX, cx, formatNumber, type Level } from '../tokens';
 
 /** Medidor compacto do nível (0–5) para tabelas e listas. */
 export function LevelMeter({ level, showLabel = true }: { level: Level; showLabel?: boolean }) {
@@ -17,12 +17,13 @@ export function LevelMeter({ level, showLabel = true }: { level: Level; showLabe
   );
 }
 
-/** Ponto + nome da dimensão (legendas, listas, tabelas). */
+/** Ícone + nome da dimensão (legendas, listas, tabelas). O ícone é sempre var(--brand); identifica, não indica bom/ruim. */
 export function DimensionTag({ dimension, short = false }: { dimension: DimensionId; short?: boolean }) {
   const d = DIMENSIONS[dimension];
+  const Icon = DIMENSION_ICONS[dimension];
   return (
     <span className="mg-dim">
-      <span className="mg-dot" style={{ background: `var(--dim-${dimension})` }} aria-hidden="true" />
+      <Icon className="mg-ico mg-ico-sm mg-dim-ico" aria-hidden="true" />
       {short ? d.shortName : d.name}
     </span>
   );

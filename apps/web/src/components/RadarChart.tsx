@@ -20,7 +20,7 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
   const height = 400;
   const centerX = width / 2;
   const centerY = height / 2;
-  const maxRadius = 125;
+  const maxRadius = 100;
   const maxScore = SCORE_MAX;
 
   const getCoordinates = (index: number, score: number) => {
@@ -60,10 +60,10 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
         .join(' ')
     : '';
 
-  // Sigla no eixo (GOV, TEC...); o nome completo de cada dimensão vira legenda, abaixo do gráfico.
+  // Nome curto no eixo (Governança, Tecnologia...) com o valor da organização logo abaixo.
   const labelPositions = DIMENSION_ORDER.map((dim, i) => {
     const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-    const labelDistance = maxRadius + 16;
+    const labelDistance = maxRadius + 20;
     return {
       dim,
       i,
@@ -199,25 +199,34 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
             })}
           </g>
 
-          {/* Axis labels: só a sigla (GOV, TEC...); o nome completo está na legenda abaixo */}
-          {labelPositions.map((pos) => {
-            const alignment = pos.i === 0 ? 'middle' : pos.i === 1 || pos.i === 2 ? 'start' : 'end';
-            return (
+          {/* Axis labels: nome curto da dimensão + valor da organização logo abaixo, sempre centralizados no eixo */}
+          {labelPositions.map((pos) => (
+            <g key={pos.dim}>
               <text
-                key={pos.dim}
                 x={pos.x}
                 y={pos.y}
-                fill="var(--text-muted)"
-                fontSize="10"
-                fontWeight="700"
-                fontFamily="var(--mg-font-mono)"
-                textAnchor={alignment}
+                fill="var(--text)"
+                fontSize="12"
+                fontWeight="600"
+                fontFamily="var(--mg-font-sans)"
+                textAnchor="middle"
                 dominantBaseline="middle"
               >
-                {pos.dim.toUpperCase()}
+                {DIMENSIONS[pos.dim].shortName}
               </text>
-            );
-          })}
+              <text
+                x={pos.x}
+                y={pos.y + 15}
+                fill="var(--text-muted)"
+                fontSize="12"
+                fontFamily="var(--mg-font-sans)"
+                textAnchor="middle"
+                dominantBaseline="middle"
+              >
+                {formatNumber(scores[pos.dim] || 0)}
+              </text>
+            </g>
+          ))}
         </svg>
 
         {/* Balão de resumo do eixo sob o ponteiro */}
@@ -239,19 +248,8 @@ export default function RadarChart({ scores, benchmarkScores }: RadarChartProps)
         )}
       </div>
 
-      {/* Legenda: nome completo de cada dimensão (siglas do gráfico) + série e meta */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2" id="radar-dim-legend">
-        {DIMENSION_ORDER.map((dim) => (
-          <div className="mg-row" style={{ gap: 6 }} key={dim}>
-            <span
-              aria-hidden="true"
-              style={{ width: 8, height: 8, borderRadius: '50%', background: `var(--dim-${dim})`, display: 'inline-block', flex: 'none' }}
-            />
-            <span className="mg-small mg-muted">{DIMENSIONS[dim].shortName}</span>
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
+      {/* Legenda: só as séries do gráfico — os nomes das dimensões já estão nos eixos */}
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
         <div className="mg-row" style={{ gap: 8 }}>
           <span style={{ width: 12, height: 0, borderTop: '2.5px solid var(--brand)', display: 'inline-block' }} />
           <span className="mg-small">Sua organização</span>

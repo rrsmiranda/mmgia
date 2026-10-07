@@ -2,6 +2,7 @@
  * MMGIA Design System — constantes e utilitários compartilhados.
  * O cálculo (score, nível, risco) continua em src/lib/scoring.ts: aqui só há apresentação.
  */
+import { Cpu, GraduationCap, Landmark, Network, ShieldCheck, type LucideIcon } from 'lucide-react';
 import type { DimensionId, ScoreLevel } from '../types';
 import { getMaturityLevel } from '../lib/scoring';
 
@@ -10,6 +11,15 @@ export type Status = 'good' | 'attention' | 'serious' | 'critical';
 
 /** Ordem fixa das dimensões em toda a interface. */
 export const DIMENSION_ORDER: readonly DimensionId[] = ['gov', 'tec', 'seg', 'edu', 'eco'];
+
+/** Ícone de cada dimensão. A cor vem sempre de var(--brand); a cor categórica (--dim-*) não é usada nas telas. */
+export const DIMENSION_ICONS: Record<DimensionId, LucideIcon> = {
+  gov: Landmark,
+  tec: Cpu,
+  seg: ShieldCheck,
+  edu: GraduationCap,
+  eco: Network,
+};
 
 export const LEVEL_LABELS: Record<Level, string> = {
   0: 'Inexistente',

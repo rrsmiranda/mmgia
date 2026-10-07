@@ -10,6 +10,7 @@ import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shar
 import {
   ActionBar,
   Button,
+  DIMENSION_ICONS,
   DsRoot,
   FlowHeader,
   LegalBadge,
@@ -157,6 +158,7 @@ export default function Questionnaire({
   if (!currentPractice) return null;
 
   const dimension = DIMENSIONS[activeDimension];
+  const DimensionIcon = DIMENSION_ICONS[activeDimension];
   const nextLabel = isLastDimensionAndPractice
     ? 'Ir para a revisão'
     : currentPracticeIndex === filteredPractices.length - 1
@@ -185,7 +187,7 @@ export default function Questionnaire({
             transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.25, ease: 'easeOut' }}
           >
             <p className="mg-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', background: dimension.color, display: 'inline-block', flex: 'none' }} />
+              <DimensionIcon className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--brand)' }} />
               {dimension.shortName} · prática {currentPracticeIndex + 1} de {filteredPractices.length}
             </p>
             <h1 className="mg-h3" style={{ marginTop: 8 }}>{currentPractice.name}</h1>

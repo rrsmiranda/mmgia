@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { AlertTriangle, CheckCircle2, Scale, XCircle, type LucideIcon } from 'lucide-react';
 import { DIMENSIONS, type DimensionId, type ScoreLevel } from '../../types';
-import { LEVEL_LABELS, LEVEL_RISK, NPLF, cx, type Level, type Status } from '../tokens';
+import { DIMENSION_ICONS, LEVEL_LABELS, LEVEL_RISK, NPLF, cx, type Level, type Status } from '../tokens';
 
 type Tone = 'default' | 'neutral' | 'brand' | 'outline';
 
@@ -22,10 +22,16 @@ export function Badge({ tone = 'default', icon: Icon, className, children }: Bad
   );
 }
 
-/** Categórica: identifica a dimensão (quadrado dim-* + nome curto). Nunca indica bom/ruim. */
+/** Identifica a dimensão (ícone var(--brand) + nome curto). Nunca indica bom/ruim. */
 export function DimensionBadge({ dimension, full = false }: { dimension: DimensionId; full?: boolean }) {
   const d = DIMENSIONS[dimension];
-  return <span className={`mg-badge mg-badge--${dimension}`}>{full ? d.name : d.shortName}</span>;
+  const Icon = DIMENSION_ICONS[dimension];
+  return (
+    <span className={`mg-badge mg-badge--${dimension}`}>
+      <Icon className="mg-ico" aria-hidden="true" />
+      {full ? d.name : d.shortName}
+    </span>
+  );
 }
 
 /** Ordinal: nível de maturidade 0–5 (quadrado level-* + rótulo). */

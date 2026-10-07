@@ -64,6 +64,7 @@
 .rp .mg-badge .mg-ico { width: 8pt; height: 8pt; }
 .rp .mg-dim { font-size: 9pt; gap: 5pt; }
 .rp .mg-dim .mg-dot { width: 6pt; height: 6pt; }
+.rp .mg-dim .mg-dim-ico { width: 9pt; height: 9pt; }
 .rp .mg-bars-row { font-size: 9pt; }
 .rp .mg-bar > span { transition: none !important; animation: none !important; }
 /* visualizador (tela) — barra fora da página impressa */
