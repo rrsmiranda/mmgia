@@ -482,7 +482,6 @@
 .mg-an-legend i { width: 18px; }
 .mg-an-legend .s { border-top: 2px solid var(--brand); }
 .mg-an-legend .d { border-top: 2px dotted var(--text-muted); }
-.mg-an-legend .b { border-top: 2px dashed var(--text-muted); }
 .mg-an-hint { display: flex; gap: 8px; align-items: flex-start; }
 .mg-an-hint .mg-ico { flex: none; margin-top: 2px; }
 .mg-an-crumb { display: flex; align-items: center; gap: 6px; font-size: var(--font-size-scale-down-01); color: var(--text-muted); margin: 0 0 10px -8px; }
@@ -530,8 +529,6 @@
 .mg-an-row .mg-code { width: 32px; flex: none; }
 .mg-an-row.is-hl { background: var(--brand-soft); }
 .mg-an-row.is-hl .mg-code { color: var(--brand); font-weight: 700; }
-.mg-an-ans { display: inline-flex; align-items: center; gap: 8px; width: 108px; flex: none; font-size: var(--font-size-scale-down-01); font-weight: 600; color: var(--text); }
-.mg-an-ans b { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--text-muted); font-weight: 700; }
 @media (max-width: 991.98px) {
   .mg-an2-chart { grid-template-columns: 1fr; gap: var(--space-4); }
   .mg-an-seg-t { display: none; }
@@ -550,7 +547,5 @@
   .mg-an-name small { white-space: normal; }
   .mg-an2-body .mg-acc-item { padding-left: var(--space-4); padding-right: var(--space-3); flex-wrap: nowrap; }
   .mg-an2-body .mg-acc-item > div { min-width: 0 !important; }
-  .mg-an-row .mg-an-ans { width: auto; font-size: 0; gap: 0; }
-  .mg-an-row .mg-an-ans b { font-size: var(--font-size-scale-down-01); margin-left: 6px; }
   .mg-an-tip { width: 200px; }
 }

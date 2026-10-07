@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, ChevronLeft, ChevronRight, Info, LayoutGrid, Pencil } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, Info, LayoutGrid } from 'lucide-react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { DIMENSIONS, DimensionId, ScoreLevel } from '@mmgia/shared/types';
 import {
@@ -16,15 +16,16 @@ import {
   getPracticeScores,
 } from '@mmgia/shared/scoring';
 import {
+  Banner,
   Button,
   Card,
   DIMENSION_ICONS,
   DIMENSION_ORDER,
+  LegalBadge,
   LevelBadge,
   NPLF,
   LEVEL_LABELS,
   RiskBadge,
-  NplfBadge,
   SCORE_GOAL,
   cx,
   formatNumber,
@@ -34,24 +35,21 @@ import RadarChart, { type RadarAxis } from './RadarChart';
 
 const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
 
-interface DimensionAnalysisProps {
-  answers: Record<string, ScoreLevel>;
-  onEditPractice: (dim: DimensionId, index: number) => void;
-  /** Score ilustrativo do grupo, por dimensão. Opcional — some polígono tracejado só na visão geral. */
-  benchmark?: Record<DimensionId, number>;
-  /** Notifica a dimensão selecionada (ex.: para sincronizar outro filtro na mesma tela). */
-  onDimensionChange?: (dim: DimensionId | null) => void;
+/** Esforço estimado para fechar uma lacuna, pelo nível da prática — mesma regra do Resultado. */
+function gapEffort(level: number): 'Baixo' | 'Médio' | 'Alto' {
+  return level <= 2 ? 'Baixo' : level === 3 ? 'Médio' : 'Alto';
 }
 
-export default function DimensionAnalysis({ answers, onEditPractice, benchmark, onDimensionChange }: DimensionAnalysisProps) {
-  const [openDim, setOpenDimState] = useState<DimensionId | null>(null);
+interface DimensionAnalysisProps {
+  answers: Record<string, ScoreLevel>;
+  /** Único ponto de edição: redireciona para a Revisão com a dimensão já aberta — não há edição por prática aqui. */
+  onEditPractice: (dim: DimensionId) => void;
+}
+
+export default function DimensionAnalysis({ answers, onEditPractice }: DimensionAnalysisProps) {
+  const [openDim, setOpenDim] = useState<DimensionId | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
-
-  const setOpenDim = (next: DimensionId | null) => {
-    setOpenDimState(next);
-    onDimensionChange?.(next);
-  };
 
   const dimRowRefs = useRef<Partial<Record<DimensionId, HTMLDetailsElement | null>>>({});
   const practiceRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -149,7 +147,6 @@ export default function DimensionAnalysis({ answers, onEditPractice, benchmark, 
               <RadarChart
                 axes={axes}
                 goal={SCORE_GOAL}
-                benchmark={!openDim && benchmark ? DIMENSION_ORDER.map((id) => benchmark[id] ?? null) : undefined}
                 highlightId={hoverId}
                 onAxisHover={setHoverId}
                 onAxisClick={handleAxisClick}
@@ -175,7 +172,6 @@ export default function DimensionAnalysis({ answers, onEditPractice, benchmark, 
               <div className="mg-an-legend" style={{ marginTop: 20 }}>
                 <span><i className="s" aria-hidden="true" />Sua organização</span>
                 <span><i className="d" aria-hidden="true" />Meta · {formatNumber(SCORE_GOAL, 2)}</span>
-                {benchmark && <span><i className="b" aria-hidden="true" />Média do grupo (ilustrativo)</span>}
               </div>
               <div className="mg-an-hint" style={{ marginTop: 16 }}>
                 <Info className="mg-ico mg-ico-sm" aria-hidden="true" />
@@ -254,6 +250,7 @@ export default function DimensionAnalysis({ answers, onEditPractice, benchmark, 
           const isOpen = openDim === id;
           const practiceScores = isOpen ? openPracticeScores : [];
           const unansweredCount = isOpen ? practiceScores.filter((p) => !p.answer).length : 0;
+          const gapScores = practiceScores.filter(({ answer }) => !answer || answer === 'N' || answer === 'P');
 
           return (
             <details
@@ -281,41 +278,39 @@ export default function DimensionAnalysis({ answers, onEditPractice, benchmark, 
 
               {isOpen && (
                 <div className="mg-an2-body">
-                  {practiceScores.map(({ practice, answer, value }, index) => {
-                    const isHl = hoverId === practice.id;
-                    return (
-                      <div
-                        key={practice.id}
-                        ref={(el) => { practiceRowRefs.current[practice.id] = el; }}
-                        className={cx('mg-acc-item', 'mg-an-row', isHl && 'is-hl')}
-                        onMouseEnter={() => setHoverId(practice.id)}
-                        onMouseLeave={() => setHoverId((h) => (h === practice.id ? null : h))}
-                        onFocus={() => setHoverId(practice.id)}
-                        onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
-                      >
-                        <span className="mg-code">{practice.id}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
-                          <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Nível {practice.level} · {LEVEL_LABELS[practice.level as Level]}</p>
+                  {gapScores.length === 0 ? (
+                    <div style={{ padding: '16px 24px' }}>
+                      <Banner tone="good" title="Nenhum gap crítico identificado">
+                        Conformidade larga ou total em todas as práticas desta dimensão.
+                      </Banner>
+                    </div>
+                  ) : (
+                    gapScores.map(({ practice }) => {
+                      const isHl = hoverId === practice.id;
+                      return (
+                        <div
+                          key={practice.id}
+                          ref={(el) => { practiceRowRefs.current[practice.id] = el; }}
+                          className={cx('mg-acc-item', 'mg-an-row', isHl && 'is-hl')}
+                          onMouseEnter={() => setHoverId(practice.id)}
+                          onMouseLeave={() => setHoverId((h) => (h === practice.id ? null : h))}
+                          onFocus={() => setHoverId(practice.id)}
+                          onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
+                        >
+                          <span className="mg-code">{practice.id}</span>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
+                            <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.criterion}</p>
+                          </div>
+                          <span className="mg-small mg-muted" style={{ width: 56, flexShrink: 0 }}>{gapEffort(practice.level)}</span>
+                          {practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : <span className="mg-small mg-muted" style={{ width: 20, flexShrink: 0 }}>—</span>}
                         </div>
-                        {answer ? (
-                          <>
-                            <span className="mg-an-ans">
-                              <NplfBadge value={answer} />
-                              {NPLF[answer].label}
-                              <b>{value}</b>
-                            </span>
-                            <Button variant="ghost" size="sm" iconOnly icon={Pencil} aria-label={`Editar prática ${practice.id}`} onClick={() => onEditPractice(id, index)} />
-                          </>
-                        ) : (
-                          <>
-                            <span className="mg-small mg-muted">Sem resposta</span>
-                            <Button variant="ghost" size="sm" onClick={() => onEditPractice(id, index)}>Responder</Button>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
+                  <div style={{ padding: '16px 24px', borderTop: '1px solid var(--surface-deep)' }}>
+                    <Button variant="secondary" onClick={() => onEditPractice(id)}>Editar respostas desta dimensão</Button>
+                  </div>
                 </div>
               )}
             </details>

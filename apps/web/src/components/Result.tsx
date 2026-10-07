@@ -29,14 +29,12 @@ import {
   getGlobalScore,
   getMaturityLevel,
   getPeerAverageGlobal,
-  getSectorBenchmarks,
 } from '@mmgia/shared/scoring';
 import DimensionAnalysis from './DimensionAnalysis';
 import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
 import {
   ActionBar,
-  Banner,
   Button,
   Card,
   CardBody,
@@ -46,10 +44,8 @@ import {
   DIMENSION_ORDER,
   DimensionTag,
   DsRoot,
-  LegalBadge,
   LevelBadge,
   Page,
-  Pill,
   RiskBadge,
   StatusBadge,
   formatNumber,
@@ -135,20 +131,9 @@ interface WeightRow {
   contribution: number;
 }
 
-interface GapRow {
-  id: string;
-  name: string;
-  dimensionId: DimensionId;
-  description: string;
-  legalReference?: string;
-  action: string;
-  effort: 'Baixo' | 'Médio' | 'Alto';
-}
-
 export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
-  const [activeGapDim, setActiveGapDim] = useState<DimensionId | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [activePdfPage, setActivePdfPage] = useState(1);
@@ -165,7 +150,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const globalScore = getGlobalScore(answers);
   const levelInfo = getMaturityLevel(globalScore);
 
-  const sectorBenchmarks = getSectorBenchmarks(metadata.area, metadata.atividadeEstatal);
   const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
   const classificacaoLabel = descreverClassificacao(metadata);
@@ -175,8 +159,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     return !ans || ans === 'N' || ans === 'P';
   });
 
-  const filteredGaps = activeGapDim ? gaps.filter(g => g.dimensionId === activeGapDim) : gaps;
-
   const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
     const practice = LIST_PRACTICES.find(p => p.id === id);
     if (!practice) {
@@ -185,11 +167,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     const effort: 'Baixo' | 'Médio' | 'Alto' = practice.level <= 2 ? 'Baixo' : practice.level === 3 ? 'Médio' : 'Alto';
     return { action: practice.criterion, effort };
   };
-
-  const gapRows: GapRow[] = filteredGaps.slice(0, 6).map((gap) => {
-    const rec = getGapRecommendation(gap.id);
-    return { id: gap.id, name: gap.name, dimensionId: gap.dimensionId, description: gap.description, legalReference: gap.legalReference, action: rec.action, effort: rec.effort };
-  });
 
   const weightRows: WeightRow[] = DIMENSION_ORDER.map((id) => ({
     id,
@@ -328,80 +305,8 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
         </Card>
 
         <div style={{ marginBottom: 24 }}>
-          <DimensionAnalysis
-            answers={answers}
-            onEditPractice={(dim) => onEditPractice(dim)}
-            benchmark={sectorBenchmarks}
-            onDimensionChange={setActiveGapDim}
-          />
+          <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
         </div>
-
-        {/* BENCHMARK — comparação com o grupo */}
-        <Card style={{ marginBottom: 24 }} id="group-benchmark-panel">
-          <CardHeader title={`Grupo comparativo: ${areaLabel} · ${metadata.porte}`} />
-          <CardBody>
-            <Banner tone="attention" title="Benchmark ilustrativo">
-              Os valores de setor ainda são sintéticos — o painel público passará a usar dados agregados reais assim que houver submissões suficientes.
-            </Banner>
-
-            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(3,1fr)', gap: 8, marginTop: 16 }}>
-              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                <span className="mg-code" style={{ display: 'block', fontSize: 16, color: 'var(--brand)' }}>{formatNumber(globalScore)}</span>
-                <span className="mg-small mg-muted">Seu score</span>
-              </div>
-              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>{formatNumber(peerAverageGlobal)}</span>
-                <span className="mg-small mg-muted">Média peer</span>
-              </div>
-              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>2,71</span>
-                <span className="mg-small mg-muted">Melhor score</span>
-              </div>
-            </div>
-
-            <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-              Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo de {areaLabel} em todo o Brasil.
-            </p>
-          </CardBody>
-        </Card>
-
-        {/* GAP ANALYSIS */}
-        <Card style={{ marginBottom: 24 }} id="gap-analysis-module">
-          <CardHeader
-            title="Análise de lacunas regulatórias (gaps)"
-            actions={activeGapDim && (
-              <Pill pressed onClick={() => setActiveGapDim(null)}>
-                {DIMENSIONS[activeGapDim].shortName} <X className="mg-ico mg-ico-sm" aria-hidden="true" />
-              </Pill>
-            )}
-          />
-          <CardBody>
-            <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
-              {activeGapDim
-                ? `Diretrizes de ${DIMENSIONS[activeGapDim].name} com conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível. Escolha outra dimensão no radar acima ou limpe o filtro para ver todas.`
-                : 'Diretrizes onde o diagnóstico constatou conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível. Escolha uma dimensão no radar acima para filtrar só as lacunas dela.'}
-            </p>
-
-            {gapRows.length === 0 ? (
-              <Banner tone="good" title="Nenhum gap crítico identificado">
-                Sua conformidade é larga ou total em todas as práticas filtradas. Parabéns por manter o compliance elevado.
-              </Banner>
-            ) : (
-              <DataTable<GapRow>
-                caption="Práticas com lacuna e ação recomendada"
-                rowKey={(r) => r.id}
-                columns={[
-                  { key: 'practice', header: 'Prática', render: (r) => <><span className="mg-code">{r.id}</span><p className="mg-title" style={{ marginTop: 2 }}>{r.name}</p></> },
-                  { key: 'dim', header: 'Eixo', render: (r) => <DimensionTag dimension={r.dimensionId} short /> },
-                  { key: 'action', header: 'Ação recomendada', render: (r) => r.action },
-                  { key: 'effort', header: 'Esforço', render: (r) => r.effort },
-                  { key: 'legal', header: 'Base legal', render: (r) => (r.legalReference ? <LegalBadge>{r.legalReference}</LegalBadge> : '—') },
-                ]}
-                rows={gapRows}
-              />
-            )}
-          </CardBody>
-        </Card>
 
         {/* ACTION PLAN */}
         <Card style={{ marginBottom: 24 }} id="action-plan">
@@ -686,7 +591,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                   </p>
 
                   <div className="space-y-3 font-sans text-xs">
-                    {(filteredGaps.length > 0 ? filteredGaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
+                    {(gaps.length > 0 ? gaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
                       const rec = getGapRecommendation(gap.id);
                       return (
                         <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
