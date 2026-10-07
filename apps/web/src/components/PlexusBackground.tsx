@@ -58,6 +58,10 @@ export default function PlexusBackground({ maxNodes = 50 }: PlexusBackgroundProp
 
     const resize = () => {
       const rect = parent.getBoundingClientRect();
+      // Em alguns webviews embutidos (apps de mensagem) o layout do pai ainda
+      // não assentou no primeiro callback — ignora e espera a próxima medição
+      // (ResizeObserver dispara de novo quando o tamanho real chegar).
+      if (rect.width < 1 || rect.height < 1) return;
       width = rect.width;
       height = rect.height;
       canvas.width = width * dpr;
@@ -126,8 +130,15 @@ export default function PlexusBackground({ maxNodes = 50 }: PlexusBackgroundProp
       raf = requestAnimationFrame(step);
     }
 
+    // ResizeObserver cobre reflows por conteúdo (fonte web carregando, mudança
+    // de breakpoint) que um listener só de 'resize' da window não percebe —
+    // é o que mais frequentemente deixa o canvas com tamanho 0/desatualizado
+    // em webviews embutidos.
+    const observer = new ResizeObserver(resize);
+    observer.observe(parent);
     window.addEventListener('resize', resize);
     return () => {
+      observer.disconnect();
       window.removeEventListener('resize', resize);
       if (raf) cancelAnimationFrame(raf);
     };

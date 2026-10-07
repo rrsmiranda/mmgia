@@ -236,7 +236,10 @@
 .mg-stack { display: flex; flex-direction: column; gap: var(--space-3); }
 .mg-spacer { flex: 1; }
 .mg-divider { height: 1px; background: var(--surface-deep); border: 0; margin: 0; }
-.mg-hero { background: var(--ink); color: var(--on-ink); }
+/* Gradiente de base sempre visível, independente do canvas do PlexusBackground: em
+   navegadores embutidos (apps de mensagem, webviews com canvas 2D restrito) o canvas
+   pode falhar silenciosamente — sem isso, a seção vira um bloco liso sem o efeito. */
+.mg-hero { background: radial-gradient(ellipse 120% 80% at 20% 0%, var(--ink-raised) 0%, var(--ink) 55%); color: var(--on-ink); }
 .mg-hero .mg-eyebrow { color: var(--on-ink-accent); }
 .mg-hero .mg-lead { color: var(--on-ink-muted); }
 
