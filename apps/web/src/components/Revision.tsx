@@ -11,7 +11,6 @@ import {
   ChevronRight,
   Eye,
   FileCheck2,
-  HelpCircle,
   Info,
   Printer,
   X,
@@ -25,7 +24,7 @@ import {
   getMaturityLevel,
   getPeerAverageGlobal,
 } from '@mmgia/shared/scoring';
-import DimensionAnalysis from './DimensionAnalysis';
+import AnswerReview from './AnswerReview';
 import {
   ActionBar,
   Banner,
@@ -40,7 +39,6 @@ import {
   LevelBadge,
   Page,
   PageHeader,
-  RiskBadge,
   StatusBadge,
   formatNumber,
   type Level,
@@ -53,6 +51,8 @@ interface RevisionProps {
   onGoBackToQuestionnaire: () => void;
   onConfirmAndGenerateResult: () => void;
   onViewReport?: () => void;
+  /** Dimensão a abrir já na lista de conferência (ex.: voltando do Resultado para corrigir uma prática). */
+  initialOpenDim?: DimensionId | null;
   theme?: 'light' | 'dark';
 }
 
@@ -119,6 +119,7 @@ export default function Revision({
   onGoBackToQuestionnaire,
   onConfirmAndGenerateResult,
   onViewReport,
+  initialOpenDim,
 }: RevisionProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
@@ -196,49 +197,34 @@ export default function Revision({
               </p>
 
               <div style={{ marginTop: 20 }}>
-                <DataTable<WeightRow>
-                  caption="Contribuição de cada dimensão para o Score Global"
+                <DataTable<{ id: DimensionId; weight: number }>
+                  caption="Peso de cada dimensão no Score Global"
                   rowKey={(r) => r.id}
                   columns={[
                     { key: 'dim', header: 'Eixo', render: (r) => <DimensionTag dimension={r.id} /> },
-                    { key: 'score', header: 'Score', numeric: true, render: (r) => formatNumber(r.score) },
                     { key: 'weight', header: 'Peso', numeric: true, render: (r) => `${Math.round(r.weight * 100)}%` },
-                    { key: 'contrib', header: 'Contribuição', numeric: true, render: (r) => formatNumber(r.contribution, 3) },
                   ]}
-                  rows={weightRows}
+                  rows={DIMENSION_ORDER.map((id) => ({ id, weight: DIMENSION_WEIGHTS[id] }))}
                 />
               </div>
 
-              <div className="mg-row" style={{ gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
-                <span className="mg-code">Score Global: {formatNumber(globalScore)} / 3</span>
-                <LevelBadge level={levelInfo.num as Level} />
-                <RiskBadge level={levelInfo.num as Level} />
-              </div>
-              <p className="mg-small mg-muted" style={{ marginTop: 8 }}>{levelInfo.desc}</p>
-
               <div className="mg-stack" style={{ marginTop: 24, gap: 12 }}>
-                <h3 className="mg-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <HelpCircle className="mg-ico mg-ico-sm" aria-hidden="true" />
-                  O que significa cada nível de maturidade?
-                </h3>
-                {LEVEL_MEANINGS.map((item) => {
-                  const isSelected = levelInfo.num === item.lvl;
-                  return (
-                    <Card key={item.lvl} style={isSelected ? { boxShadow: '0 0 0 3px var(--brand-soft)', borderColor: 'var(--brand)' } : undefined}>
-                      <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                        <div className="mg-row" style={{ gap: 8 }}>
-                          <LevelBadge level={item.lvl} showLabel={false} />
-                          <span className="mg-title">{item.title}</span>
-                        </div>
-                        <span className="mg-code">Score {item.scoreRange}</span>
+                <h3 className="mg-title">O que significa cada nível de maturidade?</h3>
+                {LEVEL_MEANINGS.map((item) => (
+                  <Card key={item.lvl}>
+                    <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+                      <div className="mg-row" style={{ gap: 8 }}>
+                        <LevelBadge level={item.lvl} showLabel={false} />
+                        <span className="mg-title">{item.title}</span>
                       </div>
-                      <p className="mg-small" style={{ marginTop: 8 }}>{item.desc}</p>
-                      <p className="mg-small mg-muted" style={{ marginTop: 6, borderLeft: '2px solid var(--surface-deep)', paddingLeft: 8 }}>
-                        <strong>Implicações e riscos:</strong> {item.risco}
-                      </p>
-                    </Card>
-                  );
-                })}
+                      <span className="mg-code">Score {item.scoreRange}</span>
+                    </div>
+                    <p className="mg-small" style={{ marginTop: 8 }}>{item.desc}</p>
+                    <p className="mg-small mg-muted" style={{ marginTop: 6, borderLeft: '2px solid var(--surface-deep)', paddingLeft: 8 }}>
+                      <strong>Implicações e riscos:</strong> {item.risco}
+                    </p>
+                  </Card>
+                ))}
               </div>
             </CardBody>
           </Card>
@@ -252,7 +238,7 @@ export default function Revision({
             </Banner>
           )}
 
-          <DimensionAnalysis answers={answers} onEditPractice={onGoToPractice} />
+          <AnswerReview answers={answers} onEditPractice={onGoToPractice} initialOpenDim={initialOpenDim} />
         </div>
 
         {/* BOTTOM CALL TO ACTION */}

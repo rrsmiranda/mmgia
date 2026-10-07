@@ -482,6 +482,7 @@
 .mg-an-legend i { width: 18px; }
 .mg-an-legend .s { border-top: 2px solid var(--brand); }
 .mg-an-legend .d { border-top: 2px dotted var(--text-muted); }
+.mg-an-legend .b { border-top: 2px dashed var(--text-muted); }
 .mg-an-hint { display: flex; gap: 8px; align-items: flex-start; }
 .mg-an-hint .mg-ico { flex: none; margin-top: 2px; }
 .mg-an-crumb { display: flex; align-items: center; gap: 6px; font-size: var(--font-size-scale-down-01); color: var(--text-muted); margin: 0 0 10px -8px; }

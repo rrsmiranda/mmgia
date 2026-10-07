@@ -31,7 +31,7 @@ import {
   getPeerAverageGlobal,
   getSectorBenchmarks,
 } from '@mmgia/shared/scoring';
-import RadarChart, { type RadarAxis } from './RadarChart';
+import DimensionAnalysis from './DimensionAnalysis';
 import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
 import {
@@ -44,16 +44,13 @@ import {
   DataTable,
   DIMENSION_ICONS,
   DIMENSION_ORDER,
-  DimensionBars,
   DimensionTag,
   DsRoot,
-  LEVEL_LABELS,
   LegalBadge,
   LevelBadge,
   Page,
   Pill,
   RiskBadge,
-  SCORE_GOAL,
   StatusBadge,
   formatNumber,
   type Level,
@@ -65,6 +62,8 @@ interface ResultProps {
   onRestart: () => void;
   onChangeTab: (tab: string) => void;
   onViewReport?: () => void;
+  /** "Editar" numa prática: volta para a Revisão com a dimensão já aberta. */
+  onEditPractice: (dim: DimensionId) => void;
   theme?: 'light' | 'dark';
 }
 
@@ -146,15 +145,14 @@ interface GapRow {
   effort: 'Baixo' | 'Médio' | 'Alto';
 }
 
-export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport }: ResultProps) {
+export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
   const [downloadingType, setDownloadingType] = useState<string | null>(null);
-  const [gapFilter, setGapFilter] = useState<string>('todas');
+  const [activeGapDim, setActiveGapDim] = useState<DimensionId | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [pdfZoom, setPdfZoom] = useState(100);
-  const [radarHoverId, setRadarHoverId] = useState<string | null>(null);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
@@ -172,27 +170,12 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
   const classificacaoLabel = descreverClassificacao(metadata);
 
-  const radarAxes: RadarAxis[] = DIMENSION_ORDER.map((id) => {
-    const score = currentScores[id];
-    const level = getMaturityLevel(score);
-    return {
-      id,
-      label: DIMENSIONS[id].shortName,
-      sub: formatNumber(score),
-      value: score,
-      title: DIMENSIONS[id].name,
-      detail: `Nível ${level.num} · ${LEVEL_LABELS[level.num]} · ${formatNumber(score)} / 3`,
-      ariaLabel: `${DIMENSIONS[id].name}: nível ${level.num}, ${LEVEL_LABELS[level.num]}, score ${formatNumber(score)} de 3`,
-    };
-  });
-  const radarBenchmark = DIMENSION_ORDER.map((id) => sectorBenchmarks[id] ?? null);
-
   const gaps = LIST_PRACTICES.filter((practice) => {
     const ans = answers[practice.id];
     return !ans || ans === 'N' || ans === 'P';
   });
 
-  const filteredGaps = gapFilter === 'todas' ? gaps : gaps.filter(g => g.dimensionId === gapFilter);
+  const filteredGaps = activeGapDim ? gaps.filter(g => g.dimensionId === activeGapDim) : gaps;
 
   const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
     const practice = LIST_PRACTICES.find(p => p.id === id);
@@ -344,113 +327,60 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </Card>
 
-        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 440px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start', marginBottom: 24 }}>
-          {/* DIMENSION SCORES */}
-          <Card id="dimension-scorebars">
-            <CardHeader title="Scores por pilar de maturidade" />
-            <CardBody>
-              <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
-                Score de cada dimensão na escala de 0 a 3.
-              </p>
-              <DimensionBars scores={currentScores} goal={false} />
-            </CardBody>
-          </Card>
-
-          {/* BENCHMARK */}
-          <Card id="group-benchmark-panel">
-            <CardHeader title={`Grupo comparativo: ${areaLabel} · ${metadata.porte}`} />
-            <CardBody>
-              <div className="mg-only-desktop">
-                <div className="flex flex-col items-center justify-center" id="radar-chart-container">
-                  <div className="mb-4 text-center">
-                    <h4 className="mg-title">Radar de maturidade por dimensão</h4>
-                    <p className="mg-small mg-muted" style={{ marginTop: 2 }}>
-                      Pentágono de preenchimento relativo de {formatNumber(0)} a {formatNumber(3)}
-                    </p>
-                  </div>
-                  <RadarChart
-                    axes={radarAxes}
-                    goal={SCORE_GOAL}
-                    benchmark={radarBenchmark}
-                    highlightId={radarHoverId}
-                    onAxisHover={setRadarHoverId}
-                    ariaLabel="Radar de maturidade por dimensão, comparado ao grupo"
-                  />
-                  <div className="mt-4 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
-                    <div className="mg-row" style={{ gap: 8 }}>
-                      <span style={{ width: 12, height: 0, borderTop: '2.5px solid var(--brand)', display: 'inline-block' }} />
-                      <span className="mg-small">Sua organização</span>
-                    </div>
-                    <div className="mg-row" style={{ gap: 8 }}>
-                      <span style={{ width: 12, height: 0, borderTop: '1.5px dotted var(--text-muted)', display: 'inline-block' }} />
-                      <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 2)}</span>
-                    </div>
-                    <div className="mg-row" style={{ gap: 8 }}>
-                      <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', display: 'inline-block' }} />
-                      <span className="mg-small mg-muted">Média do grupo (ilustrativo)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="mg-only-mobile">
-                <DataTable
-                  caption="Comparação entre sua organização e o setor"
-                  rowKey={(r) => r.id}
-                  columns={[
-                    { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} short /> },
-                    { key: 'you', header: 'Você', numeric: true, render: (r) => formatNumber(currentScores[r.id]) },
-                    { key: 'sector', header: 'Setor', numeric: true, render: (r) => formatNumber(sectorBenchmarks[r.id]) },
-                  ]}
-                  rows={DIMENSION_ORDER.map((id) => ({ id }))}
-                />
-              </div>
-
-              <Banner tone="attention" title="Benchmark ilustrativo">
-                Os valores de setor ainda são sintéticos — o painel público passará a usar dados agregados reais assim que houver submissões suficientes.
-              </Banner>
-
-              <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(3,1fr)', gap: 8, marginTop: 16 }}>
-                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                  <span className="mg-code" style={{ display: 'block', fontSize: 16, color: 'var(--brand)' }}>{formatNumber(globalScore)}</span>
-                  <span className="mg-small mg-muted">Seu score</span>
-                </div>
-                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                  <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>{formatNumber(peerAverageGlobal)}</span>
-                  <span className="mg-small mg-muted">Média peer</span>
-                </div>
-                <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
-                  <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>2,71</span>
-                  <span className="mg-small mg-muted">Melhor score</span>
-                </div>
-              </div>
-
-              <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-                Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo de {areaLabel} em todo o Brasil.
-              </p>
-            </CardBody>
-          </Card>
+        <div style={{ marginBottom: 24 }}>
+          <DimensionAnalysis
+            answers={answers}
+            onEditPractice={(dim) => onEditPractice(dim)}
+            benchmark={sectorBenchmarks}
+            onDimensionChange={setActiveGapDim}
+          />
         </div>
+
+        {/* BENCHMARK — comparação com o grupo */}
+        <Card style={{ marginBottom: 24 }} id="group-benchmark-panel">
+          <CardHeader title={`Grupo comparativo: ${areaLabel} · ${metadata.porte}`} />
+          <CardBody>
+            <Banner tone="attention" title="Benchmark ilustrativo">
+              Os valores de setor ainda são sintéticos — o painel público passará a usar dados agregados reais assim que houver submissões suficientes.
+            </Banner>
+
+            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(3,1fr)', gap: 8, marginTop: 16 }}>
+              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                <span className="mg-code" style={{ display: 'block', fontSize: 16, color: 'var(--brand)' }}>{formatNumber(globalScore)}</span>
+                <span className="mg-small mg-muted">Seu score</span>
+              </div>
+              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>{formatNumber(peerAverageGlobal)}</span>
+                <span className="mg-small mg-muted">Média peer</span>
+              </div>
+              <div style={{ textAlign: 'center', padding: 12, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--surface-deep)' }}>
+                <span className="mg-code" style={{ display: 'block', fontSize: 16 }}>2,71</span>
+                <span className="mg-small mg-muted">Melhor score</span>
+              </div>
+            </div>
+
+            <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
+              Percentil de maturidade ilustrativo: sua organização está acima de 68% dos respondentes do grupo de {areaLabel} em todo o Brasil.
+            </p>
+          </CardBody>
+        </Card>
 
         {/* GAP ANALYSIS */}
         <Card style={{ marginBottom: 24 }} id="gap-analysis-module">
-          <CardHeader title="Análise de lacunas regulatórias (gaps)" />
+          <CardHeader
+            title="Análise de lacunas regulatórias (gaps)"
+            actions={activeGapDim && (
+              <Pill pressed onClick={() => setActiveGapDim(null)}>
+                {DIMENSIONS[activeGapDim].shortName} <X className="mg-ico mg-ico-sm" aria-hidden="true" />
+              </Pill>
+            )}
+          />
           <CardBody>
-            <p className="mg-small mg-muted" style={{ marginTop: -8 }}>
-              Diretrizes onde o diagnóstico constatou conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível.
+            <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
+              {activeGapDim
+                ? `Diretrizes de ${DIMENSIONS[activeGapDim].name} com conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível. Escolha outra dimensão no radar acima ou limpe o filtro para ver todas.`
+                : 'Diretrizes onde o diagnóstico constatou conformidade "Nulo" ou "Parcial", priorizadas por complexidade operacional e requisitos de nível. Escolha uma dimensão no radar acima para filtrar só as lacunas dela.'}
             </p>
-
-            <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 16, marginBottom: 20 }} id="gap-filters">
-              <Pill pressed={gapFilter === 'todas'} onClick={() => setGapFilter('todas')}>Todas ({gaps.length})</Pill>
-              {DIMENSION_ORDER.filter((key) => gaps.some((g) => g.dimensionId === key)).map((key) => {
-                const DimIcon = DIMENSION_ICONS[key];
-                return (
-                  <Pill key={key} pressed={gapFilter === key} onClick={() => setGapFilter(key)}>
-                    <DimIcon className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--brand)' }} />
-                    {DIMENSIONS[key].shortName} ({gaps.filter(g => g.dimensionId === key).length})
-                  </Pill>
-                );
-              })}
-            </div>
 
             {gapRows.length === 0 ? (
               <Banner tone="good" title="Nenhum gap crítico identificado">

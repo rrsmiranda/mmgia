@@ -6,7 +6,7 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
-import { ScoreLevel, AssessmentMetadata } from '@mmgia/shared/types';
+import { ScoreLevel, AssessmentMetadata, DimensionId } from '@mmgia/shared/types';
 
 const Onboarding = lazy(() => import('./components/Onboarding'));
 const Questionnaire = lazy(() => import('./components/Questionnaire'));
@@ -40,6 +40,8 @@ export default function App() {
   // Questionnaire states
   const [assessStep, setAssessStep] = useState<'onboarding' | 'questions' | 'revision' | 'result'>('onboarding');
   const [answers, setAnswers] = useState<Record<string, ScoreLevel>>({});
+  // Dimensão a já abrir na Revisão, quando chegamos lá a partir de "editar" no Resultado.
+  const [reviewFocusDim, setReviewFocusDim] = useState<DimensionId | null>(null);
 
   const generateSessionCode = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -79,6 +81,7 @@ export default function App() {
       termosAceitos: false,
       code: newCode,
     });
+    setReviewFocusDim(null);
     setAssessStep('onboarding');
     setCurrentTab('diagnostico');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -91,6 +94,14 @@ export default function App() {
   };
 
   const handleFinishQuestions = () => {
+    setReviewFocusDim(null);
+    setAssessStep('revision');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // "Editar" numa prática a partir do Resultado: volta para a Revisão com a dimensão já aberta.
+  const handleEditFromResult = (dim: DimensionId) => {
+    setReviewFocusDim(dim);
     setAssessStep('revision');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -174,6 +185,7 @@ export default function App() {
                 onGoBackToQuestionnaire={() => setAssessStep('questions')}
                  onConfirmAndGenerateResult={() => handleFinishRevision(answers)}
                 onViewReport={() => setCurrentTab('relatorio-viewer')}
+                initialOpenDim={reviewFocusDim}
                 theme={theme}
               />
             )}
@@ -187,6 +199,7 @@ export default function App() {
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
                 onViewReport={() => setCurrentTab('relatorio-viewer')}
+                onEditPractice={handleEditFromResult}
                 theme={theme}
               />
             )}

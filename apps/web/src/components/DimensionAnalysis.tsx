@@ -37,12 +37,21 @@ const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
 interface DimensionAnalysisProps {
   answers: Record<string, ScoreLevel>;
   onEditPractice: (dim: DimensionId, index: number) => void;
+  /** Score ilustrativo do grupo, por dimensão. Opcional — some polígono tracejado só na visão geral. */
+  benchmark?: Record<DimensionId, number>;
+  /** Notifica a dimensão selecionada (ex.: para sincronizar outro filtro na mesma tela). */
+  onDimensionChange?: (dim: DimensionId | null) => void;
 }
 
-export default function DimensionAnalysis({ answers, onEditPractice }: DimensionAnalysisProps) {
-  const [openDim, setOpenDim] = useState<DimensionId | null>(null);
+export default function DimensionAnalysis({ answers, onEditPractice, benchmark, onDimensionChange }: DimensionAnalysisProps) {
+  const [openDim, setOpenDimState] = useState<DimensionId | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  const setOpenDim = (next: DimensionId | null) => {
+    setOpenDimState(next);
+    onDimensionChange?.(next);
+  };
 
   const dimRowRefs = useRef<Partial<Record<DimensionId, HTMLDetailsElement | null>>>({});
   const practiceRowRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -100,7 +109,7 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
     }
   };
 
-  const toggleDim = (id: DimensionId) => setOpenDim((prev) => (prev === id ? null : id));
+  const toggleDim = (id: DimensionId) => setOpenDim(openDim === id ? null : id);
 
   return (
     <Card className="mg-an2" id="dimension-analysis">
@@ -140,6 +149,7 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
               <RadarChart
                 axes={axes}
                 goal={SCORE_GOAL}
+                benchmark={!openDim && benchmark ? DIMENSION_ORDER.map((id) => benchmark[id] ?? null) : undefined}
                 highlightId={hoverId}
                 onAxisHover={setHoverId}
                 onAxisClick={handleAxisClick}
@@ -165,6 +175,7 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
               <div className="mg-an-legend" style={{ marginTop: 20 }}>
                 <span><i className="s" aria-hidden="true" />Sua organização</span>
                 <span><i className="d" aria-hidden="true" />Meta · {formatNumber(SCORE_GOAL, 2)}</span>
+                {benchmark && <span><i className="b" aria-hidden="true" />Média do grupo (ilustrativo)</span>}
               </div>
               <div className="mg-an-hint" style={{ marginTop: 16 }}>
                 <Info className="mg-ico mg-ico-sm" aria-hidden="true" />
