@@ -7,7 +7,6 @@ import { useState } from 'react';
 import {
   Award,
   CheckSquare,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -21,13 +20,12 @@ import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata
 import { descreverClassificacao, rotuloArea } from '@mmgia/shared/taxonomy';
 import {
   DIMENSION_WEIGHTS,
-  getAllDimensionLevels,
   getAllDimensionScores,
   getGlobalScore,
   getMaturityLevel,
   getPeerAverageGlobal,
 } from '@mmgia/shared/scoring';
-import RadarChart from './RadarChart';
+import DimensionAnalysis from './DimensionAnalysis';
 import {
   ActionBar,
   Banner,
@@ -37,11 +35,9 @@ import {
   CardHeader,
   DataTable,
   DIMENSION_ORDER,
-  DimensionBars,
   DimensionTag,
   DsRoot,
   LevelBadge,
-  NplfBadge,
   Page,
   PageHeader,
   RiskBadge,
@@ -129,24 +125,12 @@ export default function Revision({
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [pdfZoom, setPdfZoom] = useState(100);
 
-  // Check counts
-  const getDimensionStats = (dimId: DimensionId) => {
-    const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-    const answered = dimPractices.filter(p => !!answers[p.id]);
-    return {
-      total: dimPractices.length,
-      answered: answered.length,
-      unanswered: dimPractices.length - answered.length,
-    };
-  };
-
   const overallUnansweredCount = LIST_PRACTICES.filter(p => !answers[p.id]).length;
 
   // Score Calculus (ver packages/shared/src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
   const currentScores: Record<DimensionId, number> = getAllDimensionScores(answers);
   const globalScore = getGlobalScore(answers);
   const levelInfo = getMaturityLevel(globalScore);
-  const dimensionLevels = getAllDimensionLevels(answers);
 
   const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
@@ -260,76 +244,15 @@ export default function Revision({
           </Card>
         )}
 
-        <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 440px', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 32, alignItems: 'start' }}>
-          {/* LEFT COLUMN: ACCORDION OF DIMENSIONS */}
-          <div className="mg-stack" style={{ gap: 16 }}>
-            {overallUnansweredCount > 0 && (
-              <Banner tone="attention" title="Práticas em aberto encontradas">
-                Identificamos <strong>{overallUnansweredCount} práticas sem resposta</strong> de um total de 45 diretrizes.
-                Você pode prosseguir e registrar os resultados, mas as faltantes contarão como score zero (Nulo).
-              </Banner>
-            )}
+        <div className="mg-stack" style={{ gap: 16 }}>
+          {overallUnansweredCount > 0 && (
+            <Banner tone="attention" title="Práticas em aberto encontradas">
+              Identificamos <strong>{overallUnansweredCount} práticas sem resposta</strong> de um total de 45 diretrizes.
+              Você pode prosseguir e registrar os resultados, mas as faltantes contarão como score zero (Nulo).
+            </Banner>
+          )}
 
-            <div className="mg-stack" id="revision-accordions" style={{ gap: 12 }}>
-              {DIMENSION_ORDER.map((key) => {
-                const stats = getDimensionStats(key);
-                const score = currentScores[key];
-                const dimLevel = dimensionLevels[key];
-
-                return (
-                  <details key={key} className="mg-acc" open={key === 'gov'} id={`accordion-block-${key}`}>
-                    <summary>
-                      <DimensionTag dimension={key} />
-                      <span className="mg-code">{stats.answered}/{stats.total} respondidas</span>
-                      <span className="mg-spacer" />
-                      <LevelBadge level={dimLevel.num as Level} />
-                      <span className="mg-code">{formatNumber(score)} / 3</span>
-                      <ChevronDown className="chev mg-ico mg-ico-sm" aria-hidden="true" />
-                    </summary>
-
-                    {LIST_PRACTICES.filter(p => p.dimensionId === key).map((practice, index) => {
-                      const scoreChoice = answers[practice.id];
-                      const isAnswered = !!scoreChoice;
-
-                      return (
-                        <div key={practice.id} className="mg-acc-item">
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <span className="mg-code">Prática {practice.id} · nível {practice.level}</span>
-                            <p className="mg-title" style={{ marginTop: 4 }}>{practice.name}</p>
-                            <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.description}</p>
-                          </div>
-
-                          <div className="mg-row" style={{ gap: 10, flexShrink: 0 }}>
-                            {isAnswered ? <NplfBadge value={scoreChoice} /> : <span className="mg-small mg-muted">Não respondida</span>}
-                            <Button variant="ghost" size="sm" onClick={() => onGoToPractice(key, index)}>
-                              {isAnswered ? 'Editar' : 'Responder'}
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </details>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* RIGHT COLUMN: RADAR (DESKTOP) / DIMENSION BARS (MOBILE) */}
-          <div className="mg-stack" style={{ gap: 16 }} id="revision-radar-sidebar">
-            <Card>
-              <div className="mg-only-desktop">
-                <RadarChart scores={currentScores} />
-              </div>
-              <div className="mg-only-mobile">
-                <DimensionBars scores={currentScores} />
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <Banner tone="info" title="Escala de 0 a 3">
-                  Uma média alta em uma dimensão atesta a plenitude de auditoria estruturada nesta vertical.
-                </Banner>
-              </div>
-            </Card>
-          </div>
+          <DimensionAnalysis answers={answers} onEditPractice={onGoToPractice} />
         </div>
 
         {/* BOTTOM CALL TO ACTION */}

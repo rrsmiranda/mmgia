@@ -20,10 +20,10 @@
  * Conversão final: o Score Global (0-3) mapeia para um Nível de Maturidade (0-5).
  */
 
-import { LIST_PRACTICES, DIMENSIONS, DimensionId, ScoreLevel } from '../types';
+import { LIST_PRACTICES, DIMENSIONS, DimensionId, Practice, ScoreLevel } from '../types';
 import type { Area, AreaPrivada } from './taxonomy';
 
-const NPLF_VALUE: Record<ScoreLevel, number> = { N: 0, P: 1, L: 2, F: 3 };
+export const NPLF_VALUE: Record<ScoreLevel, number> = { N: 0, P: 1, L: 2, F: 3 };
 
 // Pesos oficiais por dimensão (página 28 da metodologia)
 export const DIMENSION_WEIGHTS: Record<DimensionId, number> = {
@@ -35,23 +35,49 @@ export const DIMENSION_WEIGHTS: Record<DimensionId, number> = {
 };
 
 /**
+ * Média de cada nível (1-5) de uma dimensão: a média das práticas daquele
+ * nível que foram respondidas. Nível sem nenhuma prática respondida vale null.
+ */
+export function getLevelScores(dimId: DimensionId, answers: Record<string, ScoreLevel>): Record<1 | 2 | 3 | 4 | 5, number | null> {
+  const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
+  const result = {} as Record<1 | 2 | 3 | 4 | 5, number | null>;
+
+  for (let level = 1; level <= 5; level++) {
+    const levelPractices = dimPractices.filter(p => p.level === level);
+    const answered = levelPractices.filter(p => !!answers[p.id]);
+    if (answered.length === 0) {
+      result[level as 1 | 2 | 3 | 4 | 5] = null;
+      continue;
+    }
+    const sum = answered.reduce((acc, p) => acc + NPLF_VALUE[answers[p.id]], 0);
+    result[level as 1 | 2 | 3 | 4 | 5] = sum / answered.length;
+  }
+
+  return result;
+}
+
+/**
+ * As 9 práticas de uma dimensão, em ordem de nível e código, com o valor da
+ * resposta (null = sem resposta).
+ */
+export function getPracticeScores(dimId: DimensionId, answers: Record<string, ScoreLevel>): { practice: Practice; answer: ScoreLevel | null; value: number | null }[] {
+  return LIST_PRACTICES
+    .filter(p => p.dimensionId === dimId)
+    .slice()
+    .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
+    .map((practice) => {
+      const answer = answers[practice.id] ?? null;
+      return { practice, answer, value: answer ? NPLF_VALUE[answer] : null };
+    });
+}
+
+/**
  * Score de uma dimensão (Passos 3 e 4): média dos scores de nível (1-5),
  * onde o score de cada nível é a média das práticas daquele nível que foram
  * respondidas. Níveis sem nenhuma prática respondida são excluídos do cálculo.
  */
 export function getDimensionScore(dimId: DimensionId, answers: Record<string, ScoreLevel>): number {
-  const dimPractices = LIST_PRACTICES.filter(p => p.dimensionId === dimId);
-  const levelScores: number[] = [];
-
-  for (let level = 1; level <= 5; level++) {
-    const levelPractices = dimPractices.filter(p => p.level === level);
-    const answered = levelPractices.filter(p => !!answers[p.id]);
-    if (answered.length === 0) continue;
-
-    const sum = answered.reduce((acc, p) => acc + NPLF_VALUE[answers[p.id]], 0);
-    levelScores.push(sum / answered.length);
-  }
-
+  const levelScores = Object.values(getLevelScores(dimId, answers)).filter((v): v is number => v !== null);
   if (levelScores.length === 0) return 0;
   return levelScores.reduce((a, b) => a + b, 0) / levelScores.length;
 }

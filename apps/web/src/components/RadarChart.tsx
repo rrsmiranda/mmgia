@@ -3,268 +3,184 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
-import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
-import { getMaturityLevel } from '@mmgia/shared/scoring';
-import { DIMENSION_ORDER, SCORE_GOAL, SCORE_MAX, formatNumber, LevelBadge, type Level } from '@mmgia/shared/design-system';
+import { useReducedMotion } from 'motion/react';
 
-interface RadarChartProps {
-  scores: Record<DimensionId, number>;
-  benchmarkScores?: Record<DimensionId, number>;
+export interface RadarAxis {
+  id: string;
+  /** Rótulo curto no eixo (nome curto da dimensão, ou código da prática). */
+  label: string;
+  /** Linha secundária no eixo (score, ou "L · 2"). */
+  sub: string;
+  /** 0 a 3. null = sem resposta (ponto vazado em zero). */
+  value: number | null;
+  /** Nome completo, usado na primeira linha do tooltip ("label · title"). */
+  title: string;
+  /** Segunda linha do tooltip. */
+  detail: string;
+  ariaLabel: string;
 }
 
-export default function RadarChart({ scores, benchmarkScores }: RadarChartProps) {
-  const [hovered, setHovered] = useState<DimensionId | null>(null);
+interface RadarChartProps {
+  axes: RadarAxis[];
+  /** Score da meta (1,5) → anel pontilhado. */
+  goal?: number;
+  /** Alinhado por índice a `axes`. Opcional — só na visão geral. */
+  benchmark?: (number | null)[];
+  /** Eixo em destaque (hover/foco), controlado pelo chamador. */
+  highlightId?: string | null;
+  onAxisHover?: (id: string | null) => void;
+  onAxisClick?: (id: string) => void;
+  ariaLabel: string;
+}
 
-  const width = 400;
-  const height = 400;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const maxRadius = 100;
-  const maxScore = SCORE_MAX;
+const SIZE = 300;
+const CENTER = SIZE / 2;
+const MAX_RADIUS = 92;
+const MAX_SCORE = 3;
 
-  const getCoordinates = (index: number, score: number) => {
-    const angle = (index * 2 * Math.PI) / 5 - Math.PI / 2;
-    const value = Math.max(0, Math.min(score, maxScore)); // bound score 0-3
-    const radius = (value / maxScore) * maxRadius;
-    return {
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-    };
+export default function RadarChart({ axes, goal, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel }: RadarChartProps) {
+  const prefersReducedMotion = useReducedMotion();
+  const n = axes.length;
+
+  const angleFor = (i: number) => (i * 2 * Math.PI) / n - Math.PI / 2;
+
+  const pointFor = (i: number, value: number) => {
+    const v = Math.max(0, Math.min(value, MAX_SCORE));
+    const r = (v / MAX_SCORE) * MAX_RADIUS;
+    const angle = angleFor(i);
+    return { x: CENTER + r * Math.cos(angle), y: CENTER + r * Math.sin(angle) };
   };
 
   const ringAt = (ringValue: number) =>
-    DIMENSION_ORDER.map((_, i) => {
-      const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-      const radius = (ringValue / maxScore) * maxRadius;
-      return `${centerX + radius * Math.cos(angle)},${centerY + radius * Math.sin(angle)}`;
+    axes.map((_, i) => {
+      const { x, y } = pointFor(i, ringValue);
+      return `${x},${y}`;
     }).join(' ');
 
-  // Grid rings at 1, 2 e 3; anel tracejado adicional na meta (1,50)
-  const ringPoints = [1.0, 2.0, 3.0].map((ringValue) => ({ value: ringValue, points: ringAt(ringValue) }));
-  const goalRingPoints = ringAt(SCORE_GOAL);
+  const ringPoints = [1, 2, 3].map((value) => ({ value, points: ringAt(value) }));
+  const goalRingPoints = goal != null ? ringAt(goal) : null;
 
-  const userPointsStr = DIMENSION_ORDER
-    .map((dim, i) => {
-      const { x, y } = getCoordinates(i, scores[dim] || 0);
-      return `${x},${y}`;
-    })
-    .join(' ');
+  const userPoints = axes.map((axis, i) => pointFor(i, axis.value ?? 0));
+  const userPointsStr = userPoints.map((p) => `${p.x},${p.y}`).join(' ');
 
-  const benchmarkPointsStr = benchmarkScores
-    ? DIMENSION_ORDER
-        .map((dim, i) => {
-          const { x, y } = getCoordinates(i, benchmarkScores[dim] || 0);
-          return `${x},${y}`;
-        })
-        .join(' ')
-    : '';
+  const benchmarkPoints = benchmark ? axes.map((_, i) => pointFor(i, benchmark[i] ?? 0)) : null;
+  const benchmarkPointsStr = benchmarkPoints ? benchmarkPoints.map((p) => `${p.x},${p.y}`).join(' ') : '';
 
-  // Nome curto no eixo (Governança, Tecnologia...) com o valor da organização logo abaixo.
-  const labelPositions = DIMENSION_ORDER.map((dim, i) => {
-    const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-    const labelDistance = maxRadius + 20;
-    return {
-      dim,
-      i,
-      x: centerX + labelDistance * Math.cos(angle),
-      y: centerY + labelDistance * Math.sin(angle),
-    };
+  const labelDistance = MAX_RADIUS + 26;
+  const labelPositions = axes.map((axis, i) => {
+    const angle = angleFor(i);
+    return { axis, x: CENTER + labelDistance * Math.cos(angle), y: CENTER + labelDistance * Math.sin(angle) };
   });
 
-  // Posição do balão de resumo: acima do ponto, exceto no eixo do topo (index 0),
-  // onde viraria para fora do canvas — ali o balão abre para baixo. Ancoragem
-  // horizontal segue o lado do pentágono (esquerda/direita/centro) para não
-  // estourar a borda do gráfico.
-  const tooltipPlacement = (i: number) => {
-    if (i === 0) return { translateX: '-50%', translateY: '12px' };
-    if (i === 1 || i === 2) return { translateX: '-6px', translateY: '-100%' };
-    return { translateX: 'calc(-100% + 6px)', translateY: '-100%' };
-  };
-
-  const hoveredInfo = hovered ? getMaturityLevel(scores[hovered] || 0) : null;
-  const hoveredPoint = hovered ? getCoordinates(DIMENSION_ORDER.indexOf(hovered), scores[hovered] || 0) : null;
+  const highlightIndex = highlightId ? axes.findIndex((a) => a.id === highlightId) : -1;
+  const highlighted = highlightIndex >= 0 ? axes[highlightIndex] : null;
+  const highlightPoint = highlightIndex >= 0 ? userPoints[highlightIndex] : null;
 
   return (
-    <div className="flex flex-col items-center justify-center" id="radar-chart-container">
-      <div className="mb-4 text-center">
-        <h4 className="mg-title">Radar de maturidade por dimensão</h4>
-        <p className="mg-small mg-muted" style={{ marginTop: 2 }}>
-          Pentágono de preenchimento relativo de {formatNumber(0)} a {formatNumber(maxScore)}
-        </p>
-      </div>
-
-      <div className="relative">
-        <svg width={width} height={height} className="overflow-visible mx-auto" id="radar-svg">
-          {/* Grid rings */}
-          {ringPoints.map(({ value, points }) => (
-            <g key={value}>
-              <polygon points={points} fill="none" stroke="var(--surface-deep)" strokeWidth="1.5" />
-              <text
-                x={centerX}
-                y={centerY - (value / maxScore) * maxRadius + 4}
-                fill="var(--text-muted)"
-                fontSize="9"
-                fontFamily="var(--mg-font-mono)"
-                textAnchor="middle"
-              >
-                {formatNumber(value, 1)}
-              </text>
-            </g>
-          ))}
-
-          {/* Anel pontilhado na meta (score 1,50) — traço fino, distinto do tracejado da média do grupo */}
-          <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="2 3" />
-
-          {/* Grid axis spokes */}
-          {DIMENSION_ORDER.map((_, i) => {
-            const outerCoord = getCoordinates(i, maxScore);
-            return (
-              <line
-                key={i}
-                x1={centerX}
-                y1={centerY}
-                x2={outerCoord.x}
-                y2={outerCoord.y}
-                stroke="var(--surface-deep)"
-                strokeWidth="1"
-                strokeDasharray="2 2"
-              />
-            );
-          })}
-
-          {/* Benchmark polygon overlay (ilustrativo) — tracejado mais longo que o da meta, para diferenciar os dois */}
-          {benchmarkScores && (
-            <g>
-              <polygon points={benchmarkPointsStr} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
-              {DIMENSION_ORDER.map((dim, i) => {
-                const { x, y } = getCoordinates(i, benchmarkScores[dim] || 0);
-                return <circle key={`b-${dim}`} cx={x} cy={y} r="3.5" fill="var(--text-muted)" />;
-              })}
-            </g>
-          )}
-
-          {/* User score filled polygon */}
-          <g>
-            <polygon points={userPointsStr} fill="var(--brand-soft)" stroke="var(--brand)" strokeWidth="2.5" />
-            {DIMENSION_ORDER.map((dim, i) => {
-              const { x, y } = getCoordinates(i, scores[dim] || 0);
-              const isHovered = hovered === dim;
-              return (
-                <g key={`u-${dim}`}>
-                  {/* Fundo sólido atrás do valor: legível mesmo sobre o anel da meta ou os raios do grid */}
-                  <rect
-                    x={x - 15}
-                    y={y - 25}
-                    width={30}
-                    height={14}
-                    rx={4}
-                    fill="var(--surface-raised)"
-                    className="pointer-events-none"
-                  />
-                  <text
-                    x={x}
-                    y={y - 8}
-                    fill="var(--text)"
-                    fontSize="9.5"
-                    fontWeight="bold"
-                    fontFamily="var(--mg-font-mono)"
-                    textAnchor="middle"
-                    className="pointer-events-none"
-                  >
-                    {formatNumber(scores[dim] || 0)}
-                  </text>
-                  {/* Área de toque maior que o ponto visível, para facilitar o hover */}
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r="11"
-                    fill="transparent"
-                    onMouseEnter={() => setHovered(dim)}
-                    onMouseLeave={() => setHovered((prev) => (prev === dim ? null : prev))}
-                    style={{ cursor: 'default' }}
-                  />
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={isHovered ? 7.5 : 5.5}
-                    fill="var(--brand)"
-                    stroke="var(--surface-raised)"
-                    strokeWidth="1.5"
-                    className="pointer-events-none"
-                    style={{ transition: 'r 150ms ease' }}
-                  />
-                </g>
-              );
-            })}
+    <div className="mg-an-radar-wrap" style={{ position: 'relative', width: '100%', maxWidth: SIZE }}>
+      <svg
+        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        width="100%"
+        style={{ maxWidth: SIZE, overflow: 'visible', display: 'block', margin: '0 auto' }}
+        role="img"
+        aria-label={ariaLabel}
+        className="mg-an-radar-svg"
+      >
+        {/* Grid rings em 1, 2 e 3 */}
+        {ringPoints.map(({ value, points }) => (
+          <g key={value}>
+            <polygon points={points} fill="none" stroke="var(--surface-deep)" strokeWidth="1.5" />
+            <text x={CENTER} y={CENTER - (value / MAX_SCORE) * MAX_RADIUS + 4} fill="var(--text-muted)" fontSize="9" fontFamily="var(--mg-font-mono)" textAnchor="middle">
+              {value}
+            </text>
           </g>
+        ))}
 
-          {/* Axis labels: nome curto da dimensão + valor da organização logo abaixo, sempre centralizados no eixo */}
-          {labelPositions.map((pos) => (
-            <g key={pos.dim}>
-              <text
-                x={pos.x}
-                y={pos.y}
-                fill="var(--text)"
-                fontSize="12"
-                fontWeight="600"
-                fontFamily="var(--mg-font-sans)"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {DIMENSIONS[pos.dim].shortName}
+        {/* Anel pontilhado da meta */}
+        {goalRingPoints && <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="2 3" />}
+
+        {/* Raios do grid */}
+        {axes.map((axis, i) => {
+          const outer = pointFor(i, MAX_SCORE);
+          return <line key={axis.id} x1={CENTER} y1={CENTER} x2={outer.x} y2={outer.y} stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="2 2" />;
+        })}
+
+        {/* Benchmark (ilustrativo) */}
+        {benchmarkPoints && (
+          <g>
+            <polygon points={benchmarkPointsStr} fill="none" stroke="var(--text-muted)" strokeWidth="1.5" strokeDasharray="4 3" />
+            {benchmarkPoints.map((p, i) => (
+              <circle key={`b-${axes[i].id}`} cx={p.x} cy={p.y} r="3.5" fill="var(--text-muted)" />
+            ))}
+          </g>
+        )}
+
+        {/* Polígono da organização + pontos interativos */}
+        <polygon points={userPointsStr} fill="var(--brand)" fillOpacity={0.14} stroke="var(--brand)" strokeWidth="2" />
+        {axes.map((axis, i) => {
+          const p = userPoints[i];
+          const isHighlighted = axis.id === highlightId;
+          const isUnanswered = axis.value === null;
+          return (
+            <g key={axis.id}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={14}
+                fill="transparent"
+                tabIndex={0}
+                role="button"
+                aria-label={axis.ariaLabel}
+                className="mg-an-radar-hit"
+                onMouseEnter={() => onAxisHover?.(axis.id)}
+                onMouseLeave={() => onAxisHover?.(null)}
+                onFocus={() => onAxisHover?.(axis.id)}
+                onBlur={() => onAxisHover?.(null)}
+                onClick={() => onAxisClick?.(axis.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onAxisClick?.(axis.id);
+                  }
+                }}
+                style={{ cursor: onAxisClick ? 'pointer' : 'default', outline: 'none' }}
+              />
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={isHighlighted ? 7 : 4}
+                fill={isUnanswered ? 'var(--surface-raised)' : 'var(--brand)'}
+                stroke={isUnanswered ? 'var(--brand)' : 'var(--surface-raised)'}
+                strokeWidth={isHighlighted ? 3 : 1.5}
+                className="pointer-events-none"
+                style={prefersReducedMotion ? undefined : { transition: 'r 150ms ease' }}
+              />
+            </g>
+          );
+        })}
+
+        {/* Rótulos dos eixos */}
+        {labelPositions.map(({ axis, x, y }) => {
+          const isHighlighted = axis.id === highlightId;
+          return (
+            <g key={axis.id}>
+              <text x={x} y={y} textAnchor="middle" dominantBaseline="middle" fontFamily="var(--mg-font-sans)" fontSize="12" fontWeight={isHighlighted ? 700 : 600} fill={isHighlighted ? 'var(--brand)' : 'var(--text)'}>
+                {axis.label}
               </text>
-              <text
-                x={pos.x}
-                y={pos.y + 15}
-                fill="var(--text-muted)"
-                fontSize="12"
-                fontFamily="var(--mg-font-sans)"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {formatNumber(scores[pos.dim] || 0)}
+              <text x={x} y={y + 15} textAnchor="middle" dominantBaseline="middle" fontFamily="var(--mg-font-sans)" fontSize="12" fill="var(--text-muted)" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                {axis.sub}
               </text>
             </g>
-          ))}
-        </svg>
+          );
+        })}
+      </svg>
 
-        {/* Balão de resumo do eixo sob o ponteiro */}
-        {hovered && hoveredInfo && hoveredPoint && (
-          <div
-            className="mg-radar-tip"
-            style={{
-              left: hoveredPoint.x,
-              top: hoveredPoint.y,
-              transform: `translate(${tooltipPlacement(DIMENSION_ORDER.indexOf(hovered)).translateX}, ${tooltipPlacement(DIMENSION_ORDER.indexOf(hovered)).translateY})`,
-            }}
-          >
-            <p className="mg-radar-tip-title">{DIMENSIONS[hovered].name}</p>
-            <div className="mg-row" style={{ gap: 8, marginTop: 6 }}>
-              <LevelBadge level={hoveredInfo.num as Level} />
-              <span className="mg-code">{formatNumber(scores[hovered] || 0)} / 3</span>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Legenda: só as séries do gráfico — os nomes das dimensões já estão nos eixos */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
-        <div className="mg-row" style={{ gap: 8 }}>
-          <span style={{ width: 12, height: 0, borderTop: '2.5px solid var(--brand)', display: 'inline-block' }} />
-          <span className="mg-small">Sua organização</span>
+      {highlighted && highlightPoint && (
+        <div className="mg-an-tip" style={{ left: `${(highlightPoint.x / SIZE) * 100}%`, top: `${(highlightPoint.y / SIZE) * 100}%` }}>
+          <b>{highlighted.label} · {highlighted.title}</b>
+          <span>{highlighted.detail}</span>
         </div>
-        <div className="mg-row" style={{ gap: 8 }}>
-          <span style={{ width: 12, height: 0, borderTop: '1.5px dotted var(--text-muted)', display: 'inline-block' }} />
-          <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 2)}</span>
-        </div>
-        {benchmarkScores && (
-          <div className="mg-row" style={{ gap: 8 }}>
-            <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', display: 'inline-block' }} />
-            <span className="mg-small mg-muted">Média do grupo (ilustrativo)</span>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

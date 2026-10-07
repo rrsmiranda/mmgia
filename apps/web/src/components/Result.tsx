@@ -31,7 +31,7 @@ import {
   getPeerAverageGlobal,
   getSectorBenchmarks,
 } from '@mmgia/shared/scoring';
-import RadarChart from './RadarChart';
+import RadarChart, { type RadarAxis } from './RadarChart';
 import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
 import {
@@ -47,11 +47,13 @@ import {
   DimensionBars,
   DimensionTag,
   DsRoot,
+  LEVEL_LABELS,
   LegalBadge,
   LevelBadge,
   Page,
   Pill,
   RiskBadge,
+  SCORE_GOAL,
   StatusBadge,
   formatNumber,
   type Level,
@@ -152,6 +154,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const [showPdfViewer, setShowPdfViewer] = useState(false);
   const [activePdfPage, setActivePdfPage] = useState(1);
   const [pdfZoom, setPdfZoom] = useState(100);
+  const [radarHoverId, setRadarHoverId] = useState<string | null>(null);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
@@ -168,6 +171,21 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
   const classificacaoLabel = descreverClassificacao(metadata);
+
+  const radarAxes: RadarAxis[] = DIMENSION_ORDER.map((id) => {
+    const score = currentScores[id];
+    const level = getMaturityLevel(score);
+    return {
+      id,
+      label: DIMENSIONS[id].shortName,
+      sub: formatNumber(score),
+      value: score,
+      title: DIMENSIONS[id].name,
+      detail: `Nível ${level.num} · ${LEVEL_LABELS[level.num]} · ${formatNumber(score)} / 3`,
+      ariaLabel: `${DIMENSIONS[id].name}: nível ${level.num}, ${LEVEL_LABELS[level.num]}, score ${formatNumber(score)} de 3`,
+    };
+  });
+  const radarBenchmark = DIMENSION_ORDER.map((id) => sectorBenchmarks[id] ?? null);
 
   const gaps = LIST_PRACTICES.filter((practice) => {
     const ans = answers[practice.id];
@@ -343,7 +361,36 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             <CardHeader title={`Grupo comparativo: ${areaLabel} · ${metadata.porte}`} />
             <CardBody>
               <div className="mg-only-desktop">
-                <RadarChart scores={currentScores} benchmarkScores={sectorBenchmarks} />
+                <div className="flex flex-col items-center justify-center" id="radar-chart-container">
+                  <div className="mb-4 text-center">
+                    <h4 className="mg-title">Radar de maturidade por dimensão</h4>
+                    <p className="mg-small mg-muted" style={{ marginTop: 2 }}>
+                      Pentágono de preenchimento relativo de {formatNumber(0)} a {formatNumber(3)}
+                    </p>
+                  </div>
+                  <RadarChart
+                    axes={radarAxes}
+                    goal={SCORE_GOAL}
+                    benchmark={radarBenchmark}
+                    highlightId={radarHoverId}
+                    onAxisHover={setRadarHoverId}
+                    ariaLabel="Radar de maturidade por dimensão, comparado ao grupo"
+                  />
+                  <div className="mt-4 flex flex-wrap items-center justify-center gap-6" id="radar-legend">
+                    <div className="mg-row" style={{ gap: 8 }}>
+                      <span style={{ width: 12, height: 0, borderTop: '2.5px solid var(--brand)', display: 'inline-block' }} />
+                      <span className="mg-small">Sua organização</span>
+                    </div>
+                    <div className="mg-row" style={{ gap: 8 }}>
+                      <span style={{ width: 12, height: 0, borderTop: '1.5px dotted var(--text-muted)', display: 'inline-block' }} />
+                      <span className="mg-small mg-muted">Meta · {formatNumber(SCORE_GOAL, 2)}</span>
+                    </div>
+                    <div className="mg-row" style={{ gap: 8 }}>
+                      <span style={{ width: 12, height: 0, borderTop: '1.5px dashed var(--text-muted)', display: 'inline-block' }} />
+                      <span className="mg-small mg-muted">Média do grupo (ilustrativo)</span>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div className="mg-only-mobile">
                 <DataTable
