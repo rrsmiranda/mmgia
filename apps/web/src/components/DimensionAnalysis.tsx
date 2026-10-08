@@ -298,12 +298,12 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                           onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
                         >
                           <span className="mg-code">{practice.id}</span>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ minWidth: 0 }}>
                             <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
                             <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.criterion}</p>
                           </div>
-                          <span className="mg-small mg-muted" style={{ width: 56, flexShrink: 0 }}>{gapEffort(practice.level)}</span>
-                          {practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : <span className="mg-small mg-muted" style={{ width: 20, flexShrink: 0 }}>—</span>}
+                          <span className="mg-small mg-muted mg-an-effort">{gapEffort(practice.level)}</span>
+                          <span className="mg-an-legal">{practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : <span className="mg-small mg-muted">—</span>}</span>
                         </div>
                       );
                     })
