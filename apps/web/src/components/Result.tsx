@@ -114,7 +114,7 @@ const SHORTNAME_TO_DIM_ID = Object.fromEntries(
 const ACTION_PLAN = [
   { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
   { step: '02', title: 'Blindagem de Inputs e Letramento Básico', desc: 'Saneamento preventivo em requisições de prompts e disparos massivos de cartilhas de uso responsável para toda a corporação.', dim: 'Segurança', effort: 'Médio esforço', time: 'Semana 3-4' },
-  { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Tecnologia', effort: 'Médio esforço', time: 'Semana 5-6' },
+  { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Inovação', effort: 'Médio esforço', time: 'Semana 5-6' },
   { step: '04', title: 'Simulacros Éticos de Ataque (Red Teaming)', desc: 'Recrutamento de equipe e workshops dedicados para teste de vazamentos algorítmicos voluntários e testes de viesses demográficos.', dim: 'Segurança', effort: 'Alto esforço', time: 'Mês 2' },
 ];
 

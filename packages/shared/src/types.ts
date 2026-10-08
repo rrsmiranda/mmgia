@@ -78,7 +78,7 @@ export const DIMENSIONS: Record<DimensionId, Dimension> = {
   tec: {
     id: 'tec',
     name: 'Desenvolvimento Tecnológico, Pesquisa e Inovação',
-    shortName: 'Tecnologia',
+    shortName: 'Inovação',
     description: 'Impulsionar a capacidade organizacional para pesquisar, desenvolver, adquirir e aplicar tecnologias de IA de ponta, visando à competitividade e à autonomia tecnológica.',
     color: 'var(--dim-tec)',
   },
