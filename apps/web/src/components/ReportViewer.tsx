@@ -20,9 +20,11 @@ interface ReportViewerProps {
   answers: Record<string, ScoreLevel>;
   metadata: AssessmentMetadata;
   onBack: () => void;
+  /** Abre o diálogo de impressão assim que o relatório termina de montar. */
+  autoPrint?: boolean;
 }
 
-export default function ReportViewer({ answers, metadata, onBack }: ReportViewerProps) {
+export default function ReportViewer({ answers, metadata, onBack, autoPrint = false }: ReportViewerProps) {
   const dimensionScores = getAllDimensionScores(answers);
   const globalScore = getGlobalScore(answers);
   const levelInfo = getMaturityLevel(globalScore);
@@ -36,6 +38,17 @@ export default function ReportViewer({ answers, metadata, onBack }: ReportViewer
       document.title = prevTitle;
     };
   }, [metadata.code]);
+
+  // Espera as fontes assentarem antes de imprimir: senão o diálogo abre com o
+  // texto ainda na fonte de fallback e a paginação sai diferente da tela.
+  useEffect(() => {
+    if (!autoPrint) return;
+    let cancelled = false;
+    document.fonts.ready.then(() => {
+      if (!cancelled) window.print();
+    });
+    return () => { cancelled = true; };
+  }, [autoPrint]);
 
   const pages: ReactNode[] = [
     <CoverContent metadata={metadata} />,

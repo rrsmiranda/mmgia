@@ -6,29 +6,23 @@
 import { useState } from 'react';
 import {
   Check,
-  ChevronLeft,
-  ChevronRight,
   Compass,
   Copy,
-  Download,
   Eye,
-  FileCheck2,
   FileText,
   HelpCircle,
   Info,
   Printer,
-  RefreshCw,
   RotateCcw,
   X,
 } from 'lucide-react';
-import { ScoreLevel, DIMENSIONS, LIST_PRACTICES, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
-import { descreverClassificacao, rotuloArea } from '@mmgia/shared/taxonomy';
+import { ScoreLevel, DIMENSIONS, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
+import { rotuloArea } from '@mmgia/shared/taxonomy';
 import {
   DIMENSION_WEIGHTS,
   getAllDimensionScores,
   getGlobalScore,
   getMaturityLevel,
-  getPeerAverageGlobal,
 } from '@mmgia/shared/scoring';
 import DimensionAnalysis from './DimensionAnalysis';
 import PlexusBackground from './PlexusBackground';
@@ -47,7 +41,6 @@ import {
   LevelBadge,
   Page,
   RiskBadge,
-  StatusBadge,
   formatNumber,
   type Level,
 } from '@mmgia/shared/design-system';
@@ -57,7 +50,8 @@ interface ResultProps {
   metadata: AssessmentMetadata;
   onRestart: () => void;
   onChangeTab: (tab: string) => void;
-  onViewReport?: () => void;
+  /** Abre o relatório executivo (ReportViewer). `print` já dispara o diálogo de impressão. */
+  onViewReport: (options?: { print?: boolean }) => void;
   /** "Editar" numa prática: volta para a Revisão com a dimensão já aberta. */
   onEditPractice: (dim: DimensionId) => void;
   theme?: 'light' | 'dark';
@@ -133,11 +127,7 @@ interface WeightRow {
 
 export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
-  const [downloadingType, setDownloadingType] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [showPdfViewer, setShowPdfViewer] = useState(false);
-  const [activePdfPage, setActivePdfPage] = useState(1);
-  const [pdfZoom, setPdfZoom] = useState(100);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
@@ -150,23 +140,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const globalScore = getGlobalScore(answers);
   const levelInfo = getMaturityLevel(globalScore);
 
-  const peerAverageGlobal = getPeerAverageGlobal(metadata.area, metadata.atividadeEstatal);
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
-  const classificacaoLabel = descreverClassificacao(metadata);
-
-  const gaps = LIST_PRACTICES.filter((practice) => {
-    const ans = answers[practice.id];
-    return !ans || ans === 'N' || ans === 'P';
-  });
-
-  const getGapRecommendation = (id: string): { action: string; effort: 'Baixo' | 'Médio' | 'Alto' } => {
-    const practice = LIST_PRACTICES.find(p => p.id === id);
-    if (!practice) {
-      return { action: 'Readequar controles internos, reunindo documentação técnica e implementando revisões humanas contínuas.', effort: 'Médio' };
-    }
-    const effort: 'Baixo' | 'Médio' | 'Alto' = practice.level <= 2 ? 'Baixo' : practice.level === 3 ? 'Médio' : 'Alto';
-    return { action: practice.criterion, effort };
-  };
 
   const weightRows: WeightRow[] = DIMENSION_ORDER.map((id) => ({
     id,
@@ -174,14 +148,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     weight: DIMENSION_WEIGHTS[id],
     contribution: currentScores[id] * DIMENSION_WEIGHTS[id],
   }));
-
-  const triggerDownload = (type: string) => {
-    setDownloadingType(type);
-    setTimeout(() => {
-      setDownloadingType(null);
-      window.print();
-    }, 1800);
-  };
 
   return (
     <DsRoot>
@@ -216,7 +182,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               variant="primary"
               onInk
               icon={Eye}
-              onClick={() => { if (onViewReport) { onViewReport(); } else { setShowPdfViewer(true); setActivePdfPage(1); } }}
+              onClick={() => onViewReport()}
             >
               Visualizar relatório executivo
             </Button>
@@ -340,308 +306,14 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </CardBody>
         </Card>
 
-        {/* EXPORT ACTIONS */}
+        {/* EXPORT ACTIONS — os dois primeiros abrem o mesmo relatório executivo (ReportViewer). */}
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="action-buttons-row">
-          <Button variant="primary" icon={FileText} onClick={() => { setShowPdfViewer(true); setActivePdfPage(1); }}>Visualizar & exportar PDF</Button>
-          <Button
-            variant="primary"
-            icon={downloadingType === 'tecnico' ? RefreshCw : Download}
-            disabled={downloadingType !== null}
-            onClick={() => triggerDownload('tecnico')}
-          >
-            Imprimir relatório técnico
-          </Button>
+          <Button variant="primary" icon={FileText} onClick={() => onViewReport()}>Visualizar &amp; exportar PDF</Button>
+          <Button variant="primary" icon={Printer} onClick={() => onViewReport({ print: true })}>Imprimir relatório</Button>
           <Button variant="secondary" icon={Compass} onClick={() => onChangeTab('mapa')}>Ver painel geral</Button>
           <Button variant="ghost" icon={RotateCcw} onClick={onRestart}>Novo diagnóstico</Button>
         </div>
-
-        {/* DOWNLOAD PROGRESS TOAST */}
-        {downloadingType && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'color-mix(in srgb, var(--ink) 55%, transparent)', padding: 24 }}>
-            <Card style={{ maxWidth: 360, textAlign: 'center' }}>
-              <CardBody>
-                <RefreshCw className="mg-ico animate-spin" style={{ width: 32, height: 32, color: 'var(--brand)', margin: '0 auto' }} aria-hidden="true" />
-                <p className="mg-title" style={{ marginTop: 16 }}>Compilando relatório PDF...</p>
-                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Injetando dados de benchmarking, gráficos setoriais e notas de {metadata.estado}...</p>
-              </CardBody>
-            </Card>
-          </div>
-        )}
       </Page>
-
-      {/* INTERACTIVE PDF VIEWER OVERLAY */}
-      {showPdfViewer && (
-        <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'var(--ink)' }} id="realtime-pdf-document-viewer">
-          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, padding: '16px 24px', borderBottom: '1px solid var(--ink-raised)' }}>
-            <div className="mg-row" style={{ gap: 12 }}>
-              <FileCheck2 className="mg-ico" aria-hidden="true" style={{ color: 'var(--on-ink-accent)' }} />
-              <div>
-                <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--on-ink)' }}>Relatório executivo oficial</p>
-                <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>Governança e gestão de IA — MMGIA</p>
-              </div>
-            </div>
-
-            <div className="mg-row" style={{ gap: 16, flexWrap: 'wrap' }}>
-              <div className="mg-row" style={{ gap: 4 }}>
-                <Button variant="ghost" onInk size="sm" iconOnly icon={ChevronLeft} aria-label="Página anterior" disabled={activePdfPage === 1} onClick={() => setActivePdfPage((p) => Math.max(1, p - 1))} />
-                <span className="mg-code" style={{ color: 'var(--on-ink)' }}>Página {activePdfPage} de 4</span>
-                <Button variant="ghost" onInk size="sm" iconOnly icon={ChevronRight} aria-label="Próxima página" disabled={activePdfPage === 4} onClick={() => setActivePdfPage((p) => Math.min(4, p + 1))} />
-              </div>
-
-              <div className="mg-row" style={{ gap: 4 }}>
-                <Button variant="ghost" onInk size="sm" onClick={() => setPdfZoom((z) => Math.max(75, z - 25))} aria-label="Diminuir zoom">−</Button>
-                <span className="mg-code" style={{ color: 'var(--on-ink)' }}>{pdfZoom}%</span>
-                <Button variant="ghost" onInk size="sm" onClick={() => setPdfZoom((z) => Math.min(150, z + 25))} aria-label="Aumentar zoom">+</Button>
-              </div>
-
-              <Button variant="primary" size="sm" icon={Printer} onClick={() => window.print()}>Salvar / imprimir PDF</Button>
-              <Button variant="ghost" onInk size="sm" iconOnly icon={X} aria-label="Fechar relatório" onClick={() => setShowPdfViewer(false)} />
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-auto flex justify-center" style={{ padding: 32 }} id="pdf-scroller-canvas">
-            <div
-              className="w-full max-w-[800px] relative"
-              style={{
-                background: 'var(--surface-raised)',
-                color: 'var(--text)',
-                fontFamily: 'Georgia, serif',
-                minHeight: 1000,
-                padding: '56px 64px',
-                transform: `scale(${pdfZoom / 100})`,
-                transformOrigin: 'top center',
-                boxShadow: 'var(--shadow-modal)',
-              }}
-            >
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 6, background: 'var(--brand)' }} />
-
-              {activePdfPage > 1 && (
-                <div className="flex justify-between items-center mb-8 pb-2" style={{ borderBottom: '1px solid var(--surface-deep)' }}>
-                  <span className="mg-code">MMGIA — Diagnóstico de Maturidade em Governança de IA</span>
-                  <span className="mg-code">Relatório de Avaliação Institucional de IA</span>
-                </div>
-              )}
-
-              {activePdfPage === 1 && (
-                <div className="flex flex-col justify-between font-sans text-left" style={{ gap: 40 }}>
-                  <div className="space-y-4">
-                    <StatusBadge status="good">Documento executivo oficial · confidencial</StatusBadge>
-                    <h3 className="text-3xl font-extrabold tracking-tight leading-tight uppercase mt-3" style={{ color: 'var(--text)' }}>
-                      Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA)
-                    </h3>
-                    <p className="mg-code" style={{ textTransform: 'uppercase' }}>Relatório Executivo de Maturidade Regulatória e Metodológica</p>
-                  </div>
-
-                  <hr style={{ border: 0, borderTop: '2px solid var(--brand)', width: 112 }} />
-
-                  <div className="space-y-4 text-xs leading-relaxed mg-lead">
-                    <h4 className="font-bold text-sm uppercase" style={{ color: 'var(--text)' }}>1. Introdução & Fundamentação</h4>
-                    <p>
-                      Este Modelo de Maturidade em Governança de Inteligência Artificial (MMGIA) é um instrumento estratégico projetado para auxiliar organizações públicas e privadas a mensurar, avaliar e aprimorar sua capacidade de desenvolver, adotar, operar e governar soluções de Inteligência Artificial (IA) de forma ética, responsável, segura, legal e eficaz.
-                    </p>
-                    <p>
-                      Alinhado à Estratégia Nacional de Inteligência Artificial (ENIA) 2026-2029, o modelo serve como um roteiro para a recomendação e transformação, permitindo que as instituições analisem seu estado atual, identifiquem lacunas e planejem uma evolução estruturada sustentável de seus algoritmos.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 p-6 rounded-2xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                    <div>
-                      <span className="mg-code block">Entidade</span>
-                      <span className="mg-title">Mapeamento Anônimo</span>
-                    </div>
-                    <div>
-                      <span className="mg-code block">Classificação</span>
-                      <span className="mg-title">{classificacaoLabel || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="mg-code block">Área de atuação</span>
-                      <span className="mg-title">{areaLabel}</span>
-                    </div>
-                    <div>
-                      <span className="mg-code block">Porte Organizacional</span>
-                      <span className="mg-title">{metadata.porte || 'N/A'}</span>
-                    </div>
-                    <div>
-                      <span className="mg-code block">Local / Estado</span>
-                      <span className="mg-title">{metadata.estado || 'DF'}</span>
-                    </div>
-                    <div>
-                      <span className="mg-code block">Chave Segurança</span>
-                      <span className="mg-title" style={{ color: 'var(--brand)' }}>{metadata.code || 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-between items-end pt-6" style={{ borderTop: '1px solid var(--surface-deep)' }}>
-                    <span className="mg-code">Emissão: 08 de Junho de 2026</span>
-                    <span className="mg-code">Versão 1.0 (Oficial)</span>
-                  </div>
-                </div>
-              )}
-
-              {activePdfPage === 2 && (
-                <div className="space-y-6 font-sans text-left">
-                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
-                    2. Resumo Qualitativo de Maturidade Regulatória
-                  </h3>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-                    <div className="p-5 rounded-2xl text-center space-y-2" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                      <span className="mg-code block">Média Ponderada Oficial MMGIA</span>
-                      <div className="text-4xl font-black" style={{ fontFamily: 'var(--mg-font-mono)', color: 'var(--brand)' }}>{formatNumber(globalScore)} / 3,00</div>
-                      <LevelBadge level={levelInfo.num as Level} />
-                    </div>
-
-                    <div className="space-y-1 text-xs leading-relaxed mg-lead">
-                      <strong style={{ color: 'var(--text)' }} className="block font-medium">Interpretação Baseada na Metodologia:</strong>
-                      <p className="leading-normal">{levelInfo.desc}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h4 className="font-bold text-xs uppercase tracking-tight" style={{ color: 'var(--text)' }}>Implicações Práticas & Riscos Mapeados</h4>
-                    <p className="text-xs italic pl-3 leading-relaxed mg-lead" style={{ borderLeft: '2px solid var(--surface-deep)' }}>
-                      {levelInfo.risco}
-                    </p>
-
-                    <h4 className="font-bold text-xs uppercase tracking-tight" style={{ color: 'var(--text)' }}>Alinhamento aos Marcos Globais</h4>
-                    <p className="text-xs leading-relaxed mg-lead">
-                      Este resultado valida o estado técnico e de conformidade do modelo com as imposições futuras do <strong>PL 2338/2023</strong> (Marco de IA no Congresso Brasileiro), da Lei Geral de Proteção de Dados (<strong>LGPD</strong>), de diretrizes internacionais de design ético (<strong>AI Act da União Europeia</strong>), e com as práticas integradas e unificadas das normas <strong>ISO/IEC 42001</strong>.
-                    </p>
-
-                    <div className="p-4 rounded-xl space-y-1" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                      <span className="mg-code block" style={{ textTransform: 'uppercase' }}>Mapeamento Geral de Riscos</span>
-                      {globalScore < 1.0 ? (
-                        <p className="mg-small">A entidade opera com risco regulatório Crítico. Requer instituição imediata de políticas básicas regulatórias e criação de um Comitê Focal para evitar processos e incidentes relacionados à Shadow AI.</p>
-                      ) : globalScore < 2.0 ? (
-                        <p className="mg-small">A entidade opera em nível de risco Moderado. Possui processos definidos, porém com inconsistências pontuais de execução departamental. Vital instituir o Relatório de Impacto de IA.</p>
-                      ) : (
-                        <p className="mg-small">A entidade atinge excelente conformidade regulatória ativa, com riscos residuais mínimos. Recomenda-se manter rotinas periódicas de simulação (Red Teaming) e auditorias de transparência.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activePdfPage === 3 && (
-                <div className="space-y-5 font-sans text-left">
-                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
-                    3. Detalhamento dos Eixos por Média de Importância
-                  </h3>
-
-                  <p className="text-xs leading-relaxed mg-lead">
-                    O cálculo do Score Global ponderado converge o desempenho das práticas de cada pilar de acordo com os seguintes pesos de importância estratégica fundamentados na metodologia oficial:
-                  </p>
-
-                  <DataTable<WeightRow & { name: string }>
-                    caption="Score, peso e contribuição por eixo de maturidade"
-                    rowKey={(r) => r.id}
-                    columns={[
-                      { key: 'name', header: 'Eixo de Maturidade', render: (r) => r.name },
-                      { key: 'score', header: 'Score Obtido', numeric: true, render: (r) => formatNumber(r.score) },
-                      { key: 'weight', header: 'Peso', numeric: true, render: (r) => `${Math.round(r.weight * 100)}%` },
-                      { key: 'contrib', header: 'Contribuição', numeric: true, render: (r) => `+${formatNumber(r.contribution, 3)}` },
-                    ]}
-                    rows={[
-                      { ...weightRows[0], name: '1. Governança e Arcabouço Regulatório' },
-                      { ...weightRows[1], name: '2. Desenvolvimento Tecnológico, Pesquisa e Inovação' },
-                      { ...weightRows[2], name: '3. Segurança, Confiança e Proteção da Sociedade' },
-                      { ...weightRows[3], name: '4. Educação, Capacitação e Cultura Organizacional' },
-                      { ...weightRows[4], name: '5. Cooperação e Inserção no Ecossistema' },
-                    ]}
-                  />
-
-                  <p className="mg-code">Score Global Final Regido (Total): {formatNumber(globalScore)} / 3,00</p>
-
-                  <div className="space-y-3 pt-2">
-                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Comparativos de Grupo (Área: {areaLabel})</h4>
-                    <p className="text-xs leading-relaxed mg-lead">
-                      Sua pontuação ponderada final é de <strong>{formatNumber(globalScore)}</strong>, enquanto o benchmark ilustrativo da média do segmento ativo no Brasil indica um índice de referência nacional de comumente <strong>{formatNumber(peerAverageGlobal)}</strong>.
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-3 text-xs leading-relaxed font-sans">
-                      <div className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                        <strong className="text-[11px] block font-semibold" style={{ color: 'var(--text)' }}>Conformidade do Setor</strong>
-                        <span className="text-[11px] block mt-0.5 mg-muted">
-                          A organização encontra-se em patamar {' '}
-                          <StatusBadge status={globalScore >= peerAverageGlobal ? 'good' : 'attention'}>
-                            {globalScore >= peerAverageGlobal ? 'Vantajoso / Acima da Média' : 'De Atenção / Ajustes Prioritários'}
-                          </StatusBadge>
-                          {' '}comparada aos órgãos do grupo.
-                        </span>
-                      </div>
-                      <div className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                        <strong className="text-[11px] block font-semibold" style={{ color: 'var(--text)' }}>Distância para a Meta Técnica</strong>
-                        <span className="text-[11px] block mt-0.5 mg-muted">
-                          Déficit da meta de maturidade padrão (Nível 3 definido com score 2,00) fixado em <strong>{formatNumber(globalScore - 2.0)}</strong> pontos.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activePdfPage === 4 && (
-                <div className="space-y-6 font-sans text-left">
-                  <h3 className="text-xl font-bold uppercase pb-2.5" style={{ color: 'var(--text)', borderBottom: '1px solid var(--surface-deep)' }}>
-                    4. Recomendações Críticas e Assinaturas
-                  </h3>
-
-                  <p className="text-xs leading-relaxed mg-lead">
-                    Mapeamos recomendações de impacto na escala de maturidade. Tratam-se de ações proativas para sanar canais e práticas diagnosticadas com conformidade incipiente (Nulo ou Parcial):
-                  </p>
-
-                  <div className="space-y-3 font-sans text-xs">
-                    {(gaps.length > 0 ? gaps : LIST_PRACTICES.filter(p => p.level <= 2)).slice(0, 3).map((gap, i) => {
-                      const rec = getGapRecommendation(gap.id);
-                      return (
-                        <div key={i} className="p-3 rounded-xl" style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)' }}>
-                          <div className="flex justify-between items-center mb-1.5">
-                            <span className="mg-code" style={{ color: 'var(--brand)' }}>Prática {gap.id} — {gap.name}</span>
-                            <StatusBadge status="critical">Alta prioridade</StatusBadge>
-                          </div>
-                          <p className="text-[10.5px] leading-normal italic mg-muted">
-                            <strong>Ação Implementação:</strong> {rec.action}
-                          </p>
-                          <span className="mg-code block mt-1">Eixo: {DIMENSIONS[gap.dimensionId].shortName} · Esforço Operacional: {rec.effort}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="pt-2">
-                    <h4 className="font-bold text-xs uppercase" style={{ color: 'var(--text)' }}>Diretrizes Práticas Finais</h4>
-                    <p className="text-xs leading-relaxed mt-1 text-justify mg-lead">
-                      A conformidade regulatória plena dar-se-á com a instituição robusta do <strong>Comitê de IA</strong> formalizado nos diários oficiais municipais, estaduais ou feeds internos, promovendo a transparência, mitigando alucinações cognitivas graves de algoritmos generativos e garantindo as auditorias de explicabilidade perante o cidadão em consonância com o PL 2338/2023.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-8 pt-10 text-center leading-snug">
-                    <div className="space-y-1">
-                      <div className="pt-1 font-bold" style={{ borderTop: '1px solid var(--surface-deep)', color: 'var(--text)' }}>Comitê de Governança de IA</div>
-                      <span className="mg-code">Representante Técnico Integrado MMGIA</span>
-                    </div>
-                    <div className="space-y-1">
-                      <div className="pt-1 font-bold" style={{ borderTop: '1px solid var(--surface-deep)', color: 'var(--text)' }}>Encarregado de Proteção de Dados (DPO)</div>
-                      <span className="mg-code">Compliance e Proteção Regulatória da LGPD</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex justify-between pt-3 mt-10" style={{ borderTop: '1px solid var(--surface-deep)' }}>
-                <span className="mg-code">MMGIA — Comitê Técnico Informativo</span>
-                <span className="mg-code">Página {activePdfPage} de 4</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center py-4" style={{ borderTop: '1px solid var(--ink-raised)' }}>
-            <span className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>
-              Este visualizador interativo simula fielmente as páginas de exportação física do relatório MMGIA em formato A4. Utilize o botão "Salvar / imprimir PDF" para salvar como arquivo PDF de forma permanente.
-            </span>
-          </div>
-        </div>
-      )}
     </DsRoot>
   );
 }

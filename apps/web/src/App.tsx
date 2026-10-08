@@ -42,6 +42,8 @@ export default function App() {
   const [answers, setAnswers] = useState<Record<string, ScoreLevel>>({});
   // Dimensão a já abrir na Revisão, quando chegamos lá a partir de "editar" no Resultado.
   const [reviewFocusDim, setReviewFocusDim] = useState<DimensionId | null>(null);
+  // Abrir o relatório já no diálogo de impressão (botão "Imprimir relatório" do Resultado).
+  const [reportAutoPrint, setReportAutoPrint] = useState(false);
 
   const generateSessionCode = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -198,7 +200,10 @@ export default function App() {
                   setCurrentTab(tab);
                   window.scrollTo({ top: 0, behavior: 'smooth' });
                 }}
-                onViewReport={() => setCurrentTab('relatorio-viewer')}
+                onViewReport={(options) => {
+                  setReportAutoPrint(!!options?.print);
+                  setCurrentTab('relatorio-viewer');
+                }}
                 onEditPractice={handleEditFromResult}
                 theme={theme}
               />
@@ -210,7 +215,9 @@ export default function App() {
           <ReportViewer
             answers={answers}
             metadata={metadata}
+            autoPrint={reportAutoPrint}
             onBack={() => {
+              setReportAutoPrint(false);
               setCurrentTab('diagnostico');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
