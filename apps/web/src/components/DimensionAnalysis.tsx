@@ -35,11 +35,6 @@ import RadarChart, { type RadarAxis } from './RadarChart';
 
 const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
 
-/** Esforço estimado para fechar uma lacuna, pelo nível da prática — mesma regra do Resultado. */
-function gapEffort(level: number): 'Baixo' | 'Médio' | 'Alto' {
-  return level <= 2 ? 'Baixo' : level === 3 ? 'Médio' : 'Alto';
-}
-
 interface DimensionAnalysisProps {
   answers: Record<string, ScoreLevel>;
   /** Único ponto de edição: redireciona para a Revisão com a dimensão já aberta — não há edição por prática aqui. */
@@ -300,9 +295,8 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                           <span className="mg-code">{practice.id}</span>
                           <div style={{ minWidth: 0 }}>
                             <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
-                            <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.criterion}</p>
+                            <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
                           </div>
-                          <span className="mg-small mg-muted mg-an-effort">{gapEffort(practice.level)}</span>
                           <span className="mg-an-legal">{practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : <span className="mg-small mg-muted">—</span>}</span>
                         </div>
                       );

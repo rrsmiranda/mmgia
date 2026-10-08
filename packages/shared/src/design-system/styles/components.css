@@ -528,10 +528,10 @@
 .mg-an-mini .mg-bar { display: block; height: 6px; }
 .mg-an-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mg-an2-item > summary .mg-badge { justify-self: start; }
-/* Linhas de lacuna (prática · ação · esforço · base legal): colunas de largura fixa
-   para esforço e base legal alinharem entre si, independente do tamanho do texto
-   do badge — grid, não flex, porque flex deixaria a 3ª/4ª coluna variarem por linha. */
-.mg-an-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 64px 190px; align-items: center; gap: var(--space-4); }
+/* Linhas de lacuna (prática · evidência mínima esperada · base legal): coluna de
+   largura fixa para a base legal alinhar entre si, independente do tamanho do texto
+   do badge — grid, não flex, porque flex deixaria essa coluna variar por linha. */
+.mg-an-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 190px; align-items: center; gap: var(--space-4); }
 .mg-an-row.is-hl { background: var(--brand-soft); }
 .mg-an-row.is-hl .mg-code { color: var(--brand); font-weight: 700; }
 .mg-an-legal { display: flex; }
@@ -553,10 +553,9 @@
   .mg-an-name small { white-space: normal; }
   .mg-an2-body .mg-acc-item { padding-left: var(--space-4); padding-right: var(--space-3); flex-wrap: nowrap; }
   .mg-an2-body .mg-acc-item > div { min-width: 0 !important; }
-  .mg-an-row { grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "code title title" ". effort legal"; row-gap: 4px; }
+  .mg-an-row { grid-template-columns: 28px minmax(0, 1fr) auto; grid-template-areas: "code title title" ". . legal"; row-gap: 4px; }
   .mg-an-row .mg-code { grid-area: code; }
   .mg-an-row > div { grid-area: title; }
-  .mg-an-row .mg-an-effort { grid-area: effort; }
   .mg-an-row .mg-an-legal { grid-area: legal; justify-self: end; }
   .mg-an-tip { width: 200px; }
 }

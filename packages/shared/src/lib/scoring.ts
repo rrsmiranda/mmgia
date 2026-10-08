@@ -57,18 +57,38 @@ export function getLevelScores(dimId: DimensionId, answers: Record<string, Score
 }
 
 /**
- * As 9 práticas de uma dimensão, em ordem de nível e código, com o valor da
+ * As 9 práticas de uma dimensão, em ordem de nível — dentro do nível, da resposta mais
+ * fraca para a mais forte (sem resposta e Nulo juntos primeiro) — com o valor da
  * resposta (null = sem resposta).
  */
 export function getPracticeScores(dimId: DimensionId, answers: Record<string, ScoreLevel>): { practice: Practice; answer: ScoreLevel | null; value: number | null }[] {
   return LIST_PRACTICES
     .filter(p => p.dimensionId === dimId)
-    .slice()
-    .sort((a, b) => a.level - b.level || a.id.localeCompare(b.id))
     .map((practice) => {
       const answer = answers[practice.id] ?? null;
       return { practice, answer, value: answer ? NPLF_VALUE[answer] : null };
+    })
+    .sort((a, b) => {
+      if (a.practice.level !== b.practice.level) return a.practice.level - b.practice.level;
+      const va = a.value ?? 0;
+      const vb = b.value ?? 0;
+      if (va !== vb) return va - vb;
+      return a.practice.id.localeCompare(b.practice.id);
     });
+}
+
+/**
+ * Código da prática conforme a numeração do documento oficial do MMGIA, que reinicia
+ * a cada nível dentro da dimensão (ex.: a 1ª prática de nível 3 de uma dimensão é "3.1"
+ * no documento — o id interno do app, usado para navegação, é sequencial dentro da
+ * dimensão inteira e não corresponde a esse número).
+ */
+export function getOfficialPracticeCode(practice: Practice): string {
+  const siblings = LIST_PRACTICES
+    .filter(p => p.dimensionId === practice.dimensionId && p.level === practice.level)
+    .sort((a, b) => a.id.localeCompare(b.id));
+  const seq = siblings.findIndex(p => p.id === practice.id) + 1;
+  return `${practice.level}.${seq}`;
 }
 
 /**
