@@ -58,14 +58,13 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
         <li>{gaps.length} das {LIST_PRACTICES.length} práticas estão inexistentes ou parciais (respostas N ou P).</li>
         {naoRespondidas > 0 && (
           <li>
-            Dessas, <strong>{naoRespondidas}</strong> não tiveram resposta registrada e <strong>{nulas}</strong> foram
-            avaliadas como Nulo. Ambas contam como zero no cálculo, mas significam coisas diferentes: a primeira é
-            ausência de registro; a segunda é ausência de prática já constatada pela organização.
+            Dessas, <strong>{naoRespondidas}</strong> sem resposta e <strong>{nulas}</strong> Nulo — ambas valem zero
+            no cálculo.
           </li>
         )}
         {levelInfo.num < 5 && (
           <li>
-            {gapsIniciais} dessas lacunas estão em práticas dos níveis 1 a 3 — são as que sustentam a consolidação do nível {proximoNivel}.
+            {gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {proximoNivel}.
           </li>
         )}
         <li>
@@ -75,9 +74,8 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
 
       <h2 className="rp-h2">Como ler este relatório</h2>
       <p>
-        O score de cada dimensão é a média dos scores dos seus níveis (1 a 5); o score de cada nível é a média das
-        respostas das suas práticas, em que Nulo vale 0, Parcial 1, Larga 2 e Total 3. O score global é a média
-        ponderada das cinco dimensões. A metodologia completa está na seção 4.
+        O score de cada dimensão é a média dos scores de nível; o score global é a média ponderada das 5 dimensões.
+        A metodologia completa está na seção 4.
       </p>
     </>
   );

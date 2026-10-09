@@ -5,7 +5,7 @@
 
 import { DIMENSIONS } from '@mmgia/shared/types';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
-import { DIMENSION_ORDER, LEVEL_RISK, LevelBadge, NplfBadge, NPLF, type Level } from '@mmgia/shared/design-system';
+import { DIMENSION_ORDER, LEVEL_RISK, LevelBadge, NplfBadge, NPLF, cx, type Level } from '@mmgia/shared/design-system';
 
 const NPLF_ORDER: Array<'N' | 'P' | 'L' | 'F'> = ['N', 'P', 'L', 'F'];
 const LEVELS: Level[] = [0, 1, 2, 3, 4, 5];
@@ -18,7 +18,12 @@ const SCORE_RANGES: Record<Level, string> = {
   5: '≥ 2,50',
 };
 
-export default function MethodologyContent() {
+interface MethodologyContentProps {
+  /** Nível de maturidade (0–5) do score global desta avaliação — destaca a linha correspondente na tabela de referência. */
+  currentLevel?: Level;
+}
+
+export default function MethodologyContent({ currentLevel }: MethodologyContentProps) {
   const weightsText = DIMENSION_ORDER
     .map((id, i) => {
       const pct = Math.round(DIMENSION_WEIGHTS[id] * 100);
@@ -69,14 +74,16 @@ export default function MethodologyContent() {
             <th scope="col">Nível</th>
             <th scope="col">Faixa de score</th>
             <th scope="col">Risco associado</th>
+            <th scope="col"></th>
           </tr>
         </thead>
         <tbody>
           {LEVELS.map((lvl) => (
-            <tr key={lvl}>
+            <tr key={lvl} className={cx(lvl === currentLevel && 'rp-current-row')}>
               <td><LevelBadge level={lvl} /></td>
               <td>{SCORE_RANGES[lvl]}</td>
               <td>{LEVEL_RISK[lvl].label}</td>
+              <td className="rp-small">{lvl === currentLevel ? 'Você está aqui' : ''}</td>
             </tr>
           ))}
         </tbody>

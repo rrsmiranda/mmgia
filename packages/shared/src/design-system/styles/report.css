@@ -33,6 +33,9 @@
 .rp-table thead { display: table-header-group; }
 .rp-table tr { break-inside: avoid; }
 .rp-table .mg-badge { font-size: 7.5pt; }
+.rp-current-row td { background: var(--surface-sunken); font-weight: 700; }
+.rp-matrix td, .rp-matrix th { padding-top: 2pt; padding-bottom: 2pt; }
+.rp-dim-summary td, .rp-dim-summary th { padding-top: 3pt; padding-bottom: 3pt; }
 .rp-matrix td, .rp-matrix th[scope="row"] { vertical-align: middle; }
 .rp-matrix th[scope="row"] { background: none; text-transform: none; letter-spacing: 0; font-size: 9pt; font-weight: 400; color: var(--text); }
 .rp-chip { display: inline-flex; align-items: center; gap: 3pt; margin: 1pt 4pt 1pt 0; white-space: nowrap; }

@@ -6,6 +6,7 @@
 import { useState } from 'react';
 import { Calculator, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { DIMENSIONS, LIST_PRACTICES, DimensionId } from '@mmgia/shared/types';
+import { DIMENSION_WEIGHTS, getMaturityLevel } from '@mmgia/shared/scoring';
 import {
   Banner,
   Card,
@@ -16,8 +17,11 @@ import {
   DimensionTag,
   DsRoot,
   LegalBadge,
+  LevelBadge,
   Page,
+  RiskBadge,
   formatNumber,
+  type Level,
 } from '@mmgia/shared/design-system';
 
 const MENU_ITEMS = [
@@ -25,25 +29,37 @@ const MENU_ITEMS = [
   { id: 'niveis', label: 'Níveis de maturidade' },
   { id: 'dimensoes', label: 'Dimensões (45 práticas)' },
   { id: 'calculo', label: 'Fórmula de cálculo' },
-  { id: 'regulatorio', label: 'Alinhamento regulatório' },
+  { id: 'regulatorio', label: 'Fundamentação do modelo' },
   { id: 'privacidade', label: 'Arquitetura de privacidade' },
 ];
 
-interface LevelRow { num: string; label: string; desc: string; risk: string; status: 'critical' | 'attention' | 'good' }
-const LEVEL_ROWS: LevelRow[] = [
-  { num: 'Nível 1', label: 'Iniciado', desc: 'Práticas executadas de maneira ad-hoc, informal e dispersa, sem registro ou salvaguardas formalizadas.', risk: 'Risco alto', status: 'critical' },
-  { num: 'Nível 2', label: 'Gerenciado', desc: 'Políticas e comitês de ética já encontram-se estruturados. Inventários em andamento e relatórios de evidências em andamento.', risk: 'Risco moderado', status: 'attention' },
-  { num: 'Nível 3', label: 'Definido', desc: 'Processos padronizados e documentados em conformidade legal com a LGPD e termos ISO. Metas estabelecidas e cobradas.', risk: 'Risco controlado', status: 'attention' },
-  { num: 'Nível 4', label: 'Quantificado', desc: 'Métricas exatas de bias e drift de dados monitoradas em tempo real por painéis operatórios automáticos.', risk: 'Risco baixo', status: 'good' },
-  { num: 'Nível 5', label: 'Otimizado', desc: 'Plena auditoria terceirizada com reciclagem periódica de modelos e contribuições ativas no ecossistema de dados abertos.', risk: 'Mínimo / altamente seguro', status: 'good' },
-];
+/**
+ * As 6 linhas vêm de getMaturityLevel (scoring.ts), a mesma função que calcula o
+ * resultado real de cada avaliação — não um texto hardcoded à parte. Um score
+ * representativo (o meio de cada faixa) é usado só para "entrar" na faixa certa;
+ * label, descrição e risco voltam exatamente como o motor de cálculo os define.
+ */
+const LEVELS: Level[] = [0, 1, 2, 3, 4, 5];
+const SCORE_RANGES: Record<Level, string> = {
+  0: '< 0,50',
+  1: '0,50 a 0,99',
+  2: '1,00 a 1,49',
+  3: '1,50 a 1,99',
+  4: '2,00 a 2,49',
+  5: '≥ 2,50',
+};
+const LEVEL_MIDPOINTS: Record<Level, number> = { 0: 0.25, 1: 0.75, 2: 1.25, 3: 1.75, 4: 2.25, 5: 2.75 };
+const LEVEL_ROWS = LEVELS.map((lvl) => ({ lvl, info: getMaturityLevel(LEVEL_MIDPOINTS[lvl]) }));
 
-interface RegRow { n: string; art: string; desc: string }
-const REGULATORY_ROWS: RegRow[] = [
-  { n: 'LGPD (Lei 13.709)', art: 'Art. 20, 37 e 46', desc: 'Direito a explicações de decisões 100% automatizadas, obrigatoriedade de relatórios de impacto e dever de criptografar checkpoints.' },
-  { n: 'PL 2338/2023 IA', art: 'Artigo 8º, 12 e 15', desc: 'Atribuição civil objetiva ao poluidor algorítmico, análise prévia de disparidades e Red Teaming de ataques.' },
-  { n: 'ISO/IEC 42001', art: 'Cláusula 5, 6, 8 e 9', desc: 'Desenvolvimento do Sistema de Gestão de IA integrado e auditoria independente periódica.' },
-  { n: 'NIST AI RMF 1.0', art: 'Framework Core 1.0', desc: 'Metodologias de gerenciamento de riscos organizando o mapeamento, identificação operacional e governança ética.' },
+/**
+ * Reproduz, sem adicionar nada, a única passagem do documento oficial do MMGIA sobre
+ * fundamentação normativa (Parte I, Introdução) — o modelo não detalha essa relação
+ * por artigo, cláusula ou prática.
+ */
+const FOUNDATION_GROUPS: { title: string; items: string[] }[] = [
+  { title: 'Alinhamento estratégico', items: ['Estratégia Nacional de Inteligência Artificial (ENIA) 2026–2029'] },
+  { title: 'Referenciais de maturidade', items: ['Modelo de maturidade de IA do MITRE', 'CMMI'] },
+  { title: 'Normas e regulações incorporadas', items: ['AI Act da União Europeia', 'AI Risk Management Framework (NIST)', 'ISO/IEC 42001, 23894 e 38507', 'LGPD'] },
 ];
 
 export default function Methodology() {
@@ -117,19 +133,20 @@ export default function Methodology() {
 
             {/* NÍVEIS */}
             <Card as="section" id="niveis" style={{ scrollMarginTop: 96 }}>
-              <CardHeader title="Os 5 níveis de maturidade" />
+              <CardHeader title="Os 6 níveis de maturidade" />
               <CardBody>
                 <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
-                  As pontuações consolidadas categorizam a instituição dentro de uma métrica de responsabilidade civil algorítmica dividida em 5 estágios.
+                  O score global (0 a 3) é convertido em um nível de maturidade (0 a 5); cada nível tem um risco
+                  associado, descrito no documento oficial do MMGIA.
                 </p>
-                <DataTable<LevelRow>
-                  caption="Níveis de maturidade, descrição operacional e risco estimado"
-                  rowKey={(r) => r.num}
+                <DataTable<{ lvl: Level; info: ReturnType<typeof getMaturityLevel> }>
+                  caption="Níveis de maturidade, faixa de score, descrição e risco associado"
+                  rowKey={(r) => String(r.lvl)}
                   columns={[
-                    { key: 'num', header: 'Nível', render: (r) => <strong>{r.num}</strong> },
-                    { key: 'label', header: 'Nome', render: (r) => r.label },
-                    { key: 'desc', header: 'Descrição operacional', render: (r) => r.desc },
-                    { key: 'risk', header: 'Risco estimado', render: (r) => <span className={`mg-badge mg-badge--${r.status}`}>{r.risk}</span> },
+                    { key: 'lvl', header: 'Nível', render: (r) => <LevelBadge level={r.lvl} /> },
+                    { key: 'range', header: 'Faixa de score', render: (r) => SCORE_RANGES[r.lvl] },
+                    { key: 'desc', header: 'Descrição', render: (r) => r.info.desc },
+                    { key: 'risk', header: 'Risco associado', render: (r) => <RiskBadge level={r.lvl} /> },
                   ]}
                   rows={LEVEL_ROWS}
                 />
@@ -174,13 +191,23 @@ export default function Methodology() {
               <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><Calculator className="mg-ico mg-ico-sm" aria-hidden="true" />Fórmula de cálculo do score</span>} />
               <CardBody>
                 <p className="mg-small mg-muted">
-                  O score final global do MMGIA é calculado por meio de médias ponderadas. Primeiro, é calculada a média simples de cada uma das 5 dimensões com base nas práticas respondidas (as práticas não respondidas recebem peso zero).
+                  O score de cada nível (1 a 5) é a média das práticas respondidas naquele nível. O score de cada
+                  dimensão é a média dos scores de nível que tiveram ao menos uma prática respondida — níveis sem
+                  nenhuma resposta não entram na média. O score global é a média ponderada das 5 dimensões, segundo
+                  os pesos do modelo.
                 </p>
 
                 <div style={{ marginTop: 16, padding: 24, background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 'var(--radius-lg)' }} id="math-formula-box">
                   <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>// equação de cálculo geral</p>
                   <div style={{ marginTop: 12, padding: 16, background: 'var(--ink-raised)', borderRadius: 'var(--radius-md)', textAlign: 'center', fontWeight: 800 }}>
-                    Score Global = (Média_Gov + Média_Tec + Média_Seg + Média_Edu + Média_Eco) / 5
+                    Score Global = Σ (Score Dimensão × Peso Dimensão)
+                  </div>
+                  <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(5,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 8, marginTop: 12 }}>
+                    {(DIMENSION_ORDER as DimensionId[]).map((id) => (
+                      <div key={id} className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>
+                        {DIMENSIONS[id].shortName} = {Math.round(DIMENSION_WEIGHTS[id] * 100)}%
+                      </div>
+                    ))}
                   </div>
                   <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>Onde as respostas na escala NPLF correspondem aos seguintes pesos numéricos:</p>
                   <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 8, marginTop: 12 }}>
@@ -195,21 +222,25 @@ export default function Methodology() {
 
             {/* REGULATÓRIO */}
             <Card as="section" id="regulatorio" style={{ scrollMarginTop: 96 }}>
-              <CardHeader title="Alinhamento regulatório trilateral" />
+              <CardHeader title="Fundamentação do modelo" />
               <CardBody>
                 <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>
-                  O MMGIA foi construído sob a correspondência cruzada de normas legais vigentes no Brasil e marcos internacionais recomendados de conformidade.
+                  O documento oficial descreve a fundamentação do modelo em termos gerais, sem detalhar essa relação
+                  por artigo, cláusula ou prática: o MMGIA é alinhado à ENIA, fundamentado em referenciais de
+                  maturidade de mercado e incorpora requisitos e diretrizes de normas e regulações essenciais. Quando
+                  uma prática específica tem referência normativa direta, o relatório da avaliação mostra essa
+                  citação ao lado dela.
                 </p>
-                <DataTable<RegRow>
-                  caption="Normas, artigos e impacto no modelo"
-                  rowKey={(r) => r.n}
-                  columns={[
-                    { key: 'n', header: 'Norma / marco', render: (r) => <strong>{r.n}</strong> },
-                    { key: 'art', header: 'Artigos / cláusulas', render: (r) => <span className="mg-code">{r.art}</span> },
-                    { key: 'desc', header: 'Impacto e relação de interface', render: (r) => r.desc },
-                  ]}
-                  rows={REGULATORY_ROWS}
-                />
+                <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 16 }}>
+                  {FOUNDATION_GROUPS.map((group) => (
+                    <Card key={group.title}>
+                      <p className="mg-label">{group.title}</p>
+                      <ul className="mg-stack" style={{ gap: 4, marginTop: 8, paddingLeft: 18, listStyle: 'disc' }}>
+                        {group.items.map((item) => <li key={item} className="mg-small">{item}</li>)}
+                      </ul>
+                    </Card>
+                  ))}
+                </div>
               </CardBody>
             </Card>
 

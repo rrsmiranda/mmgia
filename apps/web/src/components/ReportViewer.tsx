@@ -6,7 +6,7 @@
 import { useEffect, type ReactNode } from 'react';
 import { ArrowLeft, Download } from 'lucide-react';
 import { ScoreLevel, AssessmentMetadata } from '@mmgia/shared/types';
-import { Button } from '@mmgia/shared/design-system';
+import { Button, type Level } from '@mmgia/shared/design-system';
 import { getAllDimensionScores, getAllDimensionLevels, getGlobalScore, getMaturityLevel } from '@mmgia/shared/scoring';
 import ReportPage from './report/ReportPage';
 import CoverContent from './report/Cover';
@@ -61,7 +61,7 @@ export default function ReportViewer({ answers, metadata, onBack, autoPrint = fa
       answers={answers}
     />,
     ...buildActionPlanContents(gaps, answers),
-    <MethodologyContent />,
+    <MethodologyContent currentLevel={levelInfo.num as Level} />,
     <AnnexContent answers={answers} />,
   ];
   const total = pages.length;

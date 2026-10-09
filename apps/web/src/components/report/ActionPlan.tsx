@@ -20,6 +20,7 @@ import {
   formatNumber,
   LevelBadge,
   NplfBadge,
+  RiskBadge,
   type Level,
 } from '@mmgia/shared/design-system';
 import RadarChart, { type RadarAxis } from '../RadarChart';
@@ -167,8 +168,10 @@ function DimensionGapHeader({ dimensionId, answers, score, gapCount }: {
         </p>
         <div className="mg-row" style={{ gap: 6, marginTop: 4 }}>
           <LevelBadge level={level.num as Level} />
+          <RiskBadge level={level.num as Level} />
         </div>
-        <p className="rp-small" style={{ marginTop: 10 }}>
+        <p className="rp-small" style={{ marginTop: 10 }}>{level.risco}</p>
+        <p className="rp-small" style={{ marginTop: 6 }}>
           {gapCount} {gapCount === 1 ? 'lacuna' : 'lacunas'} nesta dimensão — cada eixo do radar é uma das 9 práticas
           (N · P · L · F), na ordem dos níveis de maturidade.
         </p>

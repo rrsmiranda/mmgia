@@ -34,11 +34,11 @@ export default function DimensionResultsContent({
       <p className="rp-eyebrow">2 · Resultado por dimensão</p>
       <h1 className="rp-h1">Desempenho nas cinco dimensões</h1>
       <p>
-        A tabela mostra o score de cada dimensão, o nível correspondente e sua contribuição para o score global,
-        segundo os pesos do modelo. Os números seguem a escala de 0 a 3.
+        Score de cada dimensão, nível correspondente e contribuição para o score global, segundo os pesos do modelo.
+        Escala de 0 a 3.
       </p>
 
-      <table className="rp-table">
+      <table className="rp-table rp-dim-summary">
         <thead>
           <tr>
             <th scope="col">Dimensão</th>
@@ -85,9 +85,8 @@ export default function DimensionResultsContent({
 
       <h2 className="rp-h2">Score por nível de maturidade</h2>
       <p>
-        Média das práticas respondidas em cada nível (escala 0 a 3). O score de cada dimensão, na tabela acima, é a
-        média destes valores — apenas níveis com ao menos uma prática respondida entram nessa média. "—" indica nível
-        sem nenhuma prática respondida.
+        Média das práticas respondidas em cada nível — a base do score de cada dimensão, na tabela acima.
+        "—" indica nível sem nenhuma prática respondida.
       </p>
 
       <table className="rp-table rp-matrix">
@@ -115,9 +114,8 @@ export default function DimensionResultsContent({
 
       <h2 className="rp-h2">Respostas por nível de maturidade</h2>
       <p>
-        Cada célula reúne as práticas daquele nível com a resposta informada. A leitura da esquerda para a direita
-        mostra até onde a dimensão está consolidada: lacunas nos níveis iniciais pesam mais do que lacunas nos
-        níveis avançados.
+        Cada célula mostra as práticas daquele nível com a resposta informada — lacunas nos níveis iniciais pesam
+        mais do que lacunas nos níveis avançados.
       </p>
 
       <table className="rp-table rp-matrix">
