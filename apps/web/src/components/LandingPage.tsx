@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
-import { DimensionId, DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
+import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
 import PlexusBackground from './PlexusBackground';
 import Reveal from './Reveal';
 import CountUp from './CountUp';
@@ -32,7 +32,6 @@ import {
   Card,
   CardBody,
   DIMENSION_ORDER,
-  DataTable,
   DimensionBars,
   DimensionTag,
   DsRoot,
@@ -62,24 +61,18 @@ const HOW_IT_WORKS = [
 ];
 
 /**
- * Os 5 marcos normativos citados na introdução do documento oficial do MMGIA como
- * fundamentação do modelo. Em vez de números de artigo/cláusula fixos (que o
- * documento não especifica por prática), cada linha é computada a partir do campo
- * `legalReference` das 45 práticas — contagem e dimensões reais, não estimadas.
+ * Reproduz, sem adicionar nada, a única passagem do documento oficial do MMGIA
+ * sobre fundamentação normativa (Parte I, Introdução): três grupos distintos —
+ * alinhamento estratégico (ENIA), referenciais de maturidade (MITRE, CMMI) e
+ * normas/regulações incorporadas (AI Act, NIST, ISO/IEC, LGPD). O documento não
+ * detalha essa relação por prática nem por dimensão — por isso não há aqui nenhuma
+ * contagem ou cruzamento desse tipo.
  */
-const REGULATORY_FRAMEWORKS: { norma: string; desc: string; prefixes: string[] }[] = [
-  { norma: 'LGPD', desc: 'Lei Geral de Proteção de Dados', prefixes: ['LGPD'] },
-  { norma: 'AI Act EU', desc: 'Regulamento de IA da União Europeia — referência conceitual do modelo', prefixes: ['AI Act'] },
-  { norma: 'ISO/IEC 42001, 23894, 38507', desc: 'Gestão, risco e responsabilidade organizacional em IA', prefixes: ['ISO/IEC 42001', 'ISO/IEC 23894', 'ISO/IEC 38507'] },
-  { norma: 'NIST AI RMF', desc: 'AI Risk Management Framework', prefixes: ['NIST AI RMF'] },
-  { norma: 'ENIA 2026–2029', desc: 'Estratégia Nacional de Inteligência Artificial', prefixes: ['ENIA'] },
+const FOUNDATION_GROUPS: { title: string; items: string[] }[] = [
+  { title: 'Alinhamento estratégico', items: ['Estratégia Nacional de Inteligência Artificial (ENIA) 2026–2029'] },
+  { title: 'Referenciais de maturidade', items: ['Modelo de maturidade de IA do MITRE', 'CMMI'] },
+  { title: 'Normas e regulações incorporadas', items: ['AI Act da União Europeia', 'AI Risk Management Framework (NIST)', 'ISO/IEC 42001, 23894 e 38507', 'LGPD'] },
 ];
-
-const ALIGNMENT_ROWS = REGULATORY_FRAMEWORKS.map(({ norma, desc, prefixes }) => {
-  const matches = LIST_PRACTICES.filter((p) => p.legalReference && prefixes.some((pre) => p.legalReference!.startsWith(pre)));
-  const dims = (DIMENSION_ORDER as DimensionId[]).filter((d) => matches.some((p) => p.dimensionId === d));
-  return { norma, desc, count: matches.length, dims };
-});
 
 const FAQ_DATA = [
   { q: 'A avaliação é realmente anônima?', a: 'Sim. O banco de dados não possui colunas para IP, nome, CNPJ ou e-mail. O middleware stripIdentity descarta headers identificadores antes que qualquer handler processe o request. É uma impossibilidade técnica, não uma promessa de política.' },
@@ -377,41 +370,31 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
         </Page>
       </section>
 
-      {/* ALINHAMENTO REGULATÓRIO */}
+      {/* FUNDAMENTAÇÃO DO MODELO */}
       <section style={{ paddingBlock: 72, background: 'var(--surface-sunken)', borderBlock: '1px solid var(--surface-deep)' }}>
         <Page>
           <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <div>
-              <p className="mg-eyebrow">Alinhamento regulatório</p>
-              <h2 className="mg-h2" style={{ marginTop: 12 }}>A metodologia é alinhada a 5 marcos normativos.</h2>
+              <p className="mg-eyebrow">Fundamentação do modelo</p>
+              <h2 className="mg-h2" style={{ marginTop: 12 }}>Como o MMGIA foi construído.</h2>
               <p className="mg-lead" style={{ marginTop: 12 }}>
-                O MMGIA é fundamentado nos princípios e diretrizes gerais destes marcos — não é uma certificação de
-                conformidade nem um mapeamento artigo a artigo. Quando uma prática específica tem referência
-                normativa direta, o relatório da avaliação mostra essa citação ao lado dela.
+                O documento oficial descreve a fundamentação do modelo em termos gerais, sem detalhar essa relação
+                por prática ou por dimensão: o MMGIA é alinhado à ENIA, fundamentado em referenciais de maturidade de
+                mercado e incorpora requisitos e diretrizes de normas e regulações essenciais. Quando uma prática
+                específica tem referência normativa direta, o relatório da avaliação mostra essa citação ao lado dela.
               </p>
             </div>
-            <DataTable
-              caption="Marcos normativos e quantas das 45 práticas citam cada um, por dimensão"
-              rowKey={(r) => r.norma}
-              columns={[
-                { key: 'norma', header: 'Norma', render: (r) => (
-                  <>
-                    <strong>{r.norma}</strong>
-                    <div className="mg-small mg-muted" style={{ marginTop: 2 }}>{r.desc}</div>
-                  </>
-                ) },
-                { key: 'count', header: 'Práticas citadas', render: (r) => <span className="mg-code">{r.count} / 45</span> },
-                { key: 'dims', header: 'Dimensões', render: (r) => (
-                  r.dims.length > 0 ? (
-                    <div className="mg-row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                      {r.dims.map((d) => <DimensionTag key={d} dimension={d} short />)}
-                    </div>
-                  ) : <span className="mg-small mg-muted">referência geral do modelo</span>
-                ) },
-              ]}
-              rows={ALIGNMENT_ROWS}
-            />
+            <div className="mg-stack" style={{ gap: 16 }}>
+              {FOUNDATION_GROUPS.map((group) => (
+                <Card key={group.title}>
+                  <p className="mg-label">{group.title}</p>
+                  <ul className="mg-stack" style={{ gap: 4, marginTop: 8, paddingLeft: 18, listStyle: 'disc' }}>
+                    {group.items.map((item) => <li key={item} className="mg-small">{item}</li>)}
+                  </ul>
+                </Card>
+              ))}
+            </div>
           </div>
           </Reveal>
         </Page>
