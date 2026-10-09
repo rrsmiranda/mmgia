@@ -6,7 +6,7 @@
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
-import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
+import { DIMENSION_WEIGHTS, getOfficialPracticeCode } from '@mmgia/shared/scoring';
 import { DimensionTag, LevelBadge, NplfBadge, DIMENSION_ORDER, formatNumber, type Level } from '@mmgia/shared/design-system';
 
 interface DimensionResultsContentProps {
@@ -107,7 +107,7 @@ export default function DimensionResultsContent({
                     const ans = answers[p.id];
                     return (
                       <span className="rp-chip" key={p.id}>
-                        <span className="rp-mono">{p.id}</span>
+                        <span className="rp-mono">{getOfficialPracticeCode(p)}</span>
                         {ans ? <NplfBadge value={ans} /> : <span className="rp-small">—</span>}
                       </span>
                     );

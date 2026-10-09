@@ -5,12 +5,29 @@
 
 import type { ReactNode } from 'react';
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
-import { LIST_PRACTICES } from '@mmgia/shared/types';
-import { getAllDimensionScores, getOfficialPracticeCode, NPLF_VALUE } from '@mmgia/shared/scoring';
-import { DIMENSION_ORDER, DimensionTag, LegalBadge, NplfBadge } from '@mmgia/shared/design-system';
+import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
+import {
+  getAllDimensionScores,
+  getMaturityLevel,
+  getOfficialPracticeCode,
+  getPracticeScores,
+  NPLF_VALUE,
+} from '@mmgia/shared/scoring';
+import {
+  DIMENSION_ICONS,
+  DIMENSION_ORDER,
+  DimensionTag,
+  formatNumber,
+  LegalBadge,
+  LevelBadge,
+  NplfBadge,
+  SCORE_GOAL,
+  type Level,
+} from '@mmgia/shared/design-system';
+import RadarChart, { type RadarAxis } from '../RadarChart';
 
-const FIRST_PAGE_ROWS = 8;
-const CONTINUATION_PAGE_ROWS = 12;
+const DIM_FIRST_PAGE_ROWS = 5;
+const DIM_CONTINUATION_ROWS = 12;
 
 /**
  * Lacunas (prática respondida como N ou P, ou sem resposta), agrupadas por dimensão —
@@ -46,13 +63,32 @@ export function getGaps(answers: Record<string, ScoreLevel>): Practice[] {
     });
 }
 
-function chunkGaps(gaps: Practice[]): Practice[][] {
+interface DimensionGapBlock {
+  dimensionId: DimensionId;
+  gaps: Practice[];
+}
+
+/** `getGaps` já devolve as lacunas agrupadas por dimensão — aqui só se materializa essa divisão em blocos. */
+function groupGapsByDimension(gaps: Practice[]): DimensionGapBlock[] {
+  const blocks: DimensionGapBlock[] = [];
+  for (const gap of gaps) {
+    const last = blocks[blocks.length - 1];
+    if (last && last.dimensionId === gap.dimensionId) {
+      last.gaps.push(gap);
+    } else {
+      blocks.push({ dimensionId: gap.dimensionId, gaps: [gap] });
+    }
+  }
+  return blocks;
+}
+
+function chunkRows(gaps: Practice[], firstPageRows: number, continuationRows: number): Practice[][] {
   const chunks: Practice[][] = [];
-  let i = Math.min(FIRST_PAGE_ROWS, gaps.length);
+  let i = Math.min(firstPageRows, gaps.length);
   chunks.push(gaps.slice(0, i));
   while (i < gaps.length) {
-    chunks.push(gaps.slice(i, i + CONTINUATION_PAGE_ROWS));
-    i += CONTINUATION_PAGE_ROWS;
+    chunks.push(gaps.slice(i, i + continuationRows));
+    i += continuationRows;
   }
   return chunks;
 }
@@ -62,7 +98,7 @@ function TableHead() {
     <thead>
       <tr>
         <th scope="col">#</th>
-        <th scope="col">Dimensão</th>
+        <th scope="col">Nível</th>
         <th scope="col">Prática e próximo passo</th>
         <th scope="col">Base legal</th>
       </tr>
@@ -77,10 +113,7 @@ function GapRow({ num, practice, answer }: { num: number; practice: Practice; an
   return (
     <tr>
       <td>{num}</td>
-      <td>
-        <DimensionTag dimension={practice.dimensionId} short />
-        <div className="rp-small">Nível {practice.level}</div>
-      </td>
+      <td className="rp-small">Nível {practice.level}</td>
       <td>
         <strong>{getOfficialPracticeCode(practice)} {practice.name}</strong>{' '}
         {answer && <NplfBadge value={answer} />}
@@ -91,6 +124,60 @@ function GapRow({ num, practice, answer }: { num: number; practice: Practice; an
       </td>
       <td>{practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : '—'}</td>
     </tr>
+  );
+}
+
+/**
+ * Cabeçalho da primeira página de cada dimensão: radar das 9 práticas (mesmo
+ * componente e mesma leitura da tela de Resultado) ao lado do score e do total de
+ * lacunas — visão de conjunto antes da lista detalhada, sem repetir essa lista em
+ * forma de gráfico (o gráfico não carrega a evidência mínima esperada de cada item).
+ */
+function DimensionGapHeader({ dimensionId, answers, score, gapCount }: {
+  dimensionId: DimensionId;
+  answers: Record<string, ScoreLevel>;
+  score: number;
+  gapCount: number;
+}) {
+  const dim = DIMENSIONS[dimensionId];
+  const Icon = DIMENSION_ICONS[dimensionId];
+  const level = getMaturityLevel(score);
+
+  const axes: RadarAxis[] = getPracticeScores(dimensionId, answers).map(({ practice, answer, value }) => {
+    const code = getOfficialPracticeCode(practice);
+    return {
+      id: practice.id,
+      label: code,
+      sub: answer ?? '—',
+      value,
+      title: practice.name,
+      detail: answer ? `Nível ${practice.level} · ${answer} · ${value} de 3` : `Nível ${practice.level} · Sem resposta`,
+      ariaLabel: `${code} ${practice.name}: ${answer ? `${answer}, ${value} de 3` : 'sem resposta'}`,
+    };
+  });
+
+  return (
+    <div className="rp-cols rp-gap-head">
+      <div className="rp-gap-radar">
+        <RadarChart axes={axes} goal={SCORE_GOAL} ariaLabel={`Radar das 9 práticas de ${dim.name}`} />
+      </div>
+      <div>
+        <div className="mg-row" style={{ gap: 8, alignItems: 'center' }}>
+          <Icon className="mg-ico" aria-hidden="true" />
+          <h2 className="rp-h2" style={{ margin: 0 }}>{dim.name}</h2>
+        </div>
+        <p className="rp-big" style={{ fontSize: '22pt', marginTop: 6 }}>
+          {formatNumber(score)}<span style={{ fontSize: '10.5pt' }}> / 3</span>
+        </p>
+        <div className="mg-row" style={{ gap: 6, marginTop: 4 }}>
+          <LevelBadge level={level.num as Level} />
+        </div>
+        <p className="rp-small" style={{ marginTop: 10 }}>
+          {gapCount} {gapCount === 1 ? 'lacuna' : 'lacunas'} nesta dimensão — cada eixo do radar é uma das 9 práticas
+          (N · P · L · F), na ordem dos níveis de maturidade.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -106,46 +193,84 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
     ];
   }
 
-  const chunks = chunkGaps(gaps);
-  let rowStart = 0;
+  const dimScores = getAllDimensionScores(answers);
+  const blocks = groupGapsByDimension(gaps);
+  const pages: ReactNode[] = [];
 
-  return chunks.map((chunk, pageIndex) => {
-    const isFirst = pageIndex === 0;
-    const isLast = pageIndex === chunks.length - 1;
-    const startNum = rowStart + 1;
-    rowStart += chunk.length;
+  pages.push(
+    <>
+      <p className="rp-eyebrow">3 · Plano de ação</p>
+      <h1 className="rp-h1">Lacunas priorizadas</h1>
+      <p>
+        Foram identificadas <strong>{gaps.length} lacunas</strong>: práticas respondidas como Nulo (N) ou Parcial (P),
+        ou sem resposta. A seguir, cada dimensão com lacunas tem sua própria página — a de menor score primeiro —,
+        com um radar das 9 práticas (visão de conjunto) seguido da lista de lacunas daquela dimensão, ordenadas por
+        nível e, dentro do nível, da resposta mais fraca para a mais forte. O código de cada prática e a evidência
+        mínima esperada seguem exatamente o documento oficial do MMGIA.
+      </p>
+      <h2 className="rp-h2">Lacunas por dimensão</h2>
+      <table className="rp-table">
+        <thead>
+          <tr>
+            <th scope="col">Dimensão</th>
+            <th scope="col">Score</th>
+            <th scope="col" className="num">Lacunas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {blocks.map(({ dimensionId, gaps: dimGaps }) => (
+            <tr key={dimensionId}>
+              <td><DimensionTag dimension={dimensionId} /></td>
+              <td>{formatNumber(dimScores[dimensionId])}</td>
+              <td className="num">{dimGaps.length}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
+  );
 
-    return (
-      <>
-        <p className="rp-eyebrow">3 · Plano de ação{!isFirst && ' (continuação)'}</p>
-        {isFirst && (
-          <>
-            <h1 className="rp-h1">Lacunas priorizadas</h1>
-            <p>
-              Foram identificadas <strong>{gaps.length} lacunas</strong>: práticas respondidas como Nulo (N) ou
-              Parcial (P), ou sem resposta. Elas estão agrupadas por dimensão — a de menor score primeiro — e,
-              dentro de cada dimensão, ordenadas pelo nível da prática e, dentro do nível, da resposta mais fraca
-              para a mais forte. O código de cada prática e a evidência mínima esperada seguem exatamente o
-              documento oficial do MMGIA.
+  blocks.forEach(({ dimensionId, gaps: dimGaps }, blockIndex) => {
+    const score = dimScores[dimensionId];
+    const chunks = chunkRows(dimGaps, DIM_FIRST_PAGE_ROWS, DIM_CONTINUATION_ROWS);
+    let rowStart = 0;
+
+    chunks.forEach((chunk, pageIndex) => {
+      const isFirst = pageIndex === 0;
+      const isVeryLastPage = blockIndex === blocks.length - 1 && pageIndex === chunks.length - 1;
+      const startNum = rowStart + 1;
+      rowStart += chunk.length;
+
+      pages.push(
+        <>
+          <p className="rp-eyebrow">3 · Plano de ação{!isFirst && ' (continuação)'}</p>
+          {isFirst ? (
+            <DimensionGapHeader dimensionId={dimensionId} answers={answers} score={score} gapCount={dimGaps.length} />
+          ) : (
+            <div className="mg-row" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
+              <DimensionTag dimension={dimensionId} />
+              <h2 className="rp-h2" style={{ margin: 0 }}>{DIMENSIONS[dimensionId].name}</h2>
+            </div>
+          )}
+
+          <table className="rp-table rp-gaps">
+            <TableHead />
+            <tbody>
+              {chunk.map((practice, i) => (
+                <GapRow key={practice.id} num={startNum + i} practice={practice} answer={answers[practice.id]} />
+              ))}
+            </tbody>
+          </table>
+
+          {isVeryLastPage && (
+            <p className="rp-small">
+              A base legal aparece apenas quando a prática tem referência normativa cadastrada no modelo.
             </p>
-          </>
-        )}
-
-        <table className="rp-table rp-gaps">
-          <TableHead />
-          <tbody>
-            {chunk.map((practice, i) => (
-              <GapRow key={practice.id} num={startNum + i} practice={practice} answer={answers[practice.id]} />
-            ))}
-          </tbody>
-        </table>
-
-        {isLast && (
-          <p className="rp-small">
-            A base legal aparece apenas quando a prática tem referência normativa cadastrada no modelo.
-          </p>
-        )}
-      </>
-    );
+          )}
+        </>
+      );
+    });
   });
+
+  return pages;
 }
