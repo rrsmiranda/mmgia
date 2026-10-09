@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
-import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
+import { DimensionId, DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import PlexusBackground from './PlexusBackground';
 import Reveal from './Reveal';
 import CountUp from './CountUp';
@@ -61,13 +61,25 @@ const HOW_IT_WORKS = [
   { step: '04', icon: FileText, title: 'Relatório PDF', desc: 'Gerado localmente no browser, em versão executiva ou técnica. Nenhum dado identificador é transmitido ao servidor.', tags: [] },
 ];
 
-const ALIGNMENT_ROWS: { norma: string; artigos: string; dims: DimensionId[] }[] = [
-  { norma: 'LGPD', artigos: 'Art. 20, 46, 50', dims: ['gov', 'seg'] },
-  { norma: 'AI Act EU', artigos: 'Art. 6, 9, 14, 52', dims: ['seg', 'tec'] },
-  { norma: 'ISO 42001', artigos: 'Cl. 4, 5, 6, 8, 10', dims: ['gov', 'tec'] },
-  { norma: 'ENIA 2026', artigos: 'Eixos 1–7', dims: DIMENSION_ORDER as DimensionId[] },
-  { norma: 'NIST AI RMF', artigos: 'Govern, Map, Measure', dims: ['gov', 'seg', 'eco'] },
+/**
+ * Os 5 marcos normativos citados na introdução do documento oficial do MMGIA como
+ * fundamentação do modelo. Em vez de números de artigo/cláusula fixos (que o
+ * documento não especifica por prática), cada linha é computada a partir do campo
+ * `legalReference` das 45 práticas — contagem e dimensões reais, não estimadas.
+ */
+const REGULATORY_FRAMEWORKS: { norma: string; desc: string; prefixes: string[] }[] = [
+  { norma: 'LGPD', desc: 'Lei Geral de Proteção de Dados', prefixes: ['LGPD'] },
+  { norma: 'AI Act EU', desc: 'Regulamento de IA da União Europeia — referência conceitual do modelo', prefixes: ['AI Act'] },
+  { norma: 'ISO/IEC 42001, 23894, 38507', desc: 'Gestão, risco e responsabilidade organizacional em IA', prefixes: ['ISO/IEC 42001', 'ISO/IEC 23894', 'ISO/IEC 38507'] },
+  { norma: 'NIST AI RMF', desc: 'AI Risk Management Framework', prefixes: ['NIST AI RMF'] },
+  { norma: 'ENIA 2026–2029', desc: 'Estratégia Nacional de Inteligência Artificial', prefixes: ['ENIA'] },
 ];
+
+const ALIGNMENT_ROWS = REGULATORY_FRAMEWORKS.map(({ norma, desc, prefixes }) => {
+  const matches = LIST_PRACTICES.filter((p) => p.legalReference && prefixes.some((pre) => p.legalReference!.startsWith(pre)));
+  const dims = (DIMENSION_ORDER as DimensionId[]).filter((d) => matches.some((p) => p.dimensionId === d));
+  return { norma, desc, count: matches.length, dims };
+});
 
 const FAQ_DATA = [
   { q: 'A avaliação é realmente anônima?', a: 'Sim. O banco de dados não possui colunas para IP, nome, CNPJ ou e-mail. O middleware stripIdentity descarta headers identificadores antes que qualquer handler processe o request. É uma impossibilidade técnica, não uma promessa de política.' },
@@ -265,7 +277,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                   <Scale className="mg-ico" aria-hidden="true" />
                 </span>
                 <p className="mg-title" style={{ marginTop: 16 }}>Alinhamento regulatório</p>
-                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Cada prática correlacionada com LGPD, AI Act, ISO 42001 e ENIA.</p>
+                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Metodologia alinhada a LGPD, AI Act, ISO/IEC 42001, NIST AI RMF e ENIA — com referência normativa citada por prática, quando disponível.</p>
               </Card>
               <Card>
                 <span style={{ display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'var(--brand)', color: 'var(--on-brand)' }}>
@@ -372,19 +384,30 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <div>
               <p className="mg-eyebrow">Alinhamento regulatório</p>
-              <h2 className="mg-h2" style={{ marginTop: 12 }}>Alinhamento com 5 marcos normativos.</h2>
-              <p className="mg-lead" style={{ marginTop: 12 }}>Cada uma das 45 práticas é mapeada para artigos e cláusulas específicos das normas aplicáveis. O relatório mostra onde a organização está conforme e onde precisa evoluir.</p>
+              <h2 className="mg-h2" style={{ marginTop: 12 }}>A metodologia é alinhada a 5 marcos normativos.</h2>
+              <p className="mg-lead" style={{ marginTop: 12 }}>
+                O MMGIA é fundamentado nos princípios e diretrizes gerais destes marcos — não é uma certificação de
+                conformidade nem um mapeamento artigo a artigo. Quando uma prática específica tem referência
+                normativa direta, o relatório da avaliação mostra essa citação ao lado dela.
+              </p>
             </div>
             <DataTable
-              caption="Normas alinhadas ao modelo e dimensões correspondentes"
+              caption="Marcos normativos e quantas das 45 práticas citam cada um, por dimensão"
               rowKey={(r) => r.norma}
               columns={[
-                { key: 'norma', header: 'Norma', render: (r) => <strong>{r.norma}</strong> },
-                { key: 'artigos', header: 'Artigos/cláusulas', render: (r) => r.artigos },
+                { key: 'norma', header: 'Norma', render: (r) => (
+                  <>
+                    <strong>{r.norma}</strong>
+                    <div className="mg-small mg-muted" style={{ marginTop: 2 }}>{r.desc}</div>
+                  </>
+                ) },
+                { key: 'count', header: 'Práticas citadas', render: (r) => <span className="mg-code">{r.count} / 45</span> },
                 { key: 'dims', header: 'Dimensões', render: (r) => (
-                  <div className="mg-row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                    {r.dims.map((d) => <DimensionTag key={d} dimension={d} short />)}
-                  </div>
+                  r.dims.length > 0 ? (
+                    <div className="mg-row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                      {r.dims.map((d) => <DimensionTag key={d} dimension={d} short />)}
+                    </div>
+                  ) : <span className="mg-small mg-muted">referência geral do modelo</span>
                 ) },
               ]}
               rows={ALIGNMENT_ROWS}
