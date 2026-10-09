@@ -139,7 +139,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
           <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div>
               <p className="mg-eyebrow">Dados consolidados · Brasil</p>
-              <h1 className="mg-h3" style={{ marginTop: 4 }}>Painel Nacional de Maturidade em IA</h1>
+              <h1 className="mg-h3" style={{ marginTop: 4 }}>Observatório Nacional de Maturidade em Governança de IA</h1>
               <p className="mg-small mg-muted" style={{ marginTop: 4 }}>
                 Dados agregados obedecendo à k-anonimidade ≥ 5 (sigilo estatístico).
               </p>

@@ -453,7 +453,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                     </div>
                     <div style={{ marginTop: 20 }}>
                       <Checkbox checked={termosAceitos} onChange={(e) => setTermosAceitos(e.target.checked)} aria-required="true">
-                        Entendo e aceito que os dados inseridos serão utilizados de forma anônima e agregada para traçar o Painel Nacional de Maturidade em IA brasileiro. <span className="mg-muted">Obrigatório</span>
+                        Entendo e aceito que os dados inseridos serão utilizados de forma anônima e agregada para traçar o Observatório Nacional de Maturidade em Governança de IA brasileiro. <span className="mg-muted">Obrigatório</span>
                       </Checkbox>
                     </div>
                   </CardBody>
