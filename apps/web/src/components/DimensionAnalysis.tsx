@@ -26,7 +26,6 @@ import {
   NPLF,
   LEVEL_LABELS,
   RiskBadge,
-  SCORE_GOAL,
   cx,
   formatNumber,
   type Level,
@@ -141,7 +140,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
             >
               <RadarChart
                 axes={axes}
-                goal={SCORE_GOAL}
                 highlightId={hoverId}
                 onAxisHover={setHoverId}
                 onAxisClick={handleAxisClick}
@@ -163,10 +161,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
               <div className="mg-row" style={{ gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <LevelBadge level={globalLevel.num as Level} />
                 <RiskBadge level={globalLevel.num as Level} />
-              </div>
-              <div className="mg-an-legend" style={{ marginTop: 20 }}>
-                <span><i className="s" aria-hidden="true" />Sua organização</span>
-                <span><i className="d" aria-hidden="true" />Meta · {formatNumber(SCORE_GOAL, 2)}</span>
               </div>
               <div className="mg-an-hint" style={{ marginTop: 16 }}>
                 <Info className="mg-ico mg-ico-sm" aria-hidden="true" />
@@ -208,7 +202,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                         <span className="mg-an-mini">
                           <div className="mg-bar" role="img" aria-label={`Nível ${level}: ${formatNumber(value)} de 3`}>
                             <span className="mg-bar-fill" style={{ width: `${(value / 3) * 100}%`, background: 'var(--brand)' }} />
-                            <span className="mg-goal" style={{ left: `${(SCORE_GOAL / 3) * 100}%` }} aria-hidden="true" />
                           </div>
                         </span>
                       ) : (
@@ -220,10 +213,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                 })}
               </ul>
 
-              <div className="mg-an-legend" style={{ marginTop: 20 }}>
-                <span><i className="s" aria-hidden="true" />Sua organização</span>
-                <span><i className="d" aria-hidden="true" />Meta · {formatNumber(SCORE_GOAL, 2)}</span>
-              </div>
               <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
                 Cada eixo é uma prática (N = 0 · P = 1 · L = 2 · F = 3), em ordem de nível, no sentido horário a partir do topo.
               </p>
@@ -235,7 +224,7 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
       <div className="mg-an2-list">
         <div className="mg-an2-listhead">
           <span>Dimensão</span>
-          <span>Score · meta {formatNumber(SCORE_GOAL, 2)}</span>
+          <span>Score</span>
         </div>
         {DIMENSION_ORDER.map((id) => {
           const Icon = DIMENSION_ICONS[id];
@@ -263,7 +252,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                 <span className="mg-an-mini">
                   <div className="mg-bar" role="img" aria-label={`${dim.name}: ${formatNumber(score)} de 3`}>
                     <span className="mg-bar-fill" style={{ width: `${(Math.min(score, 3) / 3) * 100}%`, background: 'var(--brand)' }} />
-                    <span className="mg-goal" style={{ left: `${(SCORE_GOAL / 3) * 100}%` }} aria-hidden="true" />
                   </div>
                 </span>
                 <span className="mg-an-val">{formatNumber(score)}</span>

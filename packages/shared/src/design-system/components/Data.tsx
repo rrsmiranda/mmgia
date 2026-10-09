@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { DIMENSIONS, type DimensionId } from '../../types';
-import { DIMENSION_ICONS, DIMENSION_ORDER, LEVEL_LABELS, SCORE_GOAL, SCORE_MAX, cx, formatNumber, type Level } from '../tokens';
+import { DIMENSION_ICONS, DIMENSION_ORDER, LEVEL_LABELS, SCORE_MAX, cx, formatNumber, type Level } from '../tokens';
 
 /** Medidor compacto do nível (0–5) para tabelas e listas. */
 export function LevelMeter({ level, showLabel = true }: { level: Level; showLabel?: boolean }) {
@@ -31,13 +31,11 @@ export function DimensionTag({ dimension, short = false }: { dimension: Dimensio
 
 interface DimensionBarsProps {
   scores: Record<DimensionId, number>;
-  /** Mostra a meta tracejada no nível 3 (score 1,50). */
-  goal?: boolean;
   short?: boolean;
 }
 
 /** Barras por dimensão na escala 0–3, todas em --brand (o comprimento mostra o valor, não a cor). A cor categórica fica só no marcador do DimensionTag. Preenche do zero ao montar. */
-export function DimensionBars({ scores, goal = true, short = false }: DimensionBarsProps) {
+export function DimensionBars({ scores, short = false }: DimensionBarsProps) {
   const [filled, setFilled] = useState(false);
   useEffect(() => {
     const raf = requestAnimationFrame(() => setFilled(true));
@@ -56,7 +54,6 @@ export function DimensionBars({ scores, goal = true, short = false }: DimensionB
             <span className="v">{formatNumber(v)}</span>
             <div className="mg-bar" role="img" aria-label={`${d.name}: ${formatNumber(v)} de ${SCORE_MAX}`}>
               <span className="mg-bar-fill" style={{ width: filled ? `${pct}%` : 0, background: 'var(--brand)' }} />
-              {goal && <span className="mg-goal" style={{ left: `${(SCORE_GOAL / SCORE_MAX) * 100}%` }} aria-hidden="true" />}
             </div>
           </div>
         );

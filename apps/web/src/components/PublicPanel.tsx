@@ -253,7 +253,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
             <Card id="panel-dimension-averages">
               <CardHeader title="Médias consolidadas por pilar" />
               <CardBody>
-                <DimensionBars scores={DIMENSION_AVERAGES} goal />
+                <DimensionBars scores={DIMENSION_AVERAGES} />
               </CardBody>
             </Card>
 

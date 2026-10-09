@@ -20,7 +20,6 @@ import {
   formatNumber,
   LevelBadge,
   NplfBadge,
-  SCORE_GOAL,
   type Level,
 } from '@mmgia/shared/design-system';
 import RadarChart, { type RadarAxis } from '../RadarChart';
@@ -156,7 +155,7 @@ function DimensionGapHeader({ dimensionId, answers, score, gapCount }: {
   return (
     <div className="rp-cols rp-gap-head">
       <div className="rp-gap-radar">
-        <RadarChart axes={axes} goal={SCORE_GOAL} ariaLabel={`Radar das 9 práticas de ${dim.name}`} />
+        <RadarChart axes={axes} ariaLabel={`Radar das 9 práticas de ${dim.name}`} />
       </div>
       <div>
         <div className="mg-row" style={{ gap: 8, alignItems: 'center' }}>

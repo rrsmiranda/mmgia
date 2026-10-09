@@ -47,9 +47,8 @@ export const NPLF: Record<ScoreLevel, { label: string; subtitle: string; descrip
   F: { label: 'Total', subtitle: 'Otimizado', description: 'Totalmente adotado e medido.', value: 3 },
 };
 
-/** Score máximo (escala NPLF 0–3) e score que marca o nível 3 (meta). */
+/** Score máximo (escala NPLF 0–3). */
 export const SCORE_MAX = 3;
-export const SCORE_GOAL = 1.5;
 
 /** Nível 0–5 a partir do score 0–3, usando a mesma regra de scoring.ts. */
 export function levelFromScore(score: number): Level {

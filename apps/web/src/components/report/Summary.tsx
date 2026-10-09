@@ -51,7 +51,7 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
 
       <h2 className="rp-h2">Score por dimensão</h2>
       <DimensionBars scores={dimensionScores} />
-      <p className="rp-small">Meta de referência: nível 3 · Definido (1,50). Escala de 0 a 3.</p>
+      <p className="rp-small">Escala de 0 a 3.</p>
 
       <h2 className="rp-h2">Principais conclusões</h2>
       <ul className="rp-list">

@@ -22,8 +22,6 @@ export interface RadarAxis {
 
 interface RadarChartProps {
   axes: RadarAxis[];
-  /** Score da meta (1,5) → anel pontilhado. */
-  goal?: number;
   /** Alinhado por índice a `axes`. Opcional — só na visão geral. */
   benchmark?: (number | null)[];
   /** Eixo em destaque (hover/foco), controlado pelo chamador. */
@@ -38,7 +36,7 @@ const CENTER = SIZE / 2;
 const MAX_RADIUS = 92;
 const MAX_SCORE = 3;
 
-export default function RadarChart({ axes, goal, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel }: RadarChartProps) {
+export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel }: RadarChartProps) {
   const prefersReducedMotion = useReducedMotion();
   const n = axes.length;
 
@@ -58,7 +56,6 @@ export default function RadarChart({ axes, goal, benchmark, highlightId, onAxisH
     }).join(' ');
 
   const ringPoints = [1, 2, 3].map((value) => ({ value, points: ringAt(value) }));
-  const goalRingPoints = goal != null ? ringAt(goal) : null;
 
   const userPoints = axes.map((axis, i) => pointFor(i, axis.value ?? 0));
   const userPointsStr = userPoints.map((p) => `${p.x},${p.y}`).join(' ');
@@ -95,9 +92,6 @@ export default function RadarChart({ axes, goal, benchmark, highlightId, onAxisH
             </text>
           </g>
         ))}
-
-        {/* Anel pontilhado da meta */}
-        {goalRingPoints && <polygon points={goalRingPoints} fill="none" stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="2 3" />}
 
         {/* Raios do grid */}
         {axes.map((axis, i) => {
