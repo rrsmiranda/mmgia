@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ClipboardList, Menu, Moon, Sun, X } from 'lucide-react';
+import { ClipboardList, KeyRound, Menu, Moon, Sun, X } from 'lucide-react';
 import { Button } from '@mmgia/shared/design-system';
 
 interface HeaderProps {
@@ -93,6 +93,10 @@ export default function Header({
               {theme === 'dark' ? <Sun className="mg-ico" aria-hidden="true" /> : <Moon className="mg-ico" aria-hidden="true" />}
             </button>
 
+            <button type="button" className="mg-iconbtn" onClick={() => handleNavClick('editar', true)} title="Editar avaliação com código" aria-label="Editar avaliação com código">
+              <KeyRound className="mg-ico" aria-hidden="true" />
+            </button>
+
             <Button variant="secondary" onClick={() => handleNavClick('mapa', true)}>Painel público</Button>
 
             <Button variant="primary" icon={ClipboardList} onClick={onGoToOnboarding}>
@@ -124,6 +128,7 @@ export default function Header({
             <Button key={link.id} variant="ghost" fullWidth onClick={() => handleNavClick(link.id)}>{link.label}</Button>
           ))}
           <Button variant="ghost" fullWidth onClick={() => handleNavClick('mapa', true)}>Painel público</Button>
+          <Button variant="ghost" fullWidth icon={KeyRound} onClick={() => handleNavClick('editar', true)}>Editar com código</Button>
           <Button variant="primary" fullWidth icon={ClipboardList} onClick={() => { setMobileMenuOpen(false); onGoToOnboarding(); }} style={{ marginTop: 8 }}>
             {hasActiveAssessment ? 'Retomar avaliação' : 'Iniciar avaliação'}
           </Button>
