@@ -39,7 +39,6 @@
 .rp-gaps td { padding-top: 4pt; padding-bottom: 4pt; }
 .rp-gaps .rp-small { font-size: 8.25pt; }
 .rp-gaps td:nth-child(2) { width: 54pt; }
-.rp-gaps td:nth-child(4) { width: 92pt; }
 .rp-gap-head { grid-template-columns: 150pt 1fr; gap: 16pt; margin-bottom: 10pt; break-inside: avoid; }
 .rp-gap-radar { max-width: 150pt; margin: 0 auto; }
 .rp-gap-radar text { font-size: 7pt !important; }

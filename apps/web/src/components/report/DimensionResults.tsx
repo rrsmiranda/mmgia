@@ -6,7 +6,7 @@
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
-import { DIMENSION_WEIGHTS, getOfficialPracticeCode } from '@mmgia/shared/scoring';
+import { DIMENSION_WEIGHTS, getLevelScores, getOfficialPracticeCode } from '@mmgia/shared/scoring';
 import { DimensionTag, LevelBadge, NplfBadge, DIMENSION_ORDER, formatNumber, type Level } from '@mmgia/shared/design-system';
 
 interface DimensionResultsContentProps {
@@ -81,6 +81,36 @@ export default function DimensionResultsContent({
             <td className="num">{formatNumber(globalScore, 3)}</td>
           </tr>
         </tfoot>
+      </table>
+
+      <h2 className="rp-h2">Score por nível de maturidade</h2>
+      <p>
+        Média das práticas respondidas em cada nível (escala 0 a 3). O score de cada dimensão, na tabela acima, é a
+        média destes valores — apenas níveis com ao menos uma prática respondida entram nessa média. "—" indica nível
+        sem nenhuma prática respondida.
+      </p>
+
+      <table className="rp-table rp-matrix">
+        <thead>
+          <tr>
+            <th scope="col">Dimensão</th>
+            {LEVELS.map((lvl) => <th scope="col" className="num" key={lvl}>Nível {lvl}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {DIMENSION_ORDER.map((dim) => {
+            const levelScores = getLevelScores(dim, answers);
+            return (
+              <tr key={dim}>
+                <th scope="row"><DimensionTag dimension={dim} short /></th>
+                {LEVELS.map((lvl) => {
+                  const value = levelScores[lvl];
+                  return <td key={lvl} className="num">{value !== null ? formatNumber(value) : '—'}</td>;
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
       </table>
 
       <h2 className="rp-h2">Respostas por nível de maturidade</h2>

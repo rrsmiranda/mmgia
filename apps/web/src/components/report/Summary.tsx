@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { DimensionId, Practice } from '@mmgia/shared/types';
+import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
 import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
@@ -14,15 +14,18 @@ interface SummaryContentProps {
   levelInfo: MaturityLevelInfo;
   dimensionScores: Record<DimensionId, number>;
   gaps: Practice[];
+  answers: Record<string, ScoreLevel>;
 }
 
-export default function SummaryContent({ globalScore, levelInfo, dimensionScores, gaps }: SummaryContentProps) {
+export default function SummaryContent({ globalScore, levelInfo, dimensionScores, gaps, answers }: SummaryContentProps) {
   const sortedDims = [...DIMENSION_ORDER].sort((a, b) => dimensionScores[b] - dimensionScores[a]);
   const maiorId = sortedDims[0];
   const menorId = sortedDims[sortedDims.length - 1];
 
   const gapsIniciais = gaps.filter((g) => g.level <= 3).length;
   const proximoNivel = levelInfo.num + 1;
+  const naoRespondidas = gaps.filter((g) => !answers[g.id]).length;
+  const nulas = gaps.filter((g) => answers[g.id] === 'N').length;
 
   const menorPeso = Math.round(DIMENSION_WEIGHTS[menorId] * 100);
 
@@ -53,6 +56,13 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
       <h2 className="rp-h2">Principais conclusões</h2>
       <ul className="rp-list">
         <li>{gaps.length} das {LIST_PRACTICES.length} práticas estão inexistentes ou parciais (respostas N ou P).</li>
+        {naoRespondidas > 0 && (
+          <li>
+            Dessas, <strong>{naoRespondidas}</strong> não tiveram resposta registrada e <strong>{nulas}</strong> foram
+            avaliadas como Nulo. Ambas contam como zero no cálculo, mas significam coisas diferentes: a primeira é
+            ausência de registro; a segunda é ausência de prática já constatada pela organização.
+          </li>
+        )}
         {levelInfo.num < 5 && (
           <li>
             {gapsIniciais} dessas lacunas estão em práticas dos níveis 1 a 3 — são as que sustentam a consolidação do nível {proximoNivel}.

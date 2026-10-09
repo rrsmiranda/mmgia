@@ -18,7 +18,6 @@ import {
   DIMENSION_ORDER,
   DimensionTag,
   formatNumber,
-  LegalBadge,
   LevelBadge,
   NplfBadge,
   SCORE_GOAL,
@@ -100,7 +99,6 @@ function TableHead() {
         <th scope="col">#</th>
         <th scope="col">Nível</th>
         <th scope="col">Prática e próximo passo</th>
-        <th scope="col">Base legal</th>
       </tr>
     </thead>
   );
@@ -122,7 +120,6 @@ function GapRow({ num, practice, answer }: { num: number; practice: Practice; an
           {evidenceItems.map((item) => <li key={item}>{item}</li>)}
         </ul>
       </td>
-      <td>{practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : '—'}</td>
     </tr>
   );
 }
@@ -230,14 +227,13 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
     </>
   );
 
-  blocks.forEach(({ dimensionId, gaps: dimGaps }, blockIndex) => {
+  blocks.forEach(({ dimensionId, gaps: dimGaps }) => {
     const score = dimScores[dimensionId];
     const chunks = chunkRows(dimGaps, DIM_FIRST_PAGE_ROWS, DIM_CONTINUATION_ROWS);
     let rowStart = 0;
 
     chunks.forEach((chunk, pageIndex) => {
       const isFirst = pageIndex === 0;
-      const isVeryLastPage = blockIndex === blocks.length - 1 && pageIndex === chunks.length - 1;
       const startNum = rowStart + 1;
       rowStart += chunk.length;
 
@@ -261,12 +257,6 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
               ))}
             </tbody>
           </table>
-
-          {isVeryLastPage && (
-            <p className="rp-small">
-              A base legal aparece apenas quando a prática tem referência normativa cadastrada no modelo.
-            </p>
-          )}
         </>
       );
     });

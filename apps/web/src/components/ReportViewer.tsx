@@ -52,7 +52,7 @@ export default function ReportViewer({ answers, metadata, onBack, autoPrint = fa
 
   const pages: ReactNode[] = [
     <CoverContent metadata={metadata} />,
-    <SummaryContent globalScore={globalScore} levelInfo={levelInfo} dimensionScores={dimensionScores} gaps={gaps} />,
+    <SummaryContent globalScore={globalScore} levelInfo={levelInfo} dimensionScores={dimensionScores} gaps={gaps} answers={answers} />,
     <DimensionResultsContent
       globalScore={globalScore}
       levelInfo={levelInfo}
