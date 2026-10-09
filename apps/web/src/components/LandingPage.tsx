@@ -277,7 +277,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                   <Scale className="mg-ico" aria-hidden="true" />
                 </span>
                 <p className="mg-title" style={{ marginTop: 16 }}>Alinhamento regulatório</p>
-                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Metodologia alinhada a LGPD, AI Act, ISO/IEC 42001, NIST AI RMF e ENIA — com referência normativa citada por prática, quando disponível.</p>
+                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Metodologia fundamentada nos princípios de LGPD, AI Act, ISO/IEC 42001, NIST AI RMF e ENIA.</p>
               </Card>
               <Card>
                 <span style={{ display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'var(--brand)', color: 'var(--on-brand)' }}>
