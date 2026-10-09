@@ -377,7 +377,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <div>
               <p className="mg-eyebrow">Fundamentação do modelo</p>
-              <h2 className="mg-h2" style={{ marginTop: 12 }}>Como o MMGIA foi construído.</h2>
+              <h2 className="mg-h2" style={{ marginTop: 12 }}>Como o MMGIA foi construído?</h2>
               <p className="mg-lead" style={{ marginTop: 12 }}>
                 O documento oficial descreve a fundamentação do modelo em termos gerais, sem detalhar essa relação
                 por prática ou por dimensão: o MMGIA é alinhado à ENIA, fundamentado em referenciais de maturidade de
