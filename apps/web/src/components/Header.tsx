@@ -20,7 +20,7 @@ const NAV_LINKS = [
   { id: 'como', label: 'Como funciona' },
   { id: 'dimensoes', label: 'Dimensões' },
   { id: 'privacidade', label: 'Privacidade' },
-  { id: 'metodologia', label: 'Metodologia' },
+  { id: 'metodologia', label: 'Metodologia', isTab: true },
   { id: 'faq', label: 'FAQ' },
 ];
 
@@ -82,7 +82,7 @@ export default function Header({
 
           <nav className="mg-nav" aria-label="Principal">
             {NAV_LINKS.map((link) => (
-              <a key={link.id} href={`#${link.id}`} onClick={(e) => { e.preventDefault(); handleNavClick(link.id); }}>
+              <a key={link.id} href={`#${link.id}`} onClick={(e) => { e.preventDefault(); handleNavClick(link.id, link.isTab); }}>
                 {link.label}
               </a>
             ))}
@@ -125,7 +125,7 @@ export default function Header({
           style={{ background: 'var(--surface-raised)', borderBottom: '1px solid var(--surface-deep)', padding: 16 }}
         >
           {NAV_LINKS.map((link) => (
-            <Button key={link.id} variant="ghost" fullWidth onClick={() => handleNavClick(link.id)}>{link.label}</Button>
+            <Button key={link.id} variant="ghost" fullWidth onClick={() => handleNavClick(link.id, link.isTab)}>{link.label}</Button>
           ))}
           <Button variant="ghost" fullWidth onClick={() => handleNavClick('mapa', true)}>Painel público</Button>
           <Button variant="ghost" fullWidth icon={KeyRound} onClick={() => handleNavClick('editar', true)}>Editar com código</Button>

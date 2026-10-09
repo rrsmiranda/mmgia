@@ -121,7 +121,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               </p>
               <div className="mg-row" style={{ gap: 12, marginTop: 32, flexWrap: 'wrap' }}>
                 <Button variant="primary" size="lg" onInk onClick={onStartOnboarding}>Iniciar avaliação</Button>
-                <Button variant="secondary" size="lg" onInk onClick={() => { const el = document.getElementById('metodologia'); el?.scrollIntoView({ behavior: 'smooth' }); }}>Ver metodologia</Button>
+                <Button variant="secondary" size="lg" onInk onClick={() => onChangeTab('metodologia')}>Ver metodologia</Button>
               </div>
               <div style={{ marginTop: 16 }}>
                 <Button variant="ghost" onInk size="sm" icon={KeyRound} onClick={() => onChangeTab('editar')}>Já avaliou? Edite com seu código</Button>
@@ -509,7 +509,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               <button onClick={onStartOnboarding} className="mg-footer-btn">Iniciar diagnóstico</button>
               <button onClick={() => onChangeTab('editar')} className="mg-footer-btn">Editar avaliação</button>
               <button onClick={() => onChangeTab('mapa')} className="mg-footer-btn">Painel público</button>
-              <a href="#metodologia">Metodologia</a>
+              <button onClick={() => onChangeTab('metodologia')} className="mg-footer-btn">Metodologia</button>
               <button onClick={() => onChangeTab('opendata')} className="mg-footer-btn">Open data</button>
             </div>
 
