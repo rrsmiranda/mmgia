@@ -13,6 +13,7 @@ import {
   FileText,
   GraduationCap,
   Github,
+  KeyRound,
   Landmark,
   ListChecks,
   Monitor,
@@ -117,7 +118,10 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <Button variant="primary" size="lg" onInk onClick={onStartOnboarding}>Iniciar avaliação</Button>
                 <Button variant="secondary" size="lg" onInk onClick={() => { const el = document.getElementById('metodologia'); el?.scrollIntoView({ behavior: 'smooth' }); }}>Ver metodologia</Button>
               </div>
-              <p className="mg-small" style={{ marginTop: 24, color: 'var(--on-ink-muted)' }}>
+              <div style={{ marginTop: 16 }}>
+                <Button variant="ghost" onInk size="sm" icon={KeyRound} onClick={() => onChangeTab('editar')}>Já avaliou? Edite com seu código</Button>
+              </div>
+              <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>
                 <strong style={{ color: 'var(--on-ink)' }}><CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} /></strong> avaliações · 27 estados · <strong style={{ color: 'var(--on-ink)' }}>100%</strong> gratuito
               </p>
             </div>
@@ -497,6 +501,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             <div>
               <h4>Plataforma</h4>
               <button onClick={onStartOnboarding} className="mg-footer-btn">Iniciar diagnóstico</button>
+              <button onClick={() => onChangeTab('editar')} className="mg-footer-btn">Editar avaliação</button>
               <button onClick={() => onChangeTab('mapa')} className="mg-footer-btn">Painel público</button>
               <a href="#metodologia">Metodologia</a>
               <button onClick={() => onChangeTab('opendata')} className="mg-footer-btn">Open data</button>
