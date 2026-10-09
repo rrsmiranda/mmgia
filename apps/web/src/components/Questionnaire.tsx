@@ -13,7 +13,6 @@ import {
   DIMENSION_ICONS,
   DsRoot,
   FlowHeader,
-  LegalBadge,
   NPLF,
   NplfBadge,
   OptionCard,
@@ -196,7 +195,6 @@ export default function Questionnaire({
               <div>
                 <div className="mg-row mg-nowrap" style={{ gap: 10 }}>
                   <span className="mg-code">{currentPractice.id} · prática de nível {currentPractice.level}</span>
-                  {currentPractice.legalReference && <LegalBadge>{currentPractice.legalReference}</LegalBadge>}
                 </div>
                 <p className="mg-body" style={{ marginTop: 12 }}>{currentPractice.description}</p>
                 <div className="mg-crit">
