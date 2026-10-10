@@ -8,6 +8,7 @@ import { ChevronDown, ChevronLeft, ChevronRight, Info, LayoutGrid } from 'lucide
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { DIMENSIONS, DimensionId, ScoreLevel } from '@mmgia/shared/types';
 import {
+  DIMENSION_WEIGHTS,
   getAllDimensionLevels,
   getAllDimensionScores,
   getGlobalScore,
@@ -253,7 +254,12 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                   </div>
                 </span>
                 <span className="mg-an-val">{formatNumber(score)}</span>
-                <LevelBadge level={level.num as Level} />
+                <span className="mg-an-weightcell">
+                  <LevelBadge level={level.num as Level} />
+                  <span className="mg-an-weighttext">
+                    Peso {Math.round(DIMENSION_WEIGHTS[id] * 100)}% · Contrib. {formatNumber(score * DIMENSION_WEIGHTS[id], 3)}
+                  </span>
+                </span>
                 <ChevronDown className="chev mg-ico mg-ico-sm" aria-hidden="true" />
               </summary>
 

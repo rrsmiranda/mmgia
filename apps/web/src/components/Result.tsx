@@ -4,22 +4,19 @@
  */
 
 import { useState } from 'react';
+import { useReducedMotion } from 'motion/react';
 import {
   Check,
   Compass,
   Copy,
   Eye,
   FileText,
-  HelpCircle,
-  Info,
   Printer,
   RotateCcw,
-  X,
 } from 'lucide-react';
 import { ScoreLevel, DIMENSIONS, DimensionId, AssessmentMetadata } from '@mmgia/shared/types';
 import { rotuloArea } from '@mmgia/shared/taxonomy';
 import {
-  DIMENSION_WEIGHTS,
   getAllDimensionScores,
   getGlobalScore,
   getLevelScores,
@@ -59,62 +56,6 @@ interface ResultProps {
   theme?: 'light' | 'dark';
 }
 
-/**
- * Descrições dos 6 níveis de maturidade exibidas na memória de cálculo desta tela.
- * Texto idêntico ao de getMaturityLevel (src/lib/scoring.ts) — não alterar.
- */
-const LEVEL_MEANINGS: { lvl: Level; scoreRange: string; title: string; desc: string; risco: string }[] = [
-  {
-    lvl: 0,
-    scoreRange: '0,0 a 0,5',
-    title: 'Nível 0 — Inexistente',
-    desc: 'A organização não possui, nem reconhece, a necessidade de práticas de governança de IA. As atividades são inexistentes, não documentadas ou realizadas de forma caótica, sem qualquer controle ou supervisão.',
-    risco: 'Riscos críticos de segurança: o uso descontrolado de ferramentas (Shadow AI) gera vazamento inevitável de dados confidenciais e alta exposição civil por vieses e falhas cognitivas algorítmicas.',
-  },
-  {
-    lvl: 1,
-    scoreRange: '0,5 a 1,0',
-    title: 'Nível 1 — Inicial',
-    desc: 'As práticas são ad hoc, reativas e dependentes de indivíduos. O sucesso em iniciativas de IA é imprevisível e ocorre apesar da ausência de processos formais, geralmente impulsionado por "heróis" organizacionais. Há uma conscientização da necessidade de práticas de governança de IA.',
-    risco: 'Ausência de testes formais de vieses demográficos, éticos ou segurança. Elevado risco de descontinuação repentina do conhecimento quando indivíduos-heróis chave se desligam das frentes internas.',
-  },
-  {
-    lvl: 2,
-    scoreRange: '1,0 a 1,5',
-    title: 'Nível 2 — Gerenciado',
-    desc: 'Práticas básicas de gestão de projetos e de supervisão são aplicadas às iniciativas de IA. Políticas e responsabilidades começam a ser definidas em nível de projeto ou de departamento, mas a aplicação ainda é inconsistente em toda a organização.',
-    risco: 'Embora existam controles focais, a inconsistência gera ilhas de risco desconectadas. Cada iniciativa adota critérios próprios de segurança da informação, abrindo buracos estruturais de conformidade legal.',
-  },
-  {
-    lvl: 3,
-    scoreRange: '1,5 a 2,0',
-    title: 'Nível 3 — Definido',
-    desc: 'Processos de governança de IA são padronizados, documentados e disseminados em toda a organização, constituindo um "jeito organizacional" de fazer com IA. Há um entendimento comum sobre papéis, responsabilidades e procedimentos.',
-    risco: 'O estabelecimento de processos padronizados e documentados reduz significativamente a ambiguidade e o risco organizacional para um patamar moderado. Há uma base de conformidade, mas o risco principal orbita em torno da rigidez dos processos.',
-  },
-  {
-    lvl: 4,
-    scoreRange: '2,0 a 2,5',
-    title: 'Nível 4 — Gerenciado Quantitativamente',
-    desc: 'A organização mede e controla o desempenho de seus processos de governança de IA por meio de métricas e dados estatísticos. O desempenho é previsível e os desvios são gerenciados proativamente.',
-    risco: 'Monitoramento contínuo bem estruturado. O risco migra para o perigo da complacência e viés quantitativo: a equipe foca em métricas simplistas e negligencia as nuances qualitativas éticas e novidades de regulação.',
-  },
-  {
-    lvl: 5,
-    scoreRange: '2,5 a 3,0',
-    title: 'Nível 5 — Otimizado',
-    desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
-    risco: 'A governança se torna adaptativa, ágil e diferencial competitivo forte. Riscos minimizados. O único desafio é evitar a complacência e manter o ritmo ativo de monitoramento em face às novas disrupções técnicas no cenário global.',
-  },
-];
-
-interface WeightRow {
-  id: DimensionId;
-  score: number;
-  weight: number;
-  contribution: number;
-}
-
 interface LevelRow {
   id: DimensionId;
   scores: Record<1 | 2 | 3 | 4 | 5, number | null>;
@@ -125,12 +66,16 @@ const PRIORITY_GAPS_SHOWN = 8;
 
 export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
-  const [showDetails, setShowDetails] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
   };
 
   // Score Calculus (ver packages/shared/src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
@@ -139,13 +84,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   const levelInfo = getMaturityLevel(globalScore);
 
   const areaLabel = rotuloArea(metadata.setor, metadata.area) ?? 'sua área de atuação';
-
-  const weightRows: WeightRow[] = DIMENSION_ORDER.map((id) => ({
-    id,
-    score: currentScores[id],
-    weight: DIMENSION_WEIGHTS[id],
-    contribution: currentScores[id] * DIMENSION_WEIGHTS[id],
-  }));
 
   const levelRows: LevelRow[] = DIMENSION_ORDER.map((id) => ({
     id,
@@ -184,9 +122,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais de governança no grupo de <strong>{areaLabel}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
           </p>
           <ActionBar inline>
-            <Button variant="secondary" onInk icon={Info} onClick={() => setShowDetails((v) => !v)}>
-              {showDetails ? 'Ocultar detalhamento' : 'Como minha média foi calculada?'}
-            </Button>
             <Button
               variant="primary"
               onInk
@@ -199,87 +134,13 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </section>
 
-        {showDetails && (
-          <Card style={{ marginBottom: 24 }}>
-            <CardHeader
-              title="Memória de cálculo da média de maturidade ponderada"
-              actions={<Button variant="ghost" size="sm" iconOnly icon={X} aria-label="Fechar memória de cálculo" onClick={() => setShowDetails(false)} />}
-            />
-            <CardBody>
-              <p className="mg-lead">
-                Passo 1 — cada prática respondida herda o valor da escala NPLF (Nulo = 0, Parcial = 1, Larga = 2, Total = 3).
-                Passo 2 — o score de cada dimensão é a média dos níveis de prática respondidos dentro dela.
-                Passo 3 — as 5 dimensões são ponderadas pelos pesos oficiais abaixo para compor o Score Global (0 a 3).
-              </p>
-
-              <div style={{ marginTop: 20 }}>
-                <DataTable<WeightRow>
-                  caption="Contribuição de cada dimensão para o Score Global"
-                  rowKey={(r) => r.id}
-                  columns={[
-                    { key: 'dim', header: 'Eixo', render: (r) => <DimensionTag dimension={r.id} /> },
-                    { key: 'score', header: 'Score', numeric: true, render: (r) => formatNumber(r.score) },
-                    { key: 'weight', header: 'Peso', numeric: true, render: (r) => `${Math.round(r.weight * 100)}%` },
-                    { key: 'contrib', header: 'Contribuição', numeric: true, render: (r) => formatNumber(r.contribution, 3) },
-                  ]}
-                  rows={weightRows}
-                />
-              </div>
-
-              <div style={{ marginTop: 20 }}>
-                <DataTable<LevelRow>
-                  caption="Score por nível de maturidade — média das práticas respondidas em cada nível"
-                  rowKey={(r) => r.id}
-                  columns={[
-                    { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} /> },
-                    ...PRACTICE_LEVELS.map((lvl) => ({
-                      key: `lvl${lvl}`,
-                      header: `Nível ${lvl}`,
-                      numeric: true,
-                      render: (r: LevelRow) => (r.scores[lvl] !== null ? formatNumber(r.scores[lvl]!) : '—'),
-                    })),
-                  ]}
-                  rows={levelRows}
-                />
-                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
-                  "—" indica nível sem nenhuma prática respondida nessa dimensão.
-                </p>
-              </div>
-
-              <div className="mg-row" style={{ gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
-                <span className="mg-code">Score Global: {formatNumber(globalScore)} / 3</span>
-                <LevelBadge level={levelInfo.num as Level} />
-                <RiskBadge level={levelInfo.num as Level} />
-              </div>
-              <p className="mg-small mg-muted" style={{ marginTop: 8 }}>{levelInfo.desc}</p>
-
-              <div className="mg-stack" style={{ marginTop: 24, gap: 12 }}>
-                <h3 className="mg-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <HelpCircle className="mg-ico mg-ico-sm" aria-hidden="true" />
-                  O que significa cada nível de maturidade?
-                </h3>
-                {LEVEL_MEANINGS.map((item) => {
-                  const isSelected = levelInfo.num === item.lvl;
-                  return (
-                    <Card key={item.lvl} style={isSelected ? { boxShadow: '0 0 0 3px var(--brand-soft)', borderColor: 'var(--brand)' } : undefined}>
-                      <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                        <div className="mg-row" style={{ gap: 8 }}>
-                          <LevelBadge level={item.lvl} showLabel={false} />
-                          <span className="mg-title">{item.title}</span>
-                        </div>
-                        <span className="mg-code">Score {item.scoreRange}</span>
-                      </div>
-                      <p className="mg-small" style={{ marginTop: 8 }}>{item.desc}</p>
-                      <p className="mg-small mg-muted" style={{ marginTop: 6, borderLeft: '2px solid var(--surface-deep)', paddingLeft: 8 }}>
-                        <strong>Implicações e riscos:</strong> {item.risco}
-                      </p>
-                    </Card>
-                  );
-                })}
-              </div>
-            </CardBody>
-          </Card>
-        )}
+        {/* NAVEGAÇÃO RÁPIDA — leva direto a cada seção, para não precisar rolar a tela toda */}
+        <nav className="mg-row" aria-label="Ir para seção do diagnóstico" style={{ justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+          <Button variant="secondary" size="sm" onClick={() => scrollToSection('dimension-analysis')}>Visão geral</Button>
+          <Button variant="secondary" size="sm" onClick={() => scrollToSection('calc-memory')}>Memória de cálculo</Button>
+          <Button variant="secondary" size="sm" onClick={() => scrollToSection('key-findings')}>Principais conclusões</Button>
+          <Button variant="secondary" size="sm" onClick={() => scrollToSection('priority-gaps')}>Lacunas priorizadas</Button>
+        </nav>
 
         {/* RECOVERY CODE */}
         <Card style={{ marginBottom: 24 }} id="code-recovery-card">
@@ -299,8 +160,38 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </Card>
 
+        {/* VISÃO GERAL — radar das 5 dimensões, com peso e contribuição de cada uma na lista abaixo */}
+        <div style={{ marginBottom: 24 }}>
+          <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
+        </div>
+
+        {/* MEMÓRIA DE CÁLCULO — só a matriz dimensão × nível; peso e contribuição já aparecem na lista de dimensões acima */}
+        <Card id="calc-memory" style={{ marginBottom: 24 }}>
+          <CardHeader title="Memória de cálculo da média de maturidade ponderada" />
+          <CardBody>
+            <DataTable<LevelRow>
+              caption="Score por nível de maturidade — média das práticas respondidas em cada nível"
+              rowKey={(r) => r.id}
+              columns={[
+                { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} /> },
+                ...PRACTICE_LEVELS.map((lvl) => ({
+                  key: `lvl${lvl}`,
+                  header: `Nível ${lvl}`,
+                  numeric: true,
+                  render: (r: LevelRow) => (r.scores[lvl] !== null ? formatNumber(r.scores[lvl]!) : '—'),
+                })),
+              ]}
+              rows={levelRows}
+            />
+            <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
+              Cada célula é a média das práticas respondidas naquele nível — a base do score de cada dimensão.
+              "—" indica nível sem nenhuma prática respondida.
+            </p>
+          </CardBody>
+        </Card>
+
         {/* PRINCIPAIS CONCLUSÕES — mesmos números do PDF (report/Summary.tsx), via getKeyFindings */}
-        <Card style={{ marginBottom: 24 }}>
+        <Card id="key-findings" style={{ marginBottom: 24 }}>
           <CardHeader title="Principais conclusões" />
           <CardBody>
             <ul className="mg-stack" style={{ gap: 8, paddingLeft: 18, listStyle: 'disc' }}>
@@ -325,7 +216,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
         </Card>
 
         {/* LACUNAS PRIORIZADAS — mesma ordenação do plano de ação do PDF (report/ActionPlan.tsx), via getGaps */}
-        <Card flush style={{ marginBottom: 24 }}>
+        <Card flush id="priority-gaps" style={{ marginBottom: 24 }}>
           <CardHeader title="Lacunas priorizadas" />
           <>
             {gaps.length === 0 ? (
@@ -366,10 +257,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             )}
           </>
         </Card>
-
-        <div style={{ marginBottom: 24 }}>
-          <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
-        </div>
 
         {/* EXPORT ACTIONS — os dois primeiros abrem o mesmo relatório executivo (ReportViewer). */}
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="action-buttons-row">

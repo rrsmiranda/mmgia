@@ -504,7 +504,7 @@
    badge de nível — mesma razão do .mg-an-row: com flex, só o nome tinha flex:1 e
    o badge de nível varia de tamanho ("Nível 1 · Inicial" x "Nível 4 · Gerenciado
    Quantitativamente"), deslocando a barra de linha pra linha. */
-.mg-an2-item > summary { list-style: none; display: grid; grid-template-columns: 36px minmax(0, 1fr) 160px 40px 220px 20px; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); min-height: 68px; cursor: pointer; }
+.mg-an2-item > summary { list-style: none; display: grid; grid-template-columns: 36px minmax(0, 1fr) 160px 40px 240px 20px; align-items: center; gap: var(--space-4); padding: var(--space-3) var(--space-6); min-height: 68px; cursor: pointer; }
 .mg-an2-item > summary::-webkit-details-marker { display: none; }
 .mg-an2-item > summary:hover { background: var(--surface-sunken); }
 .mg-an2-item > summary .chev { color: var(--text-muted); transition: transform .15s; justify-self: center; }
@@ -522,6 +522,8 @@
 .mg-an-mini .mg-bar { display: block; height: 6px; }
 .mg-an-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mg-an2-item > summary .mg-badge { justify-self: start; }
+.mg-an-weightcell { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.mg-an-weighttext { font-size: var(--font-size-scale-down-01); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* Linhas de prática (código · nome · evidência · nível e resposta): coluna de
    largura fixa para o nível/resposta alinharem entre si, independente do tamanho do
    texto — grid, não flex, porque flex deixaria essa coluna variar por linha. */
@@ -543,7 +545,7 @@
   .mg-an2-item > summary > .mg-an-name { grid-area: name; }
   .mg-an2-item > summary > .mg-an-mini { grid-area: mini; width: auto; }
   .mg-an2-item > summary > .mg-an-val { grid-area: val; width: auto; }
-  .mg-an2-item > summary > .mg-badge { grid-area: badge; }
+  .mg-an2-item > summary > .mg-an-weightcell { grid-area: badge; }
   .mg-an2-item > summary > .chev { grid-area: chev; }
   .mg-an-name small { white-space: normal; }
   .mg-an2-body .mg-acc-item { padding-left: var(--space-4); padding-right: var(--space-3); flex-wrap: nowrap; }
