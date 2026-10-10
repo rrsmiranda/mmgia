@@ -3,11 +3,18 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.8"
+  },
   "exports": {
     "./types": "./src/types.ts",
     "./scoring": "./src/lib/scoring.ts",
     "./taxonomy": "./src/lib/taxonomy.ts",
     "./privacy": "./src/lib/privacy.ts",
+    "./observatory": "./src/lib/observatory.ts",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./design-system": "./src/design-system/index.ts",
     "./design-system/styles/index.css": "./src/design-system/styles/index.css",

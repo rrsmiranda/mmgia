@@ -3,95 +3,68 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useMemo, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'motion/react';
-import { Sun, Moon, Info } from 'lucide-react';
+import { Table2, Map as MapIcon } from 'lucide-react';
 import brazilMapData from '@svg-maps/brazil';
+import { REGIAO_POR_UF } from '@mmgia/shared/taxonomy';
+import { Button, DataTable, LEVEL_LABELS, cx, formatNumber, type Column, type Level } from '@mmgia/shared/design-system';
 
-export interface StateData {
-  uf: string;
-  name: string;
-  region: 'Norte' | 'Nordeste' | 'Centro-Oeste' | 'Sudeste' | 'Sul';
-  score: number;
-  count: number;
+export interface UfAgg {
+  score: number | null;
+  level: number | null;
+  n: number;
 }
-
-// Map scores geographically
-const STATE_SCORES: Record<string, StateData> = {
-  SP: { uf: 'SP', name: 'São Paulo', region: 'Sudeste', score: 1.89, count: 540 },
-  RJ: { uf: 'RJ', name: 'Rio de Janeiro', region: 'Sudeste', score: 1.68, count: 220 },
-  MG: { uf: 'MG', name: 'Minas Gerais', region: 'Sudeste', score: 1.45, count: 180 },
-  ES: { uf: 'ES', name: 'Espírito Santo', region: 'Sudeste', score: 1.32, count: 45 },
-  PR: { uf: 'PR', name: 'Paraná', region: 'Sul', score: 1.58, count: 98 },
-  SC: { uf: 'SC', name: 'Santa Catarina', region: 'Sul', score: 1.62, count: 70 },
-  RS: { uf: 'RS', name: 'Rio Grande do Sul', region: 'Sul', score: 1.48, count: 110 },
-  DF: { uf: 'DF', name: 'Distrito Federal', region: 'Centro-Oeste', score: 2.12, count: 95 },
-  GO: { uf: 'GO', name: 'Goiás', region: 'Centro-Oeste', score: 1.28, count: 52 },
-  MT: { uf: 'MT', name: 'Mato Grosso', region: 'Centro-Oeste', score: 1.15, count: 32 },
-  MS: { uf: 'MS', name: 'Mato Grosso do Sul', region: 'Centro-Oeste', score: 1.22, count: 28 },
-  BA: { uf: 'BA', name: 'Bahia', region: 'Nordeste', score: 1.38, count: 114 },
-  PE: { uf: 'PE', name: 'Pernambuco', region: 'Nordeste', score: 1.42, count: 85 },
-  CE: { uf: 'CE', name: 'Ceará', region: 'Nordeste', score: 1.35, count: 65 },
-  RN: { uf: 'RN', name: 'Rio Grande do Norte', region: 'Nordeste', score: 1.25, count: 30 },
-  PB: { uf: 'PB', name: 'Paraíba', region: 'Nordeste', score: 1.40, count: 28 },
-  AL: { uf: 'AL', name: 'Alagoas', region: 'Nordeste', score: 1.08, count: 15 },
-  SE: { uf: 'SE', name: 'Sergipe', region: 'Nordeste', score: 1.12, count: 12 },
-  PI: { uf: 'PI', name: 'Piauí', region: 'Nordeste', score: 1.18, count: 18 },
-  MA: { uf: 'MA', name: 'Maranhão', region: 'Nordeste', score: 1.02, count: 22 },
-  AM: { uf: 'AM', name: 'Amazonas', region: 'Norte', score: 1.11, count: 35 },
-  PA: { uf: 'PA', name: 'Pará', region: 'Norte', score: 1.05, count: 42 },
-  TO: { uf: 'TO', name: 'Tocantins', region: 'Norte', score: 1.18, count: 15 },
-  RO: { uf: 'RO', name: 'Rondônia', region: 'Norte', score: 0.95, count: 10 },
-  RR: { uf: 'RR', name: 'Roraima', region: 'Norte', score: 0.88, count: 6 },
-  AP: { uf: 'AP', name: 'Amapá', region: 'Norte', score: 0.92, count: 8 },
-  AC: { uf: 'AC', name: 'Acre', region: 'Norte', score: 0.85, count: 5 },
-};
 
 interface BrazilMapProps {
-  onSelectState?: (uf: string) => void;
-  selectedState?: string;
-  showHeatmap?: boolean;
-  theme?: 'light' | 'dark';
-  /** 'card' (padrão): moldura própria com cabeçalho e "Modo Preview" — usado no Painel Público.
-   *  'plain': sem moldura, sem cabeçalho, sem seletor de tema — o mapa fica solto na página. */
-  variant?: 'card' | 'plain';
+  /** 'select': escolha simples de UF, sem heatmap nem legenda (Onboarding). 'heatmap': painel do Observatório. */
+  mode: 'select' | 'heatmap';
+  /** Obrigatório em `mode="heatmap"` — uma entrada por UF, já resolvida (por UF ou por região) pelo chamador. */
+  data?: Record<string, UfAgg>;
+  selectedUf?: string | null;
+  onSelectUf?: (uf: string | null) => void;
+  /** Nome da métrica ativa, para o aria-label e o balão ("Score global" ou o nome curto de uma dimensão). */
+  metricLabel?: string;
 }
 
-export default function BrazilMap({
-  onSelectState,
-  selectedState = '',
-  showHeatmap = true,
-  theme: propTheme,
-  variant = 'card',
-}: BrazilMapProps) {
-  const [theme, setTheme] = useState<'light' | 'dark'>(propTheme ?? 'light');
+/** Estados geograficamente pequenos — ganham atalho porque são difíceis de clicar no mapa. */
+const SMALL_UF_SHORTCUTS = ['DF', 'SE', 'AL', 'ES', 'RJ', 'RN', 'PB'];
 
-  useEffect(() => {
-    if (propTheme) {
-      setTheme(propTheme);
-    }
-  }, [propTheme]);
+const LEVELS: Level[] = [0, 1, 2, 3, 4, 5];
 
-  const isPlain = variant === 'plain';
+interface TableRow {
+  uf: string;
+  nome: string;
+  regiao: string;
+  n: number;
+  score: number | null;
+  level: number | null;
+}
 
-  const [hoveredLocation, setHoveredLocation] = useState<string | null>(null);
+type SortKey = 'uf' | 'regiao' | 'n' | 'score';
+
+export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, metricLabel = 'Score global' }: BrazilMapProps) {
+  const isHeatmap = mode === 'heatmap';
+
+  const [hoveredUf, setHoveredUf] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [adjustedPos, setAdjustedPos] = useState({ x: 0, y: 0 });
+  const [highlightLevel, setHighlightLevel] = useState<Level | null>(null);
+  const [showTable, setShowTable] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: 'asc' | 'desc' }>({ key: 'score', dir: 'desc' });
+
   const containerRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Esconde o tooltip em qualquer rolagem da página (captura, pois scroll não borbulha).
   useEffect(() => {
-    if (!hoveredLocation) return;
-    const hide = () => setHoveredLocation(null);
+    if (!hoveredUf) return;
+    const hide = () => setHoveredUf(null);
     window.addEventListener('scroll', hide, { capture: true, passive: true });
     return () => window.removeEventListener('scroll', hide, true);
-  }, [hoveredLocation]);
+  }, [hoveredUf]);
 
-  // Mede o tooltip já renderizado e vira para o lado oposto perto das bordas da janela.
   useLayoutEffect(() => {
-    if (!hoveredLocation || !tooltipRef.current) {
+    if (!hoveredUf || !tooltipRef.current) {
       setAdjustedPos(tooltipPos);
       return;
     }
@@ -99,383 +72,285 @@ export default function BrazilMap({
     const margin = 12;
     let x = tooltipPos.x;
     let y = tooltipPos.y;
-    if (x + rect.width + margin > window.innerWidth) {
-      x = tooltipPos.x - rect.width - 30;
-    }
-    if (y + rect.height + margin > window.innerHeight) {
-      y = tooltipPos.y - rect.height - 10;
-    }
+    if (x + rect.width + margin > window.innerWidth) x = tooltipPos.x - rect.width - 30;
+    if (y + rect.height + margin > window.innerHeight) y = tooltipPos.y - rect.height - 10;
     x = Math.max(margin, x);
     y = Math.max(margin, y);
     setAdjustedPos({ x, y });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hoveredLocation, tooltipPos]);
-
-  // Parse state scores and assign colors for Heatmap Mode
-  const getStateFillColor = (uf: string, isHovered: boolean, isSelected: boolean) => {
-    const ufUpper = uf.toUpperCase();
-    const stateData = STATE_SCORES[ufUpper];
-
-    // Na variante solta (onboarding), a seleção usa o azul da marca — a cor de
-    // status (verde) fica reservada para indicar bom desempenho no painel.
-    if (isSelected && isPlain) {
-      return 'var(--brand-accent, #1B98E0)';
-    }
-
-    if (!showHeatmap) {
-      if (isSelected) {
-        return theme === 'dark' ? '#10B981' : '#0F6E56'; // Emerald
-      }
-      if (isHovered) {
-        return theme === 'dark' ? '#334155' : '#CBD5E1'; // Styled gray
-      }
-      return theme === 'dark' ? '#1E293B' : '#E2E8F0'; // neutral background
-    }
-
-    // Heatmap Mode - custom color scale based on maturity score (0.0 to 3.0)
-    if (!stateData) {
-      return theme === 'dark' ? '#1E293B' : '#F1F5F9';
-    }
-
-    const score = stateData.score;
-
-    if (isSelected) {
-      return theme === 'dark' ? '#10B981' : '#14B8A6'; // Active Highlight
-    }
-
-    if (theme === 'dark') {
-      if (score >= 2.0) {
-        return isHovered ? '#047857' : '#064E3B'; // Dark Emerald
-      }
-      if (score >= 1.5) {
-        return isHovered ? '#0369A1' : '#0C4A6E'; // Sky / Navy
-      }
-      if (score >= 1.0) {
-        return isHovered ? '#B45309' : '#78350F'; // Orange / Amber
-      }
-      return isHovered ? '#475569' : '#334155'; // Muted Slate
-    } else {
-      if (score >= 2.0) {
-        return isHovered ? '#D1FAE5' : '#A7F3D0'; // Mint Greens
-      }
-      if (score >= 1.5) {
-        return isHovered ? '#E0F2FE' : '#BAE6FD'; // Light Sky Blues
-      }
-      if (score >= 1.0) {
-        return isHovered ? '#FEF3C7' : '#FDE68A'; // Warm Ambers
-      }
-      return isHovered ? '#F1F5F9' : '#E2E8F0'; // Warm Grays
-    }
-  };
-
-  const getStrokeColor = (uf: string, isHovered: boolean, isSelected: boolean) => {
-    if (isSelected) {
-      return isPlain ? 'var(--brand, #006494)' : (theme === 'dark' ? '#FBBF24' : '#D97706'); // Gold Border (card) / marca (plain)
-    }
-    if (isHovered) {
-      return theme === 'dark' ? '#FFFFFF' : '#0F172A';
-    }
-    return theme === 'dark' ? '#0F172A' : '#CBD5E1'; // Clean separate borders
-  };
+  }, [hoveredUf, tooltipPos]);
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    // Posição em viewport (clientX/Y): o tooltip é renderizado via portal em
-    // document.body com position:fixed, para nunca ser cortado por overflow
-    // dos containers do mapa ou da tela que o envolve.
     setTooltipPos({ x: e.clientX + 15, y: e.clientY - 15 });
   };
 
-  const handleStateClick = (uf: string) => {
-    if (onSelectState) {
-      onSelectState(uf.toUpperCase());
+  const locations = useMemo(() => brazilMapData.locations.map((loc) => ({ ...loc, uf: loc.id.toUpperCase() })), []);
+
+  const selectState = (uf: string) => {
+    if (!onSelectUf) return;
+    if (isHeatmap && selectedUf === uf) onSelectUf(null);
+    else onSelectUf(uf);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, uf: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      selectState(uf);
     }
   };
 
-  const selectedUfUpper = selectedState.toUpperCase();
+  // Ordem de renderização sempre fixa — nunca reordena por hover/seleção. Reordenar moveria o
+  // <path> no DOM no meio do próprio gesto de clique (pointerenter dispara antes do click) e o
+  // navegador cancela o clique quando o alvo sai do lugar entre mousedown e mouseup. O destaque de
+  // borda por cima dos vizinhos vem de um <path> extra, sem interação, desenhado depois de todos.
+  const highlightUf = selectedUf ?? hoveredUf;
+  const highlightLoc = highlightUf ? locations.find((l) => l.uf === highlightUf) : undefined;
 
-  // Order locations so hovered / selected paths are drawn last, ensuring their borders render on top of others perfectly.
-  const orderedLocations = useMemo(() => {
-    const locations = [...brazilMapData.locations];
-    return locations.sort((a, b) => {
-      const aId = a.id.toUpperCase();
-      const bId = b.id.toUpperCase();
-      const aHovered = hoveredLocation?.toUpperCase() === aId;
-      const bHovered = hoveredLocation?.toUpperCase() === bId;
-      const aSelected = selectedUfUpper === aId;
-      const bSelected = selectedUfUpper === bId;
+  const fillFor = (uf: string): string => {
+    if (!isHeatmap) return selectedUf === uf ? 'var(--brand)' : hoveredUf === uf ? 'var(--surface-deep)' : 'var(--surface-sunken)';
+    const agg = data?.[uf];
+    if (!agg || agg.score === null || agg.level === null) return 'url(#obs-hatch)';
+    return `var(--level-${agg.level})`;
+  };
 
-      if (aSelected && !bSelected) return 1;
-      if (!aSelected && bSelected) return -1;
-      if (aHovered && !bHovered) return 1;
-      if (!aHovered && bHovered) return -1;
-      return 0;
-    });
-  }, [hoveredLocation, selectedUfUpper]);
+  // O destaque de borda do hover/seleção vem do <path> extra (highlightLoc) — aqui fica só o
+  // separador neutro entre estados, sempre igual, para não duplicar a borda.
+  const strokeFor = (): string => 'var(--surface-raised)';
+  const strokeWidthFor = (): number => 1;
 
-  const mapFrame = (
+  const opacityFor = (uf: string): number => {
+    if (selectedUf && selectedUf !== uf) return 0.45;
+    if (!selectedUf && highlightLevel !== null) {
+      const agg = data?.[uf];
+      if (!agg || agg.level !== highlightLevel) return 0.3;
+    }
+    return 1;
+  };
+
+  const ariaLabelFor = (uf: string, nome: string): string => {
+    if (!isHeatmap) return `${nome}${selectedUf === uf ? ' (selecionado)' : ''}`;
+    const agg = data?.[uf];
+    if (!agg || agg.score === null || agg.level === null) return `${nome}: dados insuficientes`;
+    return `${nome}: ${formatNumber(agg.score)}, nível ${agg.level}, ${agg.n} ${agg.n === 1 ? 'avaliação' : 'avaliações'}`;
+  };
+
+  const mapSvg = (
     <svg
       viewBox={brazilMapData.viewBox}
-      className="w-full h-full p-4 pointer-events-auto select-none"
+      style={{ width: '100%', height: '100%' }}
       preserveAspectRatio="xMidYMid meet"
-      id="brazil-svg-map"
-      aria-hidden={isPlain || undefined}
-      onPointerLeave={() => setHoveredLocation(null)}
+      onPointerLeave={() => setHoveredUf(null)}
     >
-      {orderedLocations.map((loc) => {
-        const uf = loc.id.toUpperCase();
-        const isSelected = selectedUfUpper === uf;
-        const isHovered = hoveredLocation === loc.id;
-        const fillColor = getStateFillColor(loc.id, isHovered, isSelected);
-        const strokeColor = getStrokeColor(loc.id, isHovered, isSelected);
-        const strokeWidth = isSelected ? 2.5 : isHovered ? 2.0 : 1.0;
-
+      {isHeatmap && (
+        <defs>
+          <pattern id="obs-hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+            <rect width="6" height="6" fill="var(--surface-sunken)" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="var(--text-muted)" strokeWidth="2" />
+          </pattern>
+        </defs>
+      )}
+      {locations.map((loc) => {
+        const agg = data?.[loc.uf];
+        const insuficiente = isHeatmap && (!agg || agg.score === null);
         return (
-          <motion.path
+          <path
             key={loc.id}
             d={loc.path}
-            name={loc.name}
-            id={`state-path-${loc.id}`}
-            fill={fillColor}
-            stroke={strokeColor}
-            strokeWidth={strokeWidth}
+            role="button"
+            tabIndex={0}
+            aria-label={ariaLabelFor(loc.uf, loc.name)}
+            aria-pressed={selectedUf === loc.uf}
+            fill={fillFor(loc.uf)}
+            stroke={strokeFor()}
+            strokeWidth={strokeWidthFor()}
             strokeLinejoin="round"
-            onHoverStart={() => setHoveredLocation(loc.id)}
-            onHoverEnd={() => setHoveredLocation(null)}
-            onClick={() => handleStateClick(loc.id)}
-            className="cursor-pointer"
-            animate={{
-              fill: fillColor,
-              stroke: strokeColor,
-              strokeWidth: strokeWidth,
-              filter: isHovered
-                ? (theme === 'dark'
-                    ? 'brightness(1.22) drop-shadow(0px 4px 12px rgba(16, 185, 129, 0.4))'
-                    : 'brightness(1.06) drop-shadow(0px 3px 8px rgba(15, 110, 86, 0.25))')
-                : 'brightness(1) drop-shadow(0px 0px 0px rgba(0,0,0,0))'
-            }}
-            transition={{
-              duration: 0.2,
-              ease: [0.4, 0, 0.2, 1]
-            }}
+            opacity={opacityFor(loc.uf)}
+            style={{ cursor: 'pointer', transition: 'opacity .2s, fill .2s', outline: 'none' }}
+            onPointerEnter={() => !insuficiente && setHoveredUf(loc.uf)}
+            onPointerLeave={() => setHoveredUf((h) => (h === loc.uf ? null : h))}
+            onFocus={() => !insuficiente && setHoveredUf(loc.uf)}
+            onBlur={() => setHoveredUf((h) => (h === loc.uf ? null : h))}
+            onClick={() => selectState(loc.uf)}
+            onKeyDown={(e) => handleKeyDown(e, loc.uf)}
           />
         );
       })}
+      {highlightLoc && (
+        <path
+          d={highlightLoc.path}
+          fill="none"
+          stroke="var(--text)"
+          strokeWidth={selectedUf === highlightLoc.uf ? 3 : 2}
+          strokeLinejoin="round"
+          pointerEvents="none"
+          aria-hidden="true"
+        />
+      )}
     </svg>
   );
 
   const tooltipPortal = typeof document !== 'undefined' && createPortal(
-    <AnimatePresence>
-      {hoveredLocation && (
-        <motion.div
-          ref={tooltipRef}
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.12 }}
-          style={{
-            position: 'fixed',
-            top: adjustedPos.y,
-            left: adjustedPos.x,
-            zIndex: 60,
-          }}
-          className={`pointer-events-none p-4 rounded-2xl shadow-2xl backdrop-blur-md font-sans max-w-[240px] border ${
-            theme === 'dark' ? 'bg-slate-950/95 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900'
-          }`}
-        >
-          {(() => {
-            const ufUpper = hoveredLocation.toUpperCase();
-            const info = STATE_SCORES[ufUpper];
-            const stateDataFromMap = brazilMapData.locations.find((l) => l.id === hoveredLocation);
-            const stateName = stateDataFromMap ? stateDataFromMap.name : ufUpper;
-            const mutedClass = theme === 'dark' ? 'text-slate-300' : 'text-slate-500';
-
+    hoveredUf ? (
+      <div
+        ref={tooltipRef}
+        className="mg-obs-tip"
+        style={{ top: adjustedPos.y, left: adjustedPos.x }}
+      >
+        {(() => {
+          const loc = locations.find((l) => l.uf === hoveredUf);
+          const nome = loc?.name ?? hoveredUf;
+          const agg = data?.[hoveredUf];
+          if (!isHeatmap) {
             return (
-              <div>
-                {showHeatmap && info ? (
-                  <>
-                    <div className={`flex justify-between items-center mb-1.5 border-b pb-1.5 ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
-                      <span className="font-bold text-xs tracking-wide">
-                        {stateName} ({ufUpper})
-                      </span>
-                      <span className="text-[9px] uppercase font-mono tracking-wider font-semibold bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                        {info.region}
-                      </span>
-                    </div>
-                    <div className={`space-y-1 font-mono text-[10.5px] ${mutedClass}`}>
-                      <p className="flex justify-between gap-4">
-                        <span>Índice Maturidade:</span>
-                        <span className="font-bold text-emerald-500">{info.score.toFixed(2)}</span>
-                      </p>
-                      <p className="flex justify-between gap-4">
-                        <span>Amostras Coletadas:</span>
-                        <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{info.count}</span>
-                      </p>
-                      <p className="flex justify-between gap-4">
-                        <span>Nível Progresso:</span>
-                        <span className="font-bold text-amber-500">
-                          {info.score < 1.0
-                            ? 'Iniciado'
-                            : info.score < 1.5
-                            ? 'Gerenciado'
-                            : info.score < 2.0
-                            ? 'Definido'
-                            : 'Otimizado'}
-                        </span>
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div>
-                    <p className="font-bold text-sm">{stateName} ({ufUpper})</p>
-                    {info && <p className={`text-xs mt-0.5 ${mutedClass}`}>Região {info.region}</p>}
-                    <p className={`text-xs mt-1 ${mutedClass}`}>Clique para selecionar</p>
-                  </div>
-                )}
-              </div>
+              <>
+                <b>{nome} ({hoveredUf})</b>
+                <span>Clique para selecionar</span>
+              </>
             );
-          })()}
-        </motion.div>
-      )}
-    </AnimatePresence>,
+          }
+          if (!agg || agg.score === null || agg.level === null) {
+            return <b>{nome} ({hoveredUf})</b>;
+          }
+          return (
+            <>
+              <b>{nome} ({hoveredUf})</b>
+              <span>{metricLabel}: {formatNumber(agg.score)} / 3 · Nível {agg.level} · {LEVEL_LABELS[agg.level as Level]}</span>
+              <span>{agg.n} {agg.n === 1 ? 'avaliação' : 'avaliações'} · clique para filtrar</span>
+            </>
+          );
+        })()}
+      </div>
+    ) : null,
     document.body
   );
 
-  if (isPlain) {
+  const tableRows: TableRow[] = useMemoTableRows(data, locations);
+  const sortedRows = useMemo(() => sortRows(tableRows, sort), [tableRows, sort]);
+
+  if (!isHeatmap) {
     return (
-      <div ref={containerRef} onPointerMove={handlePointerMove} className="relative w-full aspect-[1/1] sm:aspect-[1.1/1] overflow-hidden">
-        {mapFrame}
+      <div ref={containerRef} onPointerMove={handlePointerMove} style={{ position: 'relative', width: '100%', aspectRatio: '1 / 1' }}>
+        {mapSvg}
         {tooltipPortal}
       </div>
     );
   }
 
+  const handleSort = (key: SortKey) => {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'uf' || key === 'regiao' ? 'asc' : 'desc' }));
+  };
+
+  const columns: Column<TableRow>[] = [
+    { key: 'uf', header: 'UF', render: (r) => `${r.nome} (${r.uf})` },
+    { key: 'regiao', header: 'Região', render: (r) => r.regiao },
+    { key: 'n', header: 'Avaliações', numeric: true, render: (r) => String(r.n) },
+    { key: 'score', header: 'Score', numeric: true, render: (r) => (r.score !== null ? formatNumber(r.score) : '—') },
+    { key: 'level', header: 'Nível', render: (r) => (r.level !== null ? `${r.level} · ${LEVEL_LABELS[r.level as Level]}` : 'Dados insuficientes') },
+  ];
+
   return (
-    <div
-      ref={containerRef}
-      onPointerMove={handlePointerMove}
-      className={`relative w-full overflow-hidden p-6 rounded-3xl border transition-all duration-500 ${
-        theme === 'dark'
-          ? 'bg-slate-900 border-slate-800 text-white shadow-2xl'
-          : 'bg-white border-slate-100 text-slate-900 shadow-xl'
-      }`}
-      id="brazil-map-container"
-    >
-      {/* Title Header with Switch */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-20">
-        <div>
-          <h4
-            className={`text-sm font-semibold uppercase font-mono tracking-wider flex items-center gap-1.5 ${
-              theme === 'dark' ? 'text-emerald-400' : 'text-brand-primary'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full animate-ping inline-block ${
-                theme === 'dark' ? 'bg-emerald-400' : 'bg-brand-primary'
-              }`}
-            ></span>
-            Mapeamento Interativo de IA
-          </h4>
-          <p
-            className={`text-xs font-sans mt-0.5 ${
-              theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
-            }`}
-          >
-            Clique no mapa para filtrar ou marcar seu estado de atuação e analisar o cenário de conformidade.
-          </p>
-        </div>
-
-        {/* Toggle Theme Preview Control */}
-        <div className="flex items-center gap-2 self-end sm:self-auto">
-          <span
-            className={`font-mono text-[10px] uppercase font-bold tracking-wider ${
-              theme === 'dark' ? 'text-slate-400' : 'text-slate-500'
-            }`}
-          >
-            Modo Preview:
-          </span>
-          <button
-            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-medium cursor-pointer transition-all duration-300 ${
-              theme === 'dark'
-                ? 'bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700'
-                : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
-            }`}
-            title="Alternar Tema de Preview"
-          >
-            {theme === 'dark' ? (
-              <>
-                <Sun className="w-3.5 h-3.5 text-amber-400" />
-                <span>Claro</span>
-              </>
-            ) : (
-              <>
-                <Moon className="w-3.5 h-3.5 text-blue-600" />
-                <span>Escuro</span>
-              </>
-            )}
-          </button>
-        </div>
+    <div className="mg-stack" style={{ gap: 16 }}>
+      <div className="mg-row" style={{ justifyContent: 'flex-end' }}>
+        <Button variant="ghost" size="sm" icon={showTable ? MapIcon : Table2} onClick={() => setShowTable((v) => !v)}>
+          {showTable ? 'Ver como mapa' : 'Ver como tabela'}
+        </Button>
       </div>
 
-      {/* Styled Interactive SVG Map Frame */}
-      <div
-        className={`relative w-full aspect-[1/1] sm:aspect-[1.1/1] rounded-2xl overflow-hidden shadow-inner border transition-colors duration-500 ${
-          theme === 'dark' ? 'bg-[#0F172A] border-slate-800' : 'bg-[#F8FAFC] border-slate-200/50'
-        }`}
-      >
-        {mapFrame}
-      </div>
+      {showTable ? (
+        <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 8 }} role="group" aria-label="Ordenar tabela">
+          {(['uf', 'regiao', 'n', 'score'] as SortKey[]).map((key) => (
+            <Button key={key} variant="secondary" size="sm" onClick={() => handleSort(key)}>
+              {{ uf: 'UF', regiao: 'Região', n: 'Avaliações', score: 'Score' }[key]}
+              {sort.key === key ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : ''}
+            </Button>
+          ))}
+        </div>
+      ) : null}
 
-      {tooltipPortal}
-
-      {/* Map Legend */}
-      <div
-        className="mt-6 flex flex-col sm:flex-row justify-between items-center gap-3 border-t pt-4 border-slate-100 dark:border-slate-800"
-        id="map-legend"
-      >
-        {showHeatmap ? (
-          <div className="flex flex-wrap gap-4 text-[10px] font-medium font-mono justify-center sm:justify-start">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-emerald-700"></span>
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                Otimizado (&ge; 2.0)
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-sky-700"></span>
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                Definido (1.5 - 2.0)
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-amber-700"></span>
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                Gerenciado (1.0 - 1.5)
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-slate-600"></span>
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                Iniciado (&lt; 1.0)
-              </span>
-            </div>
+      {showTable ? (
+        <DataTable<TableRow> caption="Maturidade por estado" rowKey={(r) => r.uf} columns={columns} rows={sortedRows} />
+      ) : (
+        <>
+          <div ref={containerRef} onPointerMove={handlePointerMove} className="mg-obs-map" style={{ aspectRatio: '1 / 1' }}>
+            {mapSvg}
+            {tooltipPortal}
           </div>
-        ) : (
-          <div className="flex gap-4 text-[10.5px] font-medium font-mono">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded bg-emerald-500 shadow border border-white"></span>
-              <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                Estado Selecionado
-              </span>
-            </div>
-          </div>
-        )}
 
-        <div className="flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 italic">
-          <Info className="w-3" />
-          <span>Framer Motion &amp; SVG Map Brasil integrado</span>
-        </div>
-      </div>
+          <div className="mg-obs-small">
+            <span className="mg-small mg-muted">Estados pequenos:</span>
+            {SMALL_UF_SHORTCUTS.map((uf) => {
+              const agg = data?.[uf];
+              const suficiente = agg && agg.score !== null;
+              return (
+                <button
+                  key={uf}
+                  type="button"
+                  className={cx('mg-obs-uf', selectedUf === uf && 'is-on')}
+                  onClick={() => selectState(uf)}
+                >
+                  <b>{uf}</b> {suficiente ? formatNumber(agg!.score!) : ''}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mg-obs-legend">
+            {LEVELS.map((lvl) => (
+              <button
+                key={lvl}
+                type="button"
+                className="mg-obs-lg"
+                aria-pressed={highlightLevel === lvl}
+                onClick={() => setHighlightLevel((h) => (h === lvl ? null : lvl))}
+              >
+                <i style={{ background: `var(--level-${lvl})` }} />
+                <b>{lvl} {LEVEL_LABELS[lvl]}</b>
+                <small>{levelRange(lvl)}</small>
+              </button>
+            ))}
+            <span className="mg-obs-lg is-na">
+              <i className="hatch" />
+              <b>Dados insuficientes</b>
+              <small>menos de 5 avaliações</small>
+            </span>
+          </div>
+        </>
+      )}
     </div>
   );
+}
+
+function levelRange(lvl: Level): string {
+  const ranges: Record<Level, string> = { 0: '< 0,50', 1: '0,50–0,99', 2: '1,00–1,49', 3: '1,50–1,99', 4: '2,00–2,49', 5: '≥ 2,50' };
+  return ranges[lvl];
+}
+
+function useMemoTableRows(data: Record<string, UfAgg> | undefined, locations: { uf: string; name: string }[]): TableRow[] {
+  return useMemo(() => {
+    if (!data) return [];
+    return locations.map((loc) => {
+      const agg = data[loc.uf];
+      return {
+        uf: loc.uf,
+        nome: loc.name,
+        regiao: REGIAO_POR_UF[loc.uf] ?? '—',
+        n: agg?.n ?? 0,
+        score: agg?.score ?? null,
+        level: agg?.level ?? null,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, locations]);
+}
+
+function sortRows(rows: TableRow[], sort: { key: SortKey; dir: 'asc' | 'desc' }): TableRow[] {
+  const sorted = [...rows].sort((a, b) => {
+    let cmp = 0;
+    if (sort.key === 'uf') cmp = a.nome.localeCompare(b.nome);
+    else if (sort.key === 'regiao') cmp = a.regiao.localeCompare(b.regiao);
+    else if (sort.key === 'n') cmp = a.n - b.n;
+    else cmp = (a.score ?? -1) - (b.score ?? -1);
+    return sort.dir === 'asc' ? cmp : -cmp;
+  });
+  return sorted;
 }

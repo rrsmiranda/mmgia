@@ -3,12 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
-import { Database, LineChart, LayoutGrid, MapPin } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, Database, Gauge, Info, Lock, X } from 'lucide-react';
 import BrazilMap from './BrazilMap';
-import CountUp from './CountUp';
-import { DimensionId, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
+import { DimensionId, DIMENSIONS, HistoricalRecord, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
+import {
+  Agg,
+  K_MIN,
+  ObsFilters,
+  applyFilters,
+  byRegion,
+  byUf,
+  compareBy,
+  insights,
+  levelDistribution,
+  monthly,
+  shareAtOrAbove,
+  wouldBreakK,
+} from '@mmgia/shared/observatory';
 import {
   AREAS_PRIVADAS,
   AREAS_PUBLICAS,
@@ -17,315 +30,700 @@ import {
   Esfera,
   ESFERAS,
   Poder,
-  RelacaoIA,
+  REGIAO_POR_UF,
   RELACOES_IA,
+  RelacaoIA,
   Regiao,
-  rotuloArea,
   Setor,
   SETORES,
+  UF_NOMES,
+  rotuloArea,
 } from '@mmgia/shared/taxonomy';
-import { agregarComAnonimato, MENSAGEM_DADOS_INSUFICIENTES } from '@mmgia/shared/privacy';
 import {
   Button,
   Card,
   CardBody,
   CardHeader,
+  DIMENSION_ICONS,
+  DIMENSION_ORDER,
   DataTable,
-  DimensionBars,
-  Field,
-  InsightCard,
-  KpiCard,
-  Page,
+  DimensionTag,
   DsRoot,
+  Field,
+  KpiCard,
+  LEVEL_LABELS,
+  LevelBadge,
+  Page,
+  PageHeader,
+  RiskBadge,
+  Segmented,
   Select,
+  cx,
   formatNumber,
+  type Column,
+  type Level,
 } from '@mmgia/shared/design-system';
 
 interface PublicPanelProps {
   onChangeTab: (tab: string) => void;
 }
 
-// Médias mockadas — dado ilustrativo até o painel ter volume real de submissões agregadas.
-const DIMENSION_AVERAGES: Record<DimensionId, number> = { gov: 1.34, tec: 1.48, seg: 1.52, edu: 1.10, eco: 1.25 };
+type MapMetric = 'global' | DimensionId;
+type Granularity = 'uf' | 'regiao';
+type CompareTab = 'setor_porte' | 'esfera' | 'area' | 'relacaoIA';
 
-const TREND_DATA = [
-  { m: 'Jul25', score: 1.10 }, { m: 'Ago25', score: 1.15 }, { m: 'Set25', score: 1.18 }, { m: 'Out25', score: 1.25 },
-  { m: 'Nov25', score: 1.21 }, { m: 'Dez25', score: 1.28 }, { m: 'Jan26', score: 1.32 }, { m: 'Fev26', score: 1.30 },
-  { m: 'Mar26', score: 1.36 }, { m: 'Abr26', score: 1.40 }, { m: 'Mai26', score: 1.42 }, { m: 'Jun26', score: 1.42 },
-];
-
-interface AreaRow { label: string; amostras: number; score: number }
-
-const REGIOES: Regiao[] = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul'];
 const PODERES: { id: Poder; label: string }[] = [
   { id: 'executivo', label: 'Executivo' },
   { id: 'judiciario', label: 'Judiciário' },
   { id: 'legislativo', label: 'Legislativo' },
 ];
+const PORTES = ['Micro', 'Pequena', 'Média', 'Grande'];
+const META = 1.5;
 
-function areaOptionsFor(setor: Setor | 'Todos'): { id: string; label: string }[] {
+function areaOptionsFor(setor: Setor | undefined): { id: string; label: string }[] {
   if (setor === 'publico') return AREAS_PUBLICAS.map((a) => ({ id: a.id, label: a.label }));
   if (setor === 'privado') return AREAS_PRIVADAS.map((a) => ({ id: a.id, label: a.label }));
   if (setor === 'terceiro') return AREAS_TERCEIRO.map((a) => ({ id: a.id, label: a.label }));
   return [];
 }
 
-function scoreStatus(score: number) {
-  if (score >= 1.6) return 'var(--status-good)';
-  if (score >= 1.3) return 'var(--status-attention)';
-  return 'var(--status-critical)';
+// ===== Estado <-> URL (seção 2 do prompt: compartilhável, sem poluir o histórico) =====
+
+interface PanelState {
+  filters: ObsFilters;
+  uf: string | null;
+  mapMetric: MapMetric;
+  granularity: Granularity;
 }
 
-// Score médio nacional (mock) — o nível exibido é sempre derivado por getMaturityLevel, nunca escrito à mão.
-const NATIONAL_AVERAGE_SCORE = 1.42;
+const FILTER_KEYS: (keyof ObsFilters)[] = ['setor', 'esfera', 'area', 'poder', 'relacaoIA', 'porte'];
 
-// Scores por UF (mock) — usados apenas para ilustrar o card "Dados do estado em foco".
-const UF_SCORES: Record<string, number> = { DF: 2.12, SP: 1.89 };
-const DEFAULT_UF_SCORE = 1.38;
+function readUrlState(): PanelState {
+  if (typeof window === 'undefined') return { filters: {}, uf: null, mapMetric: 'global', granularity: 'uf' };
+  const params = new URLSearchParams(window.location.search);
+  const filters: ObsFilters = {};
+  for (const key of FILTER_KEYS) {
+    const v = params.get(key);
+    if (v) (filters as Record<string, string>)[key] = v;
+  }
+  const dim = params.get('dim');
+  const mapMetric: MapMetric = dim && DIMENSION_ORDER.includes(dim as DimensionId) ? (dim as DimensionId) : 'global';
+  return {
+    filters,
+    uf: params.get('uf'),
+    mapMetric,
+    granularity: params.get('g') === 'regiao' ? 'regiao' : 'uf',
+  };
+}
+
+function writeUrlState(state: PanelState) {
+  if (typeof window === 'undefined') return;
+  const params = new URLSearchParams();
+  for (const key of FILTER_KEYS) {
+    const v = state.filters[key];
+    if (v) params.set(key, v);
+  }
+  if (state.uf) params.set('uf', state.uf);
+  if (state.mapMetric !== 'global') params.set('dim', state.mapMetric);
+  if (state.granularity !== 'uf') params.set('g', state.granularity);
+  const qs = params.toString();
+  window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+}
+
+function metricAgg(agg: Agg, metric: MapMetric): { score: number | null; level: number | null; n: number } {
+  if (agg.score === null || agg.dims === null) return { score: null, level: null, n: agg.n };
+  if (metric === 'global') return { score: agg.score, level: agg.level, n: agg.n };
+  const v = agg.dims[metric];
+  return { score: v, level: getMaturityLevel(v).num, n: agg.n };
+}
+
+function recorteLabel(filters: ObsFilters): string {
+  const parts: string[] = [];
+  if (filters.setor) parts.push(SETORES.find((s) => s.id === filters.setor)?.label ?? filters.setor);
+  if (filters.esfera) parts.push(ESFERAS.find((e) => e.id === filters.esfera)?.label ?? filters.esfera);
+  if (filters.area) parts.push(rotuloArea(filters.setor ?? '', filters.area) ?? filters.area);
+  if (filters.poder) parts.push(PODERES.find((p) => p.id === filters.poder)?.label ?? filters.poder);
+  if (filters.relacaoIA) parts.push(RELACOES_IA.find((r) => r.id === filters.relacaoIA)?.label ?? filters.relacaoIA);
+  if (filters.porte) parts.push(filters.porte);
+  return parts.length > 0 ? parts.join(' · ') : 'Brasil';
+}
 
 export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
-  const [setorFilter, setSetorFilter] = useState<Setor | 'Todos'>('Todos');
-  const [esferaFilter, setEsferaFilter] = useState<Esfera | 'Todas'>('Todas');
-  const [areaFilter, setAreaFilter] = useState<Area | 'Todas'>('Todas');
-  const [poderFilter, setPoderFilter] = useState<Poder | 'Todos'>('Todos');
-  const [regiaoFilter, setRegiaoFilter] = useState<Regiao | 'Todas'>('Todas');
-  const [relacaoIAFilter, setRelacaoIAFilter] = useState<RelacaoIA | 'Todas'>('Todas');
-  const [porteFilter, setPorteFilter] = useState('Todos');
-  const [selectedUf, setSelectedUf] = useState<string>('DF');
+  const initial = useMemo(readUrlState, []);
+  const [filters, setFilters] = useState<ObsFilters>(initial.filters);
+  const [uf, setUf] = useState<string | null>(initial.uf);
+  const [mapMetric, setMapMetric] = useState<MapMetric>(initial.mapMetric);
+  const [granularity, setGranularity] = useState<Granularity>(initial.granularity);
+  const [showDetails, setShowDetails] = useState(false);
+  const [compareTab, setCompareTab] = useState<CompareTab>('setor_porte');
 
-  const handleSetorFilterChange = (value: string) => {
-    setSetorFilter(value as Setor | 'Todos');
-    setEsferaFilter('Todas');
-    setAreaFilter('Todas');
-    setPoderFilter('Todos');
+  useEffect(() => {
+    writeUrlState({ filters, uf, mapMetric, granularity });
+  }, [filters, uf, mapMetric, granularity]);
+
+  // ===== Dados — todo número vem de observatory.ts, nunca calculado aqui =====
+
+  const allRecords = SEED_HISTORICAL_RECORDS;
+  const filteredNoUf = useMemo(() => applyFilters(allRecords, filters), [filters]);
+  const scopedRecords = useMemo(() => (uf ? applyFilters(filteredNoUf, { uf }) : filteredNoUf), [filteredNoUf, uf]);
+
+  const scopedAgg = useMemo(() => (uf ? aggregateUfScope(filteredNoUf, uf) : aggregateAll(filteredNoUf)), [filteredNoUf, uf]);
+  const brasilAgg = useMemo(() => aggregateAll(filteredNoUf), [filteredNoUf]);
+
+  const byUfAgg = useMemo(() => byUf(filteredNoUf), [filteredNoUf]);
+  const byRegionAgg = useMemo(() => byRegion(filteredNoUf), [filteredNoUf]);
+
+  const mapData = useMemo(() => {
+    const out: Record<string, { score: number | null; level: number | null; n: number }> = {};
+    for (const code of Object.keys(byUfAgg)) {
+      const base = granularity === 'uf' ? byUfAgg[code] : byRegionAgg[REGIAO_POR_UF[code]];
+      out[code] = metricAgg(base, mapMetric);
+    }
+    return out;
+  }, [byUfAgg, byRegionAgg, granularity, mapMetric]);
+
+  const ufsInsuficientes = Object.values(byUfAgg).filter((a) => a.score === null).length;
+  const showLowDataWarning = granularity === 'uf' && !uf && ufsInsuficientes > 13;
+
+  const label = recorteLabel(filters);
+  const nomeUf = uf ? UF_NOMES[uf] : undefined;
+  const regiaoUf = uf ? REGIAO_POR_UF[uf] : undefined;
+
+  const frasesInsights = useMemo(() => {
+    return insights(scopedAgg, scopedRecords, {
+      recorteLabel: label,
+      uf: uf ?? undefined,
+      nomeUf,
+      brasil: brasilAgg,
+      brasilShare3: shareAtOrAbove(filteredNoUf, 3),
+      porUf: byUfAgg,
+      nomeEstado: (code) => UF_NOMES[code] ?? code,
+    });
+  }, [scopedAgg, scopedRecords, label, uf, nomeUf, brasilAgg, filteredNoUf, byUfAgg]);
+
+  const dist = levelDistribution(scopedRecords);
+  const share3 = shareAtOrAbove(scopedRecords, 3);
+  const brasilShare3 = shareAtOrAbove(filteredNoUf, 3);
+
+  const dimensaoMaisBaixa = useMemo(() => {
+    if (!scopedAgg.dims) return null;
+    return DIMENSION_ORDER.reduce((a, b) => (scopedAgg.dims![b] < scopedAgg.dims![a] ? b : a));
+  }, [scopedAgg]);
+
+  const estadosComDados = Object.values(byUfAgg).filter((a) => a.n > 0).length;
+
+  // ===== Filtros =====
+
+  const handleFilterChange = (key: keyof ObsFilters, value: string) => {
+    setFilters((f) => {
+      const next = { ...f };
+      if (value) (next as Record<string, string>)[key] = value;
+      else delete next[key];
+      if (key === 'setor') {
+        delete next.esfera;
+        delete next.area;
+        delete next.poder;
+      }
+      return next;
+    });
   };
 
-  const nationalLevel = getMaturityLevel(NATIONAL_AVERAGE_SCORE);
-  const metaGap = Math.max(0, 1.5 - NATIONAL_AVERAGE_SCORE);
+  const optionDisabled = (key: keyof ObsFilters, value: string): boolean => {
+    const base = { ...filters };
+    delete base[key];
+    return wouldBreakK(allRecords, base, key, value);
+  };
 
-  const ufScore = UF_SCORES[selectedUf] ?? DEFAULT_UF_SCORE;
-  const ufLevel = getMaturityLevel(ufScore);
-  const ufScoreLabel = `${formatNumber(ufScore)} / 3 (Nível ${ufLevel.num})`;
+  const removeFilter = (key: keyof ObsFilters) => {
+    setFilters((f) => {
+      const next = { ...f };
+      delete next[key];
+      if (key === 'setor') {
+        delete next.esfera;
+        delete next.area;
+        delete next.poder;
+      }
+      return next;
+    });
+  };
 
-  // Registros filtrados pela taxonomia v2 — base para o ranking por área abaixo.
-  const filteredRecords = SEED_HISTORICAL_RECORDS.filter((r) => {
-    if (setorFilter !== 'Todos' && r.setor !== setorFilter) return false;
-    if (setorFilter === 'publico') {
-      if (esferaFilter !== 'Todas' && r.esfera !== esferaFilter) return false;
-      if (poderFilter !== 'Todos' && r.poder !== poderFilter) return false;
-    }
-    if (areaFilter !== 'Todas' && r.area !== areaFilter) return false;
-    if (regiaoFilter !== 'Todas' && r.regiao !== regiaoFilter) return false;
-    if (relacaoIAFilter !== 'Todas' && r.relacaoIA !== relacaoIAFilter) return false;
-    if (porteFilter !== 'Todos' && r.porte !== porteFilter) return false;
-    return true;
-  });
+  const clearAll = () => {
+    setFilters({});
+    setUf(null);
+  };
 
-  // Agregação com k-anonimato (k=5): grupos pequenos sobem de nível (área → setor,
-  // estado → região, ...) até atingir 5 avaliações; os que não atingem são suprimidos.
-  const { grupos: areaGroups, registrosSuprimidos } = agregarComAnonimato(filteredRecords, ['setor', 'area'], 5);
-  const areaRows: AreaRow[] = areaGroups.map((g) => {
-    const setorChave = (g.chave.setor as Setor | undefined) ?? '';
-    const areaChave = g.chave.area as Area | undefined;
-    const label = rotuloArea(setorChave, areaChave) ?? SETORES.find((s) => s.id === setorChave)?.label ?? 'Outro';
-    return { label, amostras: g.amostras, score: g.scoreMedio };
-  });
+  const activeChips: { key: keyof ObsFilters; label: string }[] = [];
+  if (filters.setor) activeChips.push({ key: 'setor', label: SETORES.find((s) => s.id === filters.setor)!.label });
+  if (filters.esfera) activeChips.push({ key: 'esfera', label: ESFERAS.find((e) => e.id === filters.esfera)!.label });
+  if (filters.area) activeChips.push({ key: 'area', label: rotuloArea(filters.setor ?? '', filters.area) ?? filters.area });
+  if (filters.poder) activeChips.push({ key: 'poder', label: PODERES.find((p) => p.id === filters.poder)!.label });
+  if (filters.relacaoIA) activeChips.push({ key: 'relacaoIA', label: RELACOES_IA.find((r) => r.id === filters.relacaoIA)!.label });
+  if (filters.porte) activeChips.push({ key: 'porte', label: filters.porte });
+
+  const hasAnyFilter = activeChips.length > 0 || !!uf;
+
+  // ===== Cabeçalho =====
+
+  const atualizadoEm = useMemo(() => latestPeriodo(allRecords), [allRecords]);
 
   return (
     <DsRoot>
       <Page>
-        {/* FILTROS */}
-        <Card style={{ marginBottom: 24 }} id="public-panel-filters-bar">
-          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-            <div>
-              <p className="mg-eyebrow">Dados consolidados · Brasil</p>
-              <h1 className="mg-h3" style={{ marginTop: 4 }}>Observatório Nacional de Maturidade em Governança de IA</h1>
-              <p className="mg-small mg-muted" style={{ marginTop: 4 }}>
-                Dados agregados obedecendo à k-anonimidade ≥ 5 (sigilo estatístico).
-              </p>
-            </div>
-
-            <div className="mg-row" style={{ gap: 12, flexWrap: 'wrap' }} id="filters-dropdowns">
-              <Field label="Setor">
-                {({ id }) => (
-                  <Select id={id} value={setorFilter} onChange={(e) => handleSetorFilterChange(e.target.value)}>
-                    <option value="Todos">Todos</option>
-                    {SETORES.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Esfera">
-                {({ id }) => (
-                  <Select id={id} value={esferaFilter} disabled={setorFilter !== 'publico'} onChange={(e) => { setEsferaFilter(e.target.value as Esfera | 'Todas'); setAreaFilter('Todas'); }}>
-                    <option value="Todas">Todas</option>
-                    {ESFERAS.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Área">
-                {({ id }) => (
-                  <Select id={id} value={areaFilter} disabled={setorFilter === 'Todos' || setorFilter === 'outro'} onChange={(e) => setAreaFilter(e.target.value as Area | 'Todas')}>
-                    <option value="Todas">Todas</option>
-                    {areaOptionsFor(setorFilter).map((a) => <option key={a.id} value={a.id}>{a.label}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Poder">
-                {({ id }) => (
-                  <Select id={id} value={poderFilter} disabled={setorFilter !== 'publico'} onChange={(e) => setPoderFilter(e.target.value as Poder | 'Todos')}>
-                    <option value="Todos">Todos</option>
-                    {PODERES.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Região">
-                {({ id }) => (
-                  <Select id={id} value={regiaoFilter} onChange={(e) => setRegiaoFilter(e.target.value as Regiao | 'Todas')}>
-                    <option value="Todas">Todas</option>
-                    {REGIOES.map((r) => <option key={r} value={r}>{r}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Relação com IA">
-                {({ id }) => (
-                  <Select id={id} value={relacaoIAFilter} onChange={(e) => setRelacaoIAFilter(e.target.value as RelacaoIA | 'Todas')}>
-                    <option value="Todas">Todas</option>
-                    {RELACOES_IA.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
-                  </Select>
-                )}
-              </Field>
-              <Field label="Porte">
-                {({ id }) => (
-                  <Select id={id} value={porteFilter} onChange={(e) => setPorteFilter(e.target.value)}>
-                    <option value="Todos">Todos</option>
-                    <option value="Micro">Micro</option>
-                    <option value="Pequena">Pequena</option>
-                    <option value="Média">Média</option>
-                    <option value="Grande">Grande</option>
-                  </Select>
-                )}
-              </Field>
-            </div>
-          </div>
-        </Card>
-
-        <div className="mg-grid" style={{ ['--cols-d' as string]: '420px 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
-          {/* MAPA */}
-          <div className="mg-stack" style={{ gap: 16 }}>
-            <BrazilMap onSelectState={(uf) => setSelectedUf(uf)} selectedState={selectedUf} theme="light" />
-
-            <Card style={{ background: 'var(--ink)', color: 'var(--on-ink)' }} id="map-state-insights">
-              <p className="mg-eyebrow" style={{ color: 'var(--on-ink-accent)' }}>Dados do estado em foco</p>
-              <div className="mg-row" style={{ justifyContent: 'space-between', marginTop: 12, padding: 12, background: 'var(--ink-raised)', borderRadius: 'var(--radius-lg)' }}>
-                <span className="mg-row" style={{ gap: 8 }}>
-                  <MapPin className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--on-ink-accent)' }} />
-                  <strong>{selectedUf}</strong>
-                </span>
-                <span className="mg-code" style={{ color: 'var(--on-ink-accent)', fontWeight: 700 }}>{ufScoreLabel}</span>
+        <div className="mg-obs">
+          {/* CABEÇALHO */}
+          <PageHeader
+            eyebrow="Dados consolidados · Brasil"
+            title="Observatório Nacional de Maturidade em Governança de IA"
+            description="Como as organizações brasileiras se autoavaliam em governança de inteligência artificial. Dados agregados e anônimos."
+            actions={
+              <div className="mg-row" style={{ gap: 8, flexShrink: 0 }}>
+                <Button variant="secondary" size="sm" icon={Info} onClick={() => setShowDetails(true)}>Como ler</Button>
+                <Button variant="secondary" size="sm" icon={Database} onClick={() => onChangeTab('opendata')}>Dados abertos</Button>
               </div>
-              <p className="mg-small" style={{ marginTop: 12, color: 'var(--on-ink-muted)' }}>
-                Os índices mostram picos de letramento técnico e comitivas coordenadas de segurança sob conformidade com a LGPD.
-              </p>
-            </Card>
-          </div>
+            }
+          />
+          <p className="mg-obs-meta mg-small mg-muted">
+            <span>{allRecords.length} autoavaliações</span>
+            <span>·</span>
+            <span>Atualizado em {atualizadoEm}</span>
+            <span>·</span>
+            <span>Autoavaliação: não constitui certificação</span>
+          </p>
 
-          {/* PAINEL PRINCIPAL */}
-          <div className="mg-stack" style={{ gap: 24 }}>
-            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12 }} id="panel-kpis">
-              <KpiCard label="Score médio Brasil" value={<CountUp value={NATIONAL_AVERAGE_SCORE} decimals={2} formatter={(n) => formatNumber(n)} />} />
-              <KpiCard label="Nível modal" value={`Nível ${nationalLevel.num}`} />
-              <KpiCard label="Avaliações ativas" value={<CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} />} />
-              <KpiCard label="Pilar mais crítico" value="Edu" />
+          {/* FILTROS */}
+          <Card className="mg-obs-filters">
+            <div className="mg-obs-fgrid">
+              <FilterSelect label="Setor" value={filters.setor ?? ''} onChange={(v) => handleFilterChange('setor', v)}
+                options={SETORES.map((s) => ({ id: s.id, label: s.label }))} optionDisabled={(v) => optionDisabled('setor', v)} />
+              <FilterSelect label="Esfera" value={filters.esfera ?? ''} onChange={(v) => handleFilterChange('esfera', v)}
+                disabled={filters.setor !== 'publico'}
+                options={ESFERAS.map((e) => ({ id: e.id, label: e.label }))} optionDisabled={(v) => optionDisabled('esfera', v)} />
+              <FilterSelect label="Área" value={filters.area ?? ''} onChange={(v) => handleFilterChange('area', v)}
+                disabled={!filters.setor || filters.setor === 'outro'}
+                options={areaOptionsFor(filters.setor)} optionDisabled={(v) => optionDisabled('area', v)} />
+              <FilterSelect label="Poder" value={filters.poder ?? ''} onChange={(v) => handleFilterChange('poder', v)}
+                disabled={filters.setor !== 'publico'}
+                options={PODERES.map((p) => ({ id: p.id, label: p.label }))} optionDisabled={(v) => optionDisabled('poder', v)} />
+              <FilterSelect label="Relação com IA" value={filters.relacaoIA ?? ''} onChange={(v) => handleFilterChange('relacaoIA', v)}
+                options={RELACOES_IA.map((r) => ({ id: r.id, label: r.label }))} optionDisabled={(v) => optionDisabled('relacaoIA', v)} />
+              <FilterSelect label="Porte" value={filters.porte ?? ''} onChange={(v) => handleFilterChange('porte', v)}
+                options={PORTES.map((p) => ({ id: p, label: p }))} optionDisabled={(v) => optionDisabled('porte', v)} />
             </div>
 
-            <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="panel-advice">
-              <InsightCard status="critical" label="Ponto crítico" title="Educação algorítmica: 1,10">
-                Servidores públicos e colaboradores registram baixas em imersões éticas formais.
-              </InsightCard>
-              <InsightCard status="good" label="Destaque nacional" title="Aspectos de segurança: 1,52">
-                Iniciativas de proteção e adequação à LGPD puxam os índices para cima.
-              </InsightCard>
-              <InsightCard status="attention" label="Rumo ao Nível 3" title={`Diferença para meta: ${formatNumber(metaGap)} pts`}>
-                Basta formalizar comitês e inventários estruturados nas organizações de nível 2.
-              </InsightCard>
-            </div>
-
-            <Card id="panel-dimension-averages">
-              <CardHeader title="Médias consolidadas por pilar" />
-              <CardBody>
-                <DimensionBars scores={DIMENSION_AVERAGES} />
-              </CardBody>
-            </Card>
-
-            <Card id="panel-trend-chart">
-              <CardHeader
-                title={<span className="mg-row" style={{ gap: 8 }}><LineChart className="mg-ico mg-ico-sm" aria-hidden="true" />Evolução histórica (12 meses)</span>}
-                actions={<span className="mg-badge mg-badge--good">Crescente (+14% AoA)</span>}
-              />
-              <CardBody>
-                <svg width="100%" height="110" viewBox="0 0 500 110" className="overflow-visible" id="trend-svg">
-                  <line x1="0" y1="90" x2="500" y2="90" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1="0" y1="56" x2="500" y2="56" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1="0" y1="20" x2="500" y2="20" stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
-
-                  <text x="5" y="16" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">3,0 (Otimizado)</text>
-                  <text x="5" y="52" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">1,5 (Gerenciado)</text>
-                  <text x="5" y="88" fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">0,5 (Iniciado)</text>
-
-                  <path
-                    d="M10,85 L50,82 L90,80 L130,75 L170,78 L210,72 L250,68 L290,70 L330,65 L370,61 L410,58 L450,58"
-                    fill="none"
-                    stroke="var(--brand)"
-                    strokeWidth="2.5"
-                  />
-                  <circle cx="450" cy="58" r="4.5" fill="var(--brand-accent)" stroke="var(--surface-raised)" strokeWidth="1.5" />
-
-                  {TREND_DATA.map((d, i) => (
-                    <text key={d.m} x={10 + i * 40} y="104" fill="var(--text-muted)" fontSize="7.5" fontFamily="var(--mg-font-mono)" textAnchor="middle">
-                      {d.m}
-                    </text>
+            <div className="mg-obs-frow">
+              {hasAnyFilter ? (
+                <>
+                  {activeChips.map((c) => (
+                    <span className="mg-obs-chip" key={c.key}>
+                      {c.label}
+                      <button type="button" aria-label={`Remover filtro ${c.label}`} onClick={() => removeFilter(c.key)}><X size={14} aria-hidden="true" /></button>
+                    </span>
                   ))}
-                </svg>
+                  {uf && (
+                    <span className="mg-obs-chip">
+                      Estado: {UF_NOMES[uf] ?? uf}
+                      <button type="button" aria-label="Remover filtro de estado" onClick={() => setUf(null)}><X size={14} aria-hidden="true" /></button>
+                    </span>
+                  )}
+                  <button type="button" className="mg-obs-count" style={{ background: 'none', border: 0, cursor: 'pointer', textDecoration: 'underline', color: 'var(--brand)' }} onClick={clearAll}>Limpar filtros</button>
+                  <span className="mg-spacer" />
+                  <span className="mg-obs-count"><b>{scopedRecords.length}</b> {scopedRecords.length === 1 ? 'avaliação' : 'avaliações'} neste recorte</span>
+                </>
+              ) : (
+                <span className="mg-small mg-muted">Nenhum filtro aplicado. Clique num estado do mapa para filtrar a página.</span>
+              )}
+            </div>
+          </Card>
+
+          {/* MAPA */}
+          <Card className="mg-obs-mapsec">
+            <div className="mg-obs-mhead">
+              <div>
+                <p className="mg-eyebrow">Mapa interativo</p>
+                <h2 className="mg-h3" style={{ marginTop: 4 }}>Maturidade por estado</h2>
+              </div>
+              <div className="mg-row" style={{ gap: 12, flexWrap: 'wrap' }}>
+                <Segmented<MapMetric>
+                  label="Métrica do mapa"
+                  value={mapMetric}
+                  onChange={setMapMetric}
+                  options={[
+                    { value: 'global', label: 'Score global', icon: Gauge },
+                    ...DIMENSION_ORDER.map((id) => ({ value: id, label: DIMENSIONS[id].shortName, icon: DIMENSION_ICONS[id] })),
+                  ]}
+                />
+                <Segmented<Granularity>
+                  label="Granularidade do mapa"
+                  value={granularity}
+                  onChange={setGranularity}
+                  options={[{ value: 'uf', label: 'Estados' }, { value: 'regiao', label: 'Regiões' }]}
+                />
+              </div>
+            </div>
+
+            {showLowDataWarning && (
+              <div className="mg-row" style={{ gap: 10, alignItems: 'center', padding: '10px 14px', marginBottom: 16, background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)', border: '1px solid var(--surface-deep)' }}>
+                <Lock className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
+                <span className="mg-small mg-muted">Poucos dados por estado neste recorte.</span>
+                <Button variant="ghost" size="sm" onClick={() => setGranularity('regiao')}>Ver por região?</Button>
+              </div>
+            )}
+
+            <div className="mg-obs-mgrid">
+              <BrazilMap mode="heatmap" data={mapData} selectedUf={uf} onSelectUf={setUf} metricLabel={mapMetric === 'global' ? 'Score global' : DIMENSIONS[mapMetric].shortName} />
+
+              <div className="mg-obs-panel" aria-live="polite">
+                {uf ? (
+                  <nav className="mg-an-crumb" aria-label="Navegação do recorte">
+                    <a href="#" onClick={(e) => { e.preventDefault(); setUf(null); }}>Brasil</a>
+                    {regiaoUf && <> › <span>{regiaoUf}</span></>}
+                    {' › '}<span aria-current="page">{nomeUf}</span>
+                    <Button variant="ghost" size="sm" iconOnly icon={X} aria-label="Limpar estado selecionado" onClick={() => setUf(null)} style={{ marginLeft: 8 }} />
+                  </nav>
+                ) : (
+                  <p className="mg-eyebrow">Recorte atual</p>
+                )}
+                <p className="mg-title" style={{ marginTop: uf ? 8 : 4, fontSize: 20 }}>{uf ? `${nomeUf} (${uf})` : label}</p>
+
+                {scopedAgg.score !== null && scopedAgg.level !== null ? (
+                  <>
+                    <div className="mg-row" style={{ gap: 12, alignItems: 'baseline', marginTop: 8 }}>
+                      <span style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 36 }}>{formatNumber(scopedAgg.score)} <small style={{ fontSize: 16, opacity: 0.6 }}>/ 3</small></span>
+                      <LevelBadge level={scopedAgg.level as Level} />
+                    </div>
+                    <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{scopedAgg.n} autoavaliações · {getMaturityLevel(scopedAgg.score).risk}</p>
+
+                    <p className="mg-label" style={{ marginTop: 20 }}>Dimensões</p>
+                    <div className="mg-bars" style={{ marginTop: 8 }}>
+                      {DIMENSION_ORDER.map((id) => (
+                        <DimensionBarRow key={id} id={id} value={scopedAgg.dims![id]} brasilValue={uf ? brasilAgg.dims?.[id] ?? null : null} />
+                      ))}
+                    </div>
+                    {uf && <p className="mg-obs-leg2"><span className="g" /> Meta 1,50 <span className="r" /> Brasil</p>}
+
+                    {dist && (
+                      <>
+                        <p className="mg-label" style={{ marginTop: 20 }}>Organizações por nível</p>
+                        <div className="mg-obs-stack" style={{ marginTop: 8 }}>
+                          {dist.map((pct, lvl) => <span key={lvl} style={{ width: `${pct}%`, background: `var(--level-${lvl})` }} />)}
+                        </div>
+                        <ul className="mg-obs-distlist">
+                          {dist.map((pct, lvl) => (
+                            <li key={lvl}>
+                              <i style={{ background: `var(--level-${lvl})` }} />
+                              {lvl} · {LEVEL_LABELS[lvl as Level]}
+                              <b>{formatNumber(pct, 0)}%</b>
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+
+                    {frasesInsights.length > 0 && (
+                      <>
+                        <p className="mg-label" style={{ marginTop: 20 }}>O que os dados mostram</p>
+                        <ul className="mg-obs-ins" style={{ marginTop: 8 }}>
+                          {frasesInsights.map((frase) => (
+                            <li key={frase}>
+                              <Info className="mg-ico mg-ico-sm" aria-hidden="true" />
+                              <span dangerouslySetInnerHTML={{ __html: frase.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') }} />
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Frases geradas automaticamente a partir dos dados agregados.</p>
+                      </>
+                    )}
+                  </>
+                ) : (
+                  <p className="mg-small mg-muted" style={{ marginTop: 12 }}>Dados insuficientes · menos de 5 avaliações neste recorte.</p>
+                )}
+              </div>
+            </div>
+          </Card>
+
+          {/* KPIS */}
+          <div className="mg-grid mg-obs-kpis" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)' }}>
+            <KpiCard label="Score médio" value={scopedAgg.score !== null ? formatNumber(scopedAgg.score) : '—'} meta={scopedAgg.level !== null ? `Nível ${scopedAgg.level} · ${LEVEL_LABELS[scopedAgg.level as Level]}` : undefined} />
+            <KpiCard label="No nível 3 ou acima" value={share3 !== null ? `${formatNumber(share3, 0)}%` : '—'} meta={uf && brasilShare3 !== null ? `Brasil: ${formatNumber(brasilShare3, 0)}%` : 'das organizações'} />
+            <KpiCard label="Avaliações" value={scopedAgg.n} meta={uf ? undefined : `${estadosComDados} estados com dados`} />
+            <KpiCard label="Dimensão mais baixa" value={dimensaoMaisBaixa ? <span className="mg-row" style={{ gap: 6 }}><DimensionTag dimension={dimensaoMaisBaixa} short /></span> : '—'}
+              meta={dimensaoMaisBaixa && scopedAgg.dims ? `${formatNumber(scopedAgg.dims[dimensaoMaisBaixa])} · ${scopedAgg.dims[dimensaoMaisBaixa] < META ? `${formatNumber(META - scopedAgg.dims[dimensaoMaisBaixa])} abaixo da meta` : 'já acima da meta'}` : undefined} />
+          </div>
+
+          {/* EVOLUÇÃO + COMPARATIVOS */}
+          <div className="mg-grid mg-obs-2" style={{ ['--cols-d' as string]: 'minmax(0,1.1fr) minmax(0,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr' }}>
+            <Card>
+              <CardHeader title={`Evolução do score médio · ${uf ? nomeUf : label}`} />
+              <CardBody>
+                <TrendChart records={scopedRecords} />
               </CardBody>
             </Card>
 
-            <Card id="panel-sector-rank">
-              <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><LayoutGrid className="mg-ico mg-ico-sm" aria-hidden="true" />Médias por área de atuação</span>} />
+            <Card>
+              <CardHeader title="Comparativos" actions={
+                <Segmented<CompareTab>
+                  label="Agrupar comparativos por"
+                  value={compareTab}
+                  onChange={setCompareTab}
+                  options={[
+                    { value: 'setor_porte', label: 'Setor e porte' },
+                    { value: 'esfera', label: 'Esfera' },
+                    { value: 'area', label: 'Área' },
+                    { value: 'relacaoIA', label: 'Relação com IA' },
+                  ]}
+                />
+              } />
               <CardBody>
-                {areaRows.length > 0 ? (
-                  <DataTable<AreaRow>
-                    caption="Score ponderado médio por área de atuação, conforme os filtros selecionados"
-                    rowKey={(r) => r.label}
-                    columns={[
-                      { key: 'label', header: 'Área de atuação', render: (r) => r.label },
-                      { key: 'amostras', header: 'Amostras', numeric: true, render: (r) => `${r.amostras} avaliações` },
-                      { key: 'score', header: 'Score ponderado', numeric: true, render: (r) => (
-                        <span className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
-                          <span style={{ width: 8, height: 8, borderRadius: 'var(--radius-pill)', background: scoreStatus(r.score), display: 'inline-block' }} />
-                          <strong>{formatNumber(r.score)}</strong>
-                        </span>
-                      ) },
-                    ]}
-                    rows={areaRows}
-                  />
+                {scopedRecords.length < K_MIN ? (
+                  <p className="mg-small mg-muted">Este recorte tem menos de 5 avaliações. Amplie os filtros para ver os dados.</p>
+                ) : compareTab === 'setor_porte' ? (
+                  <div className="mg-obs-cmpgrid">
+                    <div>
+                      <p className="mg-label">Setor</p>
+                      <CompareList rows={compareBy(scopedRecords, 'setor')} />
+                    </div>
+                    <div>
+                      <p className="mg-label">Porte</p>
+                      <CompareList rows={compareBy(scopedRecords, 'porte')} />
+                    </div>
+                  </div>
                 ) : (
-                  <p className="mg-small mg-muted">Nenhuma avaliação encontrada para os filtros selecionados.</p>
+                  <CompareList rows={compareBy(scopedRecords, compareTab)} />
                 )}
-                {registrosSuprimidos > 0 && (
-                  <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
-                    {MENSAGEM_DADOS_INSUFICIENTES} ({registrosSuprimidos} {registrosSuprimidos === 1 ? 'avaliação não exibida' : 'avaliações não exibidas'})
-                  </p>
-                )}
-
-                <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }} id="opendata-links">
-                  <p className="mg-small mg-muted">Deseja utilizar os microdados brutos? Baixe o dataset completo sob CC BY 4.0.</p>
-                  <Button variant="primary" icon={Database} onClick={() => onChangeTab('opendata')}>Acessar área Open Data</Button>
-                </div>
               </CardBody>
             </Card>
           </div>
+
+          {/* DADOS ABERTOS */}
+          <Card style={{ marginBottom: 24 }}>
+            <div className="mg-row" style={{ gap: 16, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+              <div className="mg-row" style={{ gap: 16 }}>
+                <Database className="mg-ico" aria-hidden="true" style={{ color: 'var(--brand)' }} />
+                <p className="mg-small mg-muted">Baixe a base anonimizada em CSV ou JSON, sob licença CC BY 4.0. Grupos com menos de 5 avaliações já vêm agregados.</p>
+              </div>
+              <Button variant="primary" icon={Database} onClick={() => onChangeTab('opendata')}>Acessar</Button>
+            </div>
+          </Card>
+
+          {/* COMO LER */}
+          <details className="mg-obs-how mg-card" open={showDetails} onToggle={(e) => setShowDetails(e.currentTarget.open)}>
+            <summary>
+              <Info className="mg-ico" aria-hidden="true" />
+              <span className="mg-title">Como ler este painel</span>
+              <ChevronDown className="chev mg-ico mg-ico-sm" aria-hidden="true" />
+            </summary>
+            <div className="mg-obs-howbody">
+              <div>
+                <p className="mg-small">
+                  Cada prática é respondida numa escala NPLF (Nulo = 0, Parcial = 1, Larga = 2, Total = 3). O score de cada
+                  dimensão é a média das práticas respondidas; o score global é a média ponderada das 5 dimensões. A meta de
+                  referência em todo o painel é <strong>1,50</strong> (Nível 3 · Definido).
+                </p>
+                <p className="mg-small" style={{ marginTop: 12 }}>
+                  Por sigilo estatístico, nenhum grupo — estado, região, setor, porte, mês ou qualquer combinação de filtros —
+                  aparece com menos de 5 avaliações. Esses casos mostram "Dados insuficientes" no lugar do número.
+                </p>
+              </div>
+              <ul className="mg-obs-lv">
+                {([0, 1, 2, 3, 4, 5] as Level[]).map((lvl) => (
+                  <li key={lvl}>
+                    <LevelBadge level={lvl} />
+                    <span className="mg-small mg-muted">{levelRangeLabel(lvl)}</span>
+                    <RiskBadge level={lvl} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
         </div>
       </Page>
     </DsRoot>
   );
+}
+
+// ===== Subcomponentes locais =====
+
+function FilterSelect({ label, value, onChange, options, optionDisabled, disabled }: {
+  label: string; value: string; onChange: (v: string) => void;
+  options: { id: string; label: string }[]; optionDisabled: (v: string) => boolean; disabled?: boolean;
+}) {
+  return (
+    <Field label={label}>
+      {({ id }) => (
+        <Select id={id} className="mg-select--sm" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
+          <option value="">Todos</option>
+          {options.map((o) => (
+            <option key={o.id} value={o.id} disabled={optionDisabled(o.id)}>
+              {o.label}{optionDisabled(o.id) ? ' · dados insuficientes' : ''}
+            </option>
+          ))}
+        </Select>
+      )}
+    </Field>
+  );
+}
+
+function DimensionBarRow({ id, value, brasilValue }: { id: DimensionId; value: number; brasilValue: number | null }) {
+  const pct = Math.min(100, (value / 3) * 100);
+  const brasilPct = brasilValue !== null ? Math.min(100, (brasilValue / 3) * 100) : null;
+  return (
+    <div className="mg-bars-row">
+      <DimensionTag dimension={id} short />
+      <span className="v">{formatNumber(value)}</span>
+      <div className="mg-bar" role="img" aria-label={`${DIMENSIONS[id].shortName}: ${formatNumber(value)} de 3`}>
+        <span className="mg-bar-fill" style={{ width: `${pct}%`, background: 'var(--brand)' }} />
+        <span style={{ position: 'absolute', left: '50%', top: -4, bottom: -4, width: 2, background: 'var(--text-muted)', opacity: 0.6 }} aria-hidden="true" />
+        {brasilPct !== null && <span className="mg-obs-ref" style={{ left: `${brasilPct}%` }} aria-hidden="true" />}
+      </div>
+    </div>
+  );
+}
+
+function CompareList({ rows }: { rows: { grupo: string; agg: Agg }[] }) {
+  if (rows.length === 0) return <p className="mg-small mg-muted">Sem dados para este agrupamento.</p>;
+  return (
+    <ul className="mg-obs-cmp">
+      {rows.map(({ grupo, agg }) => (
+        <li key={grupo}>
+          <span className="nm">{grupo}<small>{agg.n} {agg.n === 1 ? 'avaliação' : 'avaliações'}</small></span>
+          {agg.score !== null ? (
+            <>
+              <div className="mg-obs-dot">
+                <div className="t" />
+                <div className="goal" style={{ left: `${(META / 3) * 100}%` }} />
+                <div className="d" style={{ left: `${Math.min(100, (agg.score / 3) * 100)}%` }} />
+              </div>
+              <b>{formatNumber(agg.score)}</b>
+            </>
+          ) : (
+            <span className="mg-obs-na mg-small mg-muted">
+              <Lock size={14} aria-hidden="true" />
+              Dados insuficientes · menos de 5 avaliações
+            </span>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TrendChart({ records }: { records: HistoricalRecord[] }) {
+  const data = monthly(records, 12);
+  if (data.every((d) => d.n === 0)) {
+    return <p className="mg-small mg-muted">Sem avaliações nos últimos 12 meses para este recorte.</p>;
+  }
+
+  const W = 500, H = 130;
+  const chartTop = 10, chartBottom = 90;
+  const maxN = Math.max(1, ...data.map((d) => d.n));
+  const stepX = (W - 20) / (data.length - 1);
+  const x = (i: number) => 10 + i * stepX;
+  const scoreY = (score: number) => chartTop + (1 - score / 3) * (chartBottom - chartTop);
+  const metaY = scoreY(META);
+
+  // Um segmento de linha por trecho contínuo de meses com score — quebra nos pontos nulos.
+  const paths: string[] = [];
+  let seg: string[] = [];
+  data.forEach((d, i) => {
+    if (d.score === null) {
+      if (seg.length > 1) paths.push(seg.join(' '));
+      seg = [];
+      return;
+    }
+    seg.push(`${i === 0 || seg.length === 0 ? 'M' : 'L'}${x(i)},${scoreY(d.score)}`);
+  });
+  if (seg.length > 1) paths.push(seg.join(' '));
+
+  const lastWithValue = [...data].reverse().find((d) => d.score !== null);
+  const lastIndex = lastWithValue ? data.indexOf(lastWithValue) : -1;
+
+  return (
+    <>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }} role="img" aria-label="Evolução do score médio nos últimos 12 meses">
+        <line x1="10" y1={chartBottom} x2={W - 10} y2={chartBottom} stroke="var(--surface-deep)" strokeWidth="1" />
+        <line x1="10" y1={chartTop} x2={W - 10} y2={chartTop} stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
+        <line x1="10" y1={metaY} x2={W - 10} y2={metaY} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="4 4" />
+        <text x="12" y={metaY - 4} fill="var(--text-muted)" fontSize="8" fontFamily="var(--mg-font-mono)">Meta 1,50 · Nível 3</text>
+        <text x="12" y={chartTop + 8} fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">3,0</text>
+        <text x="12" y={chartBottom - 2} fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">0,0</text>
+
+        {data.map((d, i) => {
+          const barH = (d.n / maxN) * 14;
+          return <rect key={`bar-${d.mes}`} x={x(i) - 4} y={100 - barH} width={8} height={barH} fill="var(--surface-deep)" />;
+        })}
+
+        {paths.map((p, i) => <path key={i} d={p} fill="none" stroke="var(--brand)" strokeWidth="2.5" />)}
+
+        {data.map((d, i) =>
+          d.score === null ? (
+            <circle key={`pt-${d.mes}`} cx={x(i)} cy={chartBottom} r="4" fill="var(--surface-raised)" stroke="var(--brand)" strokeWidth="2" aria-label={`${d.mes}: sem avaliações suficientes`} />
+          ) : (
+            <circle key={`pt-${d.mes}`} cx={x(i)} cy={scoreY(d.score)} r={i === lastIndex ? 4.5 : 3} fill={i === lastIndex ? 'var(--brand-accent)' : 'var(--brand)'} stroke="var(--surface-raised)" strokeWidth="1.5" />
+          )
+        )}
+        {lastWithValue && lastIndex >= 0 && (
+          <text x={x(lastIndex)} y={scoreY(lastWithValue.score!) - 10} fill="var(--text)" fontSize="9" fontWeight={700} textAnchor="middle" fontFamily="var(--mg-font-mono)">{formatNumber(lastWithValue.score!)}</text>
+        )}
+
+        {data.map((d, i) => (
+          <text key={`lb-${d.mes}`} x={x(i)} y={H - 4} fill="var(--text-muted)" fontSize="7.5" fontFamily="var(--mg-font-mono)" textAnchor="middle">{d.mes}</text>
+        ))}
+      </svg>
+      <div className="mg-row" style={{ gap: 16, flexWrap: 'wrap', marginTop: 8 }}>
+        <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k d" /><span className="mg-small mg-muted">Score médio</span></span>
+        <span className="mg-row" style={{ gap: 6 }}><span style={{ width: 16, height: 0, borderTop: '2px dashed var(--text-muted)', display: 'inline-block' }} /><span className="mg-small mg-muted">Meta 1,50</span></span>
+        <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k bar" style={{ width: 10, height: 10 }} /><span className="mg-small mg-muted">Avaliações no mês</span></span>
+        <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k hollow" /><span className="mg-small mg-muted">Mês com menos de 5 avaliações</span></span>
+      </div>
+    </>
+  );
+}
+
+// ===== Funções auxiliares locais =====
+
+function aggregateAll(records: HistoricalRecord[]): Agg {
+  return aggregateRecords(records);
+}
+
+function aggregateUfScope(filteredNoUf: HistoricalRecord[], uf: string): Agg {
+  return aggregateRecords(applyFilters(filteredNoUf, { uf }));
+}
+
+function aggregateRecords(records: HistoricalRecord[]): Agg {
+  const n = records.length;
+  if (n < K_MIN) return { n, score: null, level: null, dims: null };
+  const score = records.reduce((acc, r) => acc + r.score_global, 0) / n;
+  const dims = DIMENSION_ORDER.reduce((acc, id) => {
+    acc[id] = records.reduce((sum, r) => sum + dimScoreOf(r, id), 0) / n;
+    return acc;
+  }, {} as Record<DimensionId, number>);
+  return { n, score, level: getMaturityLevel(score).num, dims };
+}
+
+function dimScoreOf(r: HistoricalRecord, id: DimensionId): number {
+  switch (id) {
+    case 'gov': return r.score_gov;
+    case 'tec': return r.score_tec;
+    case 'seg': return r.score_seg;
+    case 'edu': return r.score_edu;
+    case 'eco': return r.score_eco;
+  }
+}
+
+function latestPeriodo(records: HistoricalRecord[]): string {
+  const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+  let best: { mes: number; ano: number; label: string } | null = null;
+  for (const r of records) {
+    const [mesStr, anoStr] = r.periodo.split('/');
+    const mes = MESES.indexOf(mesStr);
+    const ano = Number(anoStr);
+    if (mes < 0 || !Number.isFinite(ano)) continue;
+    if (!best || ano * 12 + mes > best.ano * 12 + best.mes) best = { mes, ano, label: r.periodo };
+  }
+  return best?.label ?? '—';
+}
+
+function levelRangeLabel(lvl: Level): string {
+  const ranges: Record<Level, string> = { 0: '< 0,50', 1: '0,50–0,99', 2: '1,00–1,49', 3: '1,50–1,99', 4: '2,00–2,49', 5: '≥ 2,50' };
+  return ranges[lvl];
 }

@@ -95,6 +95,16 @@ export const REGIAO_POR_UF: Record<string, Regiao> = {
   PR: 'Sul', RS: 'Sul', SC: 'Sul',
 };
 
+/** Nome por extenso de cada UF — mesmas 27 chaves de REGIAO_POR_UF. */
+export const UF_NOMES: Record<string, string> = {
+  AC: 'Acre', AL: 'Alagoas', AP: 'Amapá', AM: 'Amazonas', BA: 'Bahia', CE: 'Ceará',
+  DF: 'Distrito Federal', ES: 'Espírito Santo', GO: 'Goiás', MA: 'Maranhão', MT: 'Mato Grosso',
+  MS: 'Mato Grosso do Sul', MG: 'Minas Gerais', PA: 'Pará', PB: 'Paraíba', PR: 'Paraná',
+  PE: 'Pernambuco', PI: 'Piauí', RJ: 'Rio de Janeiro', RN: 'Rio Grande do Norte',
+  RS: 'Rio Grande do Sul', RO: 'Rondônia', RR: 'Roraima', SC: 'Santa Catarina',
+  SP: 'São Paulo', SE: 'Sergipe', TO: 'Tocantins',
+};
+
 /** Áreas exibidas para uma esfera (Justiça some no municipal). */
 export function areasPublicasPara(esfera: Esfera) {
   return AREAS_PUBLICAS.filter((a) => a.ex[esfera] !== null);
