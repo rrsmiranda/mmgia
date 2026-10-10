@@ -22,7 +22,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useState } from 'react';
-import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
+import { DIMENSION_WEIGHTS, getMaturityLevel } from '@mmgia/shared/scoring';
 import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
 import PlexusBackground from './PlexusBackground';
 import Reveal from './Reveal';
@@ -52,6 +52,13 @@ interface LandingPageProps {
 }
 
 const SAMPLE_SCORES: Record<DimensionId, number> = { gov: 2.1, tec: 1.7, seg: 1.9, edu: 1.5, eco: 1.4 };
+// Nunca hardcodar um segundo número: o score global do exemplo é sempre a média
+// ponderada oficial dos SAMPLE_SCORES acima, para as duas nunca poderem divergir.
+const SAMPLE_GLOBAL_SCORE = (Object.keys(SAMPLE_SCORES) as DimensionId[]).reduce(
+  (sum, id) => sum + SAMPLE_SCORES[id] * DIMENSION_WEIGHTS[id],
+  0
+);
+const SAMPLE_LEVEL = getMaturityLevel(SAMPLE_GLOBAL_SCORE);
 
 const HOW_IT_WORKS = [
   { step: '01', icon: Building2, title: 'Contexto institucional', desc: 'Setor, área de atuação, estado e porte. Perguntas objetivas — nenhuma de identidade.', tags: ['sem_nome', 'sem_cnpj', 'sem_email'] },
@@ -75,11 +82,11 @@ const FOUNDATION_GROUPS: { title: string; items: string[] }[] = [
 ];
 
 const FAQ_DATA = [
-  { q: 'A avaliação é realmente anônima?', a: 'Sim. O banco de dados não possui colunas para IP, nome, CNPJ ou e-mail. O middleware stripIdentity descarta headers identificadores antes que qualquer handler processe o request. É uma impossibilidade técnica, não uma promessa de política.' },
+  { q: 'A avaliação é realmente anônima?', a: 'Sim. O questionário não pergunta nome, CNPJ, e-mail ou qualquer outro dado de identificação, e o score é calculado inteiramente no seu navegador — nada disso é enviado a lugar nenhum. O banco de dados por trás do painel público também é desenhado sem colunas para IP, nome, CNPJ ou e-mail: anonimidade por arquitetura, não por promessa de política.' },
   { q: 'Quanto tempo leva para completar?', a: 'Entre 20 e 40 minutos, dependendo do conhecimento prévio sobre as práticas da organização. O progresso é salvo automaticamente no browser — você pode pausar e retomar a qualquer momento.' },
   { q: 'Preciso criar uma conta ou fazer login?', a: 'Não. A avaliação é iniciada sem cadastro. Ao final, você recebe um código único para editar sua avaliação depois — sem e-mail, sem senha.' },
-  { q: 'O que acontece com os dados enviados?', a: 'Os scores são armazenados de forma anônima para compor o painel público de benchmark nacional. Nenhum dado permite identificar qual organização respondeu. Os dados são publicados sob licença CC BY 4.0.' },
-  { q: 'A plataforma tem algum custo?', a: 'Não. A plataforma é gratuita, de código aberto (licença MIT) e mantida com custos operacionais próximos de zero usando Cloudflare Workers e Turso.' },
+  { q: 'O que acontece com os dados enviados?', a: 'Os scores são pensados para compor, de forma anônima, o painel público de benchmark nacional, publicado sob licença CC BY 4.0 — nenhum dado permite identificar qual organização respondeu.' },
+  { q: 'A plataforma tem algum custo?', a: 'Não. A plataforma é gratuita e de código aberto (licença MIT), desenhada para rodar com custo operacional próximo de zero.' },
   { q: 'Posso editar minha avaliação depois?', a: 'Sim, usando o código de avaliação gerado ao final. Ele é a única forma de recuperar e editar — guarde-o em local seguro. Sem o código, não há recuperação, porque o sistema não pede e-mail.' },
 ];
 
@@ -127,15 +134,15 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <Button variant="ghost" onInk size="sm" icon={KeyRound} onClick={() => onChangeTab('editar')}>Já avaliou? Edite com seu código</Button>
               </div>
               <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>
-                <strong style={{ color: 'var(--on-ink)' }}><CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} /></strong> avaliações · 27 estados · <strong style={{ color: 'var(--on-ink)' }}>100%</strong> gratuito
+                <strong style={{ color: 'var(--on-ink)' }}>45</strong> práticas · <strong style={{ color: 'var(--on-ink)' }}>5</strong> dimensões · <strong style={{ color: 'var(--on-ink)' }}>100%</strong> gratuito
               </p>
             </div>
 
             <Card large>
               <p className="mg-eyebrow">Exemplo ilustrativo</p>
               <div className="mg-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
-                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}><CountUp value={1.72} decimals={2} formatter={(n) => formatNumber(n)} /> <small style={{ fontSize: 18, opacity: 0.6 }}>/ 3</small></span>
-                <LevelBadge level={3 as Level} />
+                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}><CountUp value={SAMPLE_GLOBAL_SCORE} decimals={2} formatter={(n) => formatNumber(n)} /> <small style={{ fontSize: 18, opacity: 0.6 }}>/ 3</small></span>
+                <LevelBadge level={SAMPLE_LEVEL.num as Level} />
               </div>
               <div style={{ marginTop: 16 }}>
                 <DimensionBars scores={SAMPLE_SCORES} />
@@ -163,7 +170,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
       {/* STATS STRIP */}
       <Page>
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12, marginTop: -40, position: 'relative', zIndex: 1 }} id="stats-banner">
-          <KpiCard label="Avaliações" value={<CountUp value={1847} formatter={(n) => Math.round(n).toLocaleString('pt-BR')} />} />
+          <KpiCard label="Níveis" value={<CountUp value={6} />} />
           <KpiCard label="Práticas" value={<CountUp value={45} />} />
           <KpiCard label="Dimensões" value={<CountUp value={5} />} />
           <KpiCard label="Gratuito" value={<><CountUp value={100} />%</>} />
@@ -176,7 +183,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <Reveal>
             <SectionHeader
               eyebrow="Como funciona"
-              title="Da primeira pergunta ao relatório em 30 minutos."
+              title="Da primeira pergunta ao relatório em 20 a 40 minutos."
               description="O fluxo foi desenhado como uma jornada operacional: contexto mínimo, avaliação guiada, score local e relatório exportável. O objetivo é transformar maturidade em decisões, não em burocracia."
             />
           </Reveal>
@@ -269,7 +276,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <span style={{ display: 'grid', placeItems: 'center', width: 44, height: 44, borderRadius: 'var(--radius-lg)', background: 'var(--brand-accent)', color: 'var(--on-accent)' }}>
                   <Scale className="mg-ico" aria-hidden="true" />
                 </span>
-                <p className="mg-title" style={{ marginTop: 16 }}>Alinhamento regulatório</p>
+                <p className="mg-title" style={{ marginTop: 16 }}>Base metodológica</p>
                 <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Metodologia fundamentada nos princípios de LGPD, AI Act, ISO/IEC 42001, NIST AI RMF e ENIA.</p>
               </Card>
               <Card>
@@ -292,6 +299,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <Reveal>
           <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 40, alignItems: 'center' }}>
             <Card large style={{ background: 'var(--ink-raised)', border: '1px solid var(--ink-raised)' }}>
+              <p className="mg-small" style={{ color: 'var(--on-ink-muted)', marginBottom: 4 }}>Esquema de dados planejado para o painel público</p>
               <p className="mg-code" style={{ color: 'var(--on-ink-muted)' }}>POST /v1/submissions</p>
               <div style={{ marginTop: 16, fontFamily: 'var(--mg-font-mono)', fontSize: 13, lineHeight: 2, color: 'var(--on-ink)' }}>
                 <div style={{ color: 'var(--on-ink-muted)' }}>// dados armazenados</div>
@@ -313,8 +321,8 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               <p className="mg-lead" style={{ marginTop: 12 }}>A arquitetura torna a identificação tecnicamente impossível. Não é uma promessa de política — é uma limitação estrutural do sistema.</p>
               <div className="mg-stack" style={{ gap: 12, marginTop: 24 }}>
                 {[
-                  { icon: Monitor, title: 'Cálculo no browser', desc: 'Scoring roda localmente. Servidor recebe apenas números finais.' },
-                  { icon: Database, title: 'Banco sem identidade', desc: 'Sem coluna de IP, nome ou CNPJ. k-anonimidade ≥ 5.' },
+                  { icon: Monitor, title: 'Cálculo no browser', desc: 'Scoring roda localmente, no seu navegador — nenhum dado bruto da avaliação é enviado a servidor nenhum.' },
+                  { icon: Database, title: 'Banco sem identidade', desc: 'O desenho do banco não prevê coluna de IP, nome ou CNPJ; agregados públicos seguem k-anonimidade ≥ 5.' },
                   { icon: Github, title: 'Código aberto', desc: 'Qualquer equipe pode verificar no GitHub.' },
                 ].map((item) => (
                   <div key={item.title} className="mg-row" style={{ gap: 16, padding: 16, background: 'var(--ink-raised)', borderRadius: 'var(--radius-lg)' }}>
@@ -345,7 +353,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               <ul className="mg-stack" style={{ gap: 12, marginTop: 24, listStyle: 'none', padding: 0 }}>
                 <li className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}><Check className="mg-ico mg-ico-sm" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" /><span className="mg-small">Escala NPLF: Nulo (0), Parcial (1), Larga (2), Total (3).</span></li>
                 <li className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}><Check className="mg-ico mg-ico-sm" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" /><span className="mg-small">Pesos diferenciados por dimensão: gov 25%, tec 20%, seg 25%, edu 15%, eco 15%.</span></li>
-                <li className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}><Check className="mg-ico mg-ico-sm" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" /><span className="mg-small">Alinhado ao CMMI, ISO 33001 e frameworks de maturidade consolidados.</span></li>
+                <li className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}><Check className="mg-ico mg-ico-sm" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} aria-hidden="true" /><span className="mg-small">Fundamentado no CMMI e no modelo de maturidade de IA do MITRE.</span></li>
               </ul>
             </div>
 
