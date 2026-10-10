@@ -262,12 +262,10 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                       {topGaps.map((practice) => {
                         const answer = answers[practice.id];
                         return (
-                          <button
+                          <div
                             key={practice.id}
-                            type="button"
                             className="mg-acc-item mg-an-row"
-                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--surface-deep)', cursor: 'pointer' }}
-                            onClick={() => onEditPractice(practice.dimensionId)}
+                            style={{ borderBottom: '1px solid var(--surface-deep)' }}
                           >
                             <span className="mg-code">{practice.id}</span>
                             <div style={{ minWidth: 0 }}>
@@ -278,8 +276,9 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                               <DimensionTag dimension={practice.dimensionId} short />
                               <span className="mg-small mg-muted">Nível {practice.level}</span>
                               {answer ? <NplfBadge value={answer} /> : <span className="mg-small mg-muted">Sem resposta</span>}
+                              <Button variant="ghost" size="sm" onClick={() => onEditPractice(practice.dimensionId)}>Editar</Button>
                             </span>
-                          </button>
+                          </div>
                         );
                       })}
                       {gaps.length > topGaps.length && (
