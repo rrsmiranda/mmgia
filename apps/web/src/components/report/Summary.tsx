@@ -6,8 +6,8 @@
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
-import { DIMENSION_WEIGHTS } from '@mmgia/shared/scoring';
-import { DimensionBars, LevelBadge, RiskBadge, DIMENSION_ORDER, formatNumber, type Level } from '@mmgia/shared/design-system';
+import { DimensionBars, LevelBadge, RiskBadge, formatNumber, type Level } from '@mmgia/shared/design-system';
+import { getKeyFindings } from './ActionPlan';
 
 interface SummaryContentProps {
   globalScore: number;
@@ -18,16 +18,8 @@ interface SummaryContentProps {
 }
 
 export default function SummaryContent({ globalScore, levelInfo, dimensionScores, gaps, answers }: SummaryContentProps) {
-  const sortedDims = [...DIMENSION_ORDER].sort((a, b) => dimensionScores[b] - dimensionScores[a]);
-  const maiorId = sortedDims[0];
-  const menorId = sortedDims[sortedDims.length - 1];
-
-  const gapsIniciais = gaps.filter((g) => g.level <= 3).length;
-  const proximoNivel = levelInfo.num + 1;
-  const naoRespondidas = gaps.filter((g) => !answers[g.id]).length;
-  const nulas = gaps.filter((g) => answers[g.id] === 'N').length;
-
-  const menorPeso = Math.round(DIMENSION_WEIGHTS[menorId] * 100);
+  const { naoRespondidas, nulas, gapsIniciais, proximoNivel, maiorId, menorId, menorPesoPercent } =
+    getKeyFindings(gaps, dimensionScores, levelInfo, answers);
 
   return (
     <>
@@ -68,7 +60,7 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
           </li>
         )}
         <li>
-          Recomenda-se tratar primeiro {DIMENSIONS[menorId].name}: é a dimensão com menor score e peso de {menorPeso}% no resultado global.
+          Recomenda-se tratar primeiro {DIMENSIONS[menorId].name}: é a dimensão com menor score e peso de {menorPesoPercent}% no resultado global.
         </li>
       </ul>
 

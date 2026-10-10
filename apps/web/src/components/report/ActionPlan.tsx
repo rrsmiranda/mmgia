@@ -6,7 +6,9 @@
 import type { ReactNode } from 'react';
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
+import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
 import {
+  DIMENSION_WEIGHTS,
   getAllDimensionScores,
   getMaturityLevel,
   getOfficialPracticeCode,
@@ -60,6 +62,46 @@ export function getGaps(answers: Record<string, ScoreLevel>): Practice[] {
       if (va !== vb) return va - vb;
       return a.id.localeCompare(b.id);
     });
+}
+
+export interface KeyFindings {
+  totalGaps: number;
+  totalPractices: number;
+  naoRespondidas: number;
+  nulas: number;
+  gapsIniciais: number;
+  proximoNivel: number;
+  maiorId: DimensionId;
+  menorId: DimensionId;
+  menorPesoPercent: number;
+}
+
+/**
+ * Números por trás das "Principais conclusões" — únicos, derivados de `gaps` (já
+ * calculado por `getGaps`) e dos scores por dimensão, para que o relatório PDF
+ * (Summary.tsx) e a tela de Resultado mostrem exatamente os mesmos números.
+ */
+export function getKeyFindings(
+  gaps: Practice[],
+  dimensionScores: Record<DimensionId, number>,
+  levelInfo: MaturityLevelInfo,
+  answers: Record<string, ScoreLevel>
+): KeyFindings {
+  const sortedDims = [...DIMENSION_ORDER].sort((a, b) => dimensionScores[b] - dimensionScores[a]);
+  const maiorId = sortedDims[0];
+  const menorId = sortedDims[sortedDims.length - 1];
+
+  return {
+    totalGaps: gaps.length,
+    totalPractices: LIST_PRACTICES.length,
+    naoRespondidas: gaps.filter((g) => !answers[g.id]).length,
+    nulas: gaps.filter((g) => answers[g.id] === 'N').length,
+    gapsIniciais: gaps.filter((g) => g.level <= 3).length,
+    proximoNivel: levelInfo.num + 1,
+    maiorId,
+    menorId,
+    menorPesoPercent: Math.round(DIMENSION_WEIGHTS[menorId] * 100),
+  };
 }
 
 interface DimensionGapBlock {

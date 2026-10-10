@@ -22,8 +22,10 @@ import {
   DIMENSION_WEIGHTS,
   getAllDimensionScores,
   getGlobalScore,
+  getLevelScores,
   getMaturityLevel,
 } from '@mmgia/shared/scoring';
+import { getGaps, getKeyFindings } from './report/ActionPlan';
 import DimensionAnalysis from './DimensionAnalysis';
 import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
@@ -38,6 +40,7 @@ import {
   DimensionTag,
   DsRoot,
   LevelBadge,
+  NplfBadge,
   Page,
   RiskBadge,
   formatNumber,
@@ -112,6 +115,14 @@ interface WeightRow {
   contribution: number;
 }
 
+interface LevelRow {
+  id: DimensionId;
+  scores: Record<1 | 2 | 3 | 4 | 5, number | null>;
+}
+
+const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
+const PRIORITY_GAPS_SHOWN = 8;
+
 export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -135,6 +146,17 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     weight: DIMENSION_WEIGHTS[id],
     contribution: currentScores[id] * DIMENSION_WEIGHTS[id],
   }));
+
+  const levelRows: LevelRow[] = DIMENSION_ORDER.map((id) => ({
+    id,
+    scores: getLevelScores(id, answers),
+  }));
+
+  // Mesmas lacunas e conclusões do relatório PDF (report/ActionPlan.tsx e report/Summary.tsx) —
+  // uma só função de origem, para que os números nunca divirjam entre tela e PDF.
+  const gaps = getGaps(answers);
+  const findings = getKeyFindings(gaps, currentScores, levelInfo, answers);
+  const topGaps = gaps.slice(0, PRIORITY_GAPS_SHOWN);
 
   return (
     <DsRoot>
@@ -204,6 +226,26 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                 />
               </div>
 
+              <div style={{ marginTop: 20 }}>
+                <DataTable<LevelRow>
+                  caption="Score por nível de maturidade — média das práticas respondidas em cada nível"
+                  rowKey={(r) => r.id}
+                  columns={[
+                    { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} /> },
+                    ...PRACTICE_LEVELS.map((lvl) => ({
+                      key: `lvl${lvl}`,
+                      header: `Nível ${lvl}`,
+                      numeric: true,
+                      render: (r: LevelRow) => (r.scores[lvl] !== null ? formatNumber(r.scores[lvl]!) : '—'),
+                    })),
+                  ]}
+                  rows={levelRows}
+                />
+                <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
+                  "—" indica nível sem nenhuma prática respondida nessa dimensão.
+                </p>
+              </div>
+
               <div className="mg-row" style={{ gap: 12, marginTop: 20, flexWrap: 'wrap' }}>
                 <span className="mg-code">Score Global: {formatNumber(globalScore)} / 3</span>
                 <LevelBadge level={levelInfo.num as Level} />
@@ -255,6 +297,74 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               <Button variant="secondary" iconOnly icon={copied ? Check : Copy} aria-label="Copiar código" onClick={handleCopyCode} />
             </div>
           </div>
+        </Card>
+
+        {/* PRINCIPAIS CONCLUSÕES — mesmos números do PDF (report/Summary.tsx), via getKeyFindings */}
+        <Card style={{ marginBottom: 24 }}>
+          <CardHeader title="Principais conclusões" />
+          <CardBody>
+            <ul className="mg-stack" style={{ gap: 8, paddingLeft: 18, listStyle: 'disc' }}>
+              <li>{findings.totalGaps} das {findings.totalPractices} práticas estão inexistentes ou parciais (respostas N ou P).</li>
+              {findings.naoRespondidas > 0 && (
+                <li>
+                  Dessas, <strong>{findings.naoRespondidas}</strong> sem resposta e <strong>{findings.nulas}</strong> Nulo
+                  — ambas valem zero no cálculo.
+                </li>
+              )}
+              {levelInfo.num < 5 && (
+                <li>
+                  {findings.gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {findings.proximoNivel}.
+                </li>
+              )}
+              <li>
+                Recomenda-se tratar primeiro <strong>{DIMENSIONS[findings.menorId].name}</strong>: é a dimensão com menor
+                score e peso de {findings.menorPesoPercent}% no resultado global.
+              </li>
+            </ul>
+          </CardBody>
+        </Card>
+
+        {/* LACUNAS PRIORIZADAS — mesma ordenação do plano de ação do PDF (report/ActionPlan.tsx), via getGaps */}
+        <Card flush style={{ marginBottom: 24 }}>
+          <CardHeader title="Lacunas priorizadas" />
+          <>
+            {gaps.length === 0 ? (
+              <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
+                Nenhuma lacuna identificada — todas as práticas foram respondidas como Larga (L) ou Total (F).
+              </p>
+            ) : (
+              <>
+                {topGaps.map((practice) => {
+                  const answer = answers[practice.id];
+                  return (
+                    <button
+                      key={practice.id}
+                      type="button"
+                      className="mg-acc-item mg-an-row"
+                      style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--surface-deep)', cursor: 'pointer' }}
+                      onClick={() => onEditPractice(practice.dimensionId)}
+                    >
+                      <span className="mg-code">{practice.id}</span>
+                      <div style={{ minWidth: 0 }}>
+                        <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
+                        <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
+                      </div>
+                      <span className="mg-an-legal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                        <DimensionTag dimension={practice.dimensionId} short />
+                        <span className="mg-small mg-muted">Nível {practice.level}</span>
+                        {answer ? <NplfBadge value={answer} /> : <span className="mg-small mg-muted">Sem resposta</span>}
+                      </span>
+                    </button>
+                  );
+                })}
+                {gaps.length > topGaps.length && (
+                  <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
+                    +{gaps.length - topGaps.length} lacunas adicionais — veja o detalhamento completo por dimensão abaixo.
+                  </p>
+                )}
+              </>
+            )}
+          </>
         </Card>
 
         <div style={{ marginBottom: 24 }}>
