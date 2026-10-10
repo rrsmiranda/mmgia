@@ -522,12 +522,13 @@
 .mg-an-mini .mg-bar { display: block; height: 6px; }
 .mg-an-val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
 .mg-an2-item > summary .mg-badge { justify-self: start; }
-/* Linhas de lacuna (prática · evidência mínima esperada · base legal): coluna de
-   largura fixa para a base legal alinhar entre si, independente do tamanho do texto
-   do badge — grid, não flex, porque flex deixaria essa coluna variar por linha. */
+/* Linhas de prática (código · nome · evidência · nível e resposta): coluna de
+   largura fixa para o nível/resposta alinharem entre si, independente do tamanho do
+   texto — grid, não flex, porque flex deixaria essa coluna variar por linha. */
 .mg-an-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 190px; align-items: center; gap: var(--space-4); }
 .mg-an-row.is-hl { background: var(--brand-soft); }
 .mg-an-row.is-hl .mg-code { color: var(--brand); font-weight: 700; }
+.mg-an-row.is-ok { opacity: 0.6; }
 .mg-an-legal { display: flex; }
 @media (max-width: 991.98px) {
   .mg-an2-chart { grid-template-columns: 1fr; gap: var(--space-4); }

@@ -16,14 +16,13 @@ import {
   getPracticeScores,
 } from '@mmgia/shared/scoring';
 import {
-  Banner,
   Button,
   Card,
   DIMENSION_ICONS,
   DIMENSION_ORDER,
-  LegalBadge,
   LevelBadge,
   NPLF,
+  NplfBadge,
   LEVEL_LABELS,
   RiskBadge,
   cx,
@@ -234,7 +233,6 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
           const isOpen = openDim === id;
           const practiceScores = isOpen ? openPracticeScores : [];
           const unansweredCount = isOpen ? practiceScores.filter((p) => !p.answer).length : 0;
-          const gapScores = practiceScores.filter(({ answer }) => !answer || answer === 'N' || answer === 'P');
 
           return (
             <details
@@ -261,35 +259,31 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
 
               {isOpen && (
                 <div className="mg-an2-body">
-                  {gapScores.length === 0 ? (
-                    <div style={{ padding: '16px 24px' }}>
-                      <Banner tone="good" title="Nenhum gap crítico identificado">
-                        Conformidade larga ou total em todas as práticas desta dimensão.
-                      </Banner>
-                    </div>
-                  ) : (
-                    gapScores.map(({ practice }) => {
-                      const isHl = hoverId === practice.id;
-                      return (
-                        <div
-                          key={practice.id}
-                          ref={(el) => { practiceRowRefs.current[practice.id] = el; }}
-                          className={cx('mg-acc-item', 'mg-an-row', isHl && 'is-hl')}
-                          onMouseEnter={() => setHoverId(practice.id)}
-                          onMouseLeave={() => setHoverId((h) => (h === practice.id ? null : h))}
-                          onFocus={() => setHoverId(practice.id)}
-                          onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
-                        >
-                          <span className="mg-code">{practice.id}</span>
-                          <div style={{ minWidth: 0 }}>
-                            <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
-                            <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
-                          </div>
-                          <span className="mg-an-legal">{practice.legalReference ? <LegalBadge>{practice.legalReference}</LegalBadge> : <span className="mg-small mg-muted">—</span>}</span>
+                  {practiceScores.map(({ practice, answer }) => {
+                    const isHl = hoverId === practice.id;
+                    const isGap = !answer || answer === 'N' || answer === 'P';
+                    return (
+                      <div
+                        key={practice.id}
+                        ref={(el) => { practiceRowRefs.current[practice.id] = el; }}
+                        className={cx('mg-acc-item', 'mg-an-row', isHl && 'is-hl', !isGap && 'is-ok')}
+                        onMouseEnter={() => setHoverId(practice.id)}
+                        onMouseLeave={() => setHoverId((h) => (h === practice.id ? null : h))}
+                        onFocus={() => setHoverId(practice.id)}
+                        onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
+                      >
+                        <span className="mg-code">{practice.id}</span>
+                        <div style={{ minWidth: 0 }}>
+                          <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
+                          <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
                         </div>
-                      );
-                    })
-                  )}
+                        <span className="mg-an-legal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                          <span className="mg-small mg-muted">Nível {practice.level}</span>
+                          {answer ? <NplfBadge value={answer} /> : <span className="mg-small mg-muted">Sem resposta</span>}
+                        </span>
+                      </div>
+                    );
+                  })}
                   <div style={{ padding: '16px 24px', borderTop: '1px solid var(--surface-deep)' }}>
                     <Button variant="secondary" onClick={() => onEditPractice(id)}>Editar respostas desta dimensão</Button>
                   </div>

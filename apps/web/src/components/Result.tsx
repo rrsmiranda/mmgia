@@ -34,7 +34,6 @@ import {
   CardBody,
   CardHeader,
   DataTable,
-  DIMENSION_ICONS,
   DIMENSION_ORDER,
   DimensionTag,
   DsRoot,
@@ -104,18 +103,6 @@ const LEVEL_MEANINGS: { lvl: Level; scoreRange: string; title: string; desc: str
     desc: 'A organização foca na melhoria contínua e proativa dos processos de governança de IA. O feedback, tanto quantitativo quanto qualitativo, é utilizado para identificar oportunidades de inovação e refinar as práticas em um ciclo virtuoso.',
     risco: 'A governança se torna adaptativa, ágil e diferencial competitivo forte. Riscos minimizados. O único desafio é evitar a complacência e manter o ritmo ativo de monitoramento em face às novas disrupções técnicas no cenário global.',
   },
-];
-
-/** item.dim no plano abaixo guarda o nome curto da dimensão (texto); este mapa acha o ícone correspondente. */
-const SHORTNAME_TO_DIM_ID = Object.fromEntries(
-  (Object.keys(DIMENSIONS) as DimensionId[]).map((id) => [DIMENSIONS[id].shortName, id])
-) as Record<string, DimensionId>;
-
-const ACTION_PLAN = [
-  { step: '01', title: 'Formalização e Portarias Jurídicas', desc: 'Constituição do Comitê Ético e designação oficial do DPO (Encarregado de Privacidade) assumindo as chaves algorítmicas.', dim: 'Governança', effort: 'Baixo esforço', time: 'Semana 1-2' },
-  { step: '02', title: 'Blindagem de Inputs e Letramento Básico', desc: 'Saneamento preventivo em requisições de prompts e disparos massivos de cartilhas de uso responsável para toda a corporação.', dim: 'Segurança', effort: 'Médio esforço', time: 'Semana 3-4' },
-  { step: '03', title: 'Inventário Geral de Chaves e Engenhos de IA', desc: 'Centralização organizada de repositórios de dados no padrão JSON especificando o ciclo ativo e finalidade de modelos de treino.', dim: 'Inovação', effort: 'Médio esforço', time: 'Semana 5-6' },
-  { step: '04', title: 'Simulacros Éticos de Ataque (Red Teaming)', desc: 'Recrutamento de equipe e workshops dedicados para teste de vazamentos algorítmicos voluntários e testes de viesses demográficos.', dim: 'Segurança', effort: 'Alto esforço', time: 'Mês 2' },
 ];
 
 interface WeightRow {
@@ -273,38 +260,6 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
         <div style={{ marginBottom: 24 }}>
           <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
         </div>
-
-        {/* ACTION PLAN */}
-        <Card style={{ marginBottom: 24 }} id="action-plan">
-          <CardHeader title="Plano de implementação prática" />
-          <CardBody>
-            <p className="mg-small mg-muted" style={{ marginTop: -8, marginBottom: 16 }}>Mapeamento sequencial de rotinas voltadas para atingir robustez algorítmica.</p>
-            <div className="mg-stack" style={{ gap: 12 }}>
-              {ACTION_PLAN.map((item) => {
-                const ItemDimIcon = DIMENSION_ICONS[SHORTNAME_TO_DIM_ID[item.dim]];
-                return (
-                <div key={item.step} className="mg-row" style={{ gap: 16, padding: 16, background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', flexWrap: 'wrap' }}>
-                  <span className="mg-code" style={{ fontSize: 16, width: 36, height: 36, display: 'grid', placeItems: 'center', background: 'var(--brand)', color: 'var(--on-brand)', borderRadius: 'var(--radius-pill)', flexShrink: 0 }}>
-                    {item.step}
-                  </span>
-                  <div style={{ flex: 1, minWidth: 200 }}>
-                    <p className="mg-title">{item.title}</p>
-                    <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{item.desc}</p>
-                  </div>
-                  <div className="mg-row" style={{ gap: 8, flexWrap: 'wrap' }}>
-                    <span className="mg-code" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                      <ItemDimIcon className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--brand)' }} />
-                      {item.dim}
-                    </span>
-                    <span className="mg-code">{item.effort}</span>
-                    <span className="mg-code">{item.time}</span>
-                  </div>
-                </div>
-                );
-              })}
-            </div>
-          </CardBody>
-        </Card>
 
         {/* EXPORT ACTIONS — os dois primeiros abrem o mesmo relatório executivo (ReportViewer). */}
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="action-buttons-row">
