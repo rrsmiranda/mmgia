@@ -102,13 +102,6 @@ export function levelDistribution(records: HistoricalRecord[]): number[] | null 
   return counts.map((c) => (c / records.length) * 100);
 }
 
-/** % de organizações no nível informado ou acima. null se o recorte inteiro não atinge K_MIN. */
-export function shareAtOrAbove(records: HistoricalRecord[], level: number): number | null {
-  if (records.length < K_MIN) return null;
-  const acima = records.filter((r) => getMaturityLevel(r.score_global).num >= level).length;
-  return (acima / records.length) * 100;
-}
-
 const MESES_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
 function parsePeriodo(periodo: string): { mes: number; ano: number } | null {
@@ -208,8 +201,6 @@ export interface InsightsContext {
   nomeUf?: string;
   /** Agregado de todo o Brasil (sem filtro de UF), para comparar com o recorte do estado. */
   brasil?: Agg;
-  /** % do Brasil no nível 3 ou acima, pré-calculado pelo chamador via shareAtOrAbove. */
-  brasilShare3?: number | null;
   /** Agregado por UF já calculado (byUf do recorte sem a UF aplicada), para o destaque geográfico. */
   porUf?: Record<string, Agg>;
   nomeEstado?: (uf: string) => string;
@@ -220,25 +211,22 @@ function fmt2(n: number): string {
 }
 
 /**
- * Até 3 frases, nesta ordem de prioridade (seção 4 do prompt): dimensão mais
- * baixa; dimensão mais alta (só com UF); distribuição no nível 3+; destaque
- * geográfico (só sem UF). Nunca cita um grupo com n < K_MIN.
+ * Até 3 frases, nesta ordem de prioridade: dimensão mais baixa; dimensão mais
+ * alta comparada ao Brasil (só com UF); destaque geográfico (só sem UF).
+ * Nunca cita um grupo com n < K_MIN. Não existe "meta"/nível de referência na
+ * metodologia oficial — as frases só comparam valores reais entre si (um
+ * recorte com o Brasil, ou estados entre si), nunca com um alvo inventado.
  */
-export function insights(rec: Agg, allRecordsInScope: HistoricalRecord[], ctx: InsightsContext): string[] {
+export function insights(rec: Agg, ctx: InsightsContext): string[] {
   const frases: string[] = [];
   if (rec.n < K_MIN || !rec.dims) return frases;
 
-  const META = 1.5;
   const dimEntries = DIMENSION_IDS.map((id) => ({ id, v: rec.dims![id] }));
+  const quem = ctx.uf && ctx.nomeUf ? ctx.nomeUf : ctx.recorteLabel;
 
   // 1. Dimensão mais baixa.
   const menor = dimEntries.reduce((a, b) => (b.v < a.v ? b : a));
-  const nomeMenor = DIMENSIONS[menor.id].shortName;
-  if (menor.v < META) {
-    frases.push(`${nomeMenor} é a dimensão mais baixa: **${fmt2(menor.v)}**, ${fmt2(META - menor.v)} abaixo da meta.`);
-  } else {
-    frases.push(`${nomeMenor} é a mais baixa do ${ctx.recorteLabel} (**${fmt2(menor.v)}**), mas já acima da meta.`);
-  }
+  frases.push(`${DIMENSIONS[menor.id].shortName} é a dimensão mais baixa do ${quem}: **${fmt2(menor.v)}**.`);
 
   // 2. Dimensão mais alta — só com UF selecionada, comparando com o Brasil.
   if (ctx.uf && ctx.nomeUf && ctx.brasil?.dims) {
@@ -247,15 +235,7 @@ export function insights(rec: Agg, allRecordsInScope: HistoricalRecord[], ctx: I
     frases.push(`${DIMENSIONS[maior.id].shortName} é a dimensão mais alta do ${ctx.nomeUf}: **${fmt2(maior.v)}**, ${fmt2(maior.v - brasilV)} acima da média nacional.`);
   }
 
-  // 3. Distribuição no nível 3 ou acima (com UF, compara com o Brasil).
-  const share = shareAtOrAbove(allRecordsInScope, 3);
-  if (share !== null) {
-    const quemLabel = ctx.uf ? `do ${ctx.nomeUf}` : `do ${ctx.recorteLabel}`;
-    const comparativo = ctx.uf && ctx.brasilShare3 != null ? ` (Brasil: ${fmt2(ctx.brasilShare3)}%)` : '';
-    frases.push(`**${fmt2(share)}%** das organizações ${quemLabel} estão no nível 3 ou acima${comparativo}.`);
-  }
-
-  // 4. Destaque geográfico — só sem UF selecionada.
+  // 3. Destaque geográfico — só sem UF selecionada.
   if (!ctx.uf && ctx.porUf && ctx.nomeEstado) {
     const candidatos = Object.entries(ctx.porUf).filter(([, agg]) => agg.n >= K_MIN && agg.score !== null);
     if (candidatos.length > 0) {

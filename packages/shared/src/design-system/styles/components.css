@@ -606,8 +606,7 @@
 .mg-obs-panel .mg-bar { background: var(--surface-raised); }
 .mg-obs-ref { position: absolute; top: -4px; bottom: -4px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--text); }
 .mg-obs-leg2 { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: var(--font-size-scale-down-02); }
-.mg-obs-leg2 .g { width: 0; height: 12px; border-left: 2px dashed var(--text-muted); }
-.mg-obs-leg2 .r { width: 3px; height: 12px; border-radius: 2px; background: var(--text); margin-left: 10px; }
+.mg-obs-leg2 .r { width: 3px; height: 12px; border-radius: 2px; background: var(--text); }
 .mg-obs-stack { display: flex; height: 14px; border-radius: var(--radius-pill); overflow: hidden; gap: 2px; }
 .mg-obs-distlist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 4px 16px; font-size: var(--font-size-scale-down-01); }
 .mg-obs-distlist li { display: flex; align-items: center; gap: 6px; }
@@ -617,7 +616,7 @@
 .mg-obs-ins li { display: flex; gap: 10px; align-items: flex-start; font-size: var(--font-size-scale-down-01); line-height: 1.45; padding: 10px 12px; border-radius: var(--radius-md); background: var(--surface-raised); }
 .mg-obs-ins .mg-ico { color: var(--brand); flex: none; margin-top: 1px; }
 
-.mg-obs-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
+.mg-obs-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6); }
 .mg-obs-kpis .mg-kpi-value .mg-ico { width: 22px; height: 22px; vertical-align: -3px; }
 .mg-obs-2 { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--space-6); margin-bottom: var(--space-6); align-items: start; }
 .mg-obs-k { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
@@ -635,7 +634,6 @@
 .mg-obs-na { grid-column: 2 / -1; display: inline-flex; gap: 6px; align-items: center; }
 .mg-obs-dot { position: relative; height: 20px; }
 .mg-obs-dot .t { position: absolute; left: 0; right: 0; top: 9px; height: 2px; background: var(--surface-deep); border-radius: 2px; }
-.mg-obs-dot .goal { position: absolute; top: 2px; bottom: 2px; border-left: 2px dashed var(--text-muted); }
 .mg-obs-dot .ref { position: absolute; top: 3px; bottom: 3px; width: 3px; margin-left: -1.5px; border-radius: 2px; background: var(--text); }
 .mg-obs-dot .d { position: absolute; top: 3px; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--brand); border: 2px solid var(--surface-raised); box-shadow: 0 0 0 1px var(--brand); }
 .mg-obs-p2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-8); }

@@ -19,7 +19,6 @@ import {
   insights,
   levelDistribution,
   monthly,
-  shareAtOrAbove,
   wouldBreakK,
 } from '@mmgia/shared/observatory';
 import {
@@ -78,7 +77,6 @@ const PODERES: { id: Poder; label: string }[] = [
   { id: 'legislativo', label: 'Legislativo' },
 ];
 const PORTES = ['Micro', 'Pequena', 'Média', 'Grande'];
-const META = 1.5;
 
 function areaOptionsFor(setor: Setor | undefined): { id: string; label: string }[] {
   if (setor === 'publico') return AREAS_PUBLICAS.map((a) => ({ id: a.id, label: a.label }));
@@ -190,20 +188,17 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
   const regiaoUf = uf ? REGIAO_POR_UF[uf] : undefined;
 
   const frasesInsights = useMemo(() => {
-    return insights(scopedAgg, scopedRecords, {
+    return insights(scopedAgg, {
       recorteLabel: label,
       uf: uf ?? undefined,
       nomeUf,
       brasil: brasilAgg,
-      brasilShare3: shareAtOrAbove(filteredNoUf, 3),
       porUf: byUfAgg,
       nomeEstado: (code) => UF_NOMES[code] ?? code,
     });
-  }, [scopedAgg, scopedRecords, label, uf, nomeUf, brasilAgg, filteredNoUf, byUfAgg]);
+  }, [scopedAgg, label, uf, nomeUf, brasilAgg, byUfAgg]);
 
   const dist = levelDistribution(scopedRecords);
-  const share3 = shareAtOrAbove(scopedRecords, 3);
-  const brasilShare3 = shareAtOrAbove(filteredNoUf, 3);
 
   const dimensaoMaisBaixa = useMemo(() => {
     if (!scopedAgg.dims) return null;
@@ -399,7 +394,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
                         <DimensionBarRow key={id} id={id} value={scopedAgg.dims![id]} brasilValue={uf ? brasilAgg.dims?.[id] ?? null : null} />
                       ))}
                     </div>
-                    {uf && <p className="mg-obs-leg2"><span className="g" /> Meta 1,50 <span className="r" /> Brasil</p>}
+                    {uf && <p className="mg-obs-leg2"><span className="r" /> Brasil</p>}
 
                     {dist && (
                       <>
@@ -442,12 +437,11 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
           </Card>
 
           {/* KPIS */}
-          <div className="mg-grid mg-obs-kpis" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)' }}>
+          <div className="mg-grid mg-obs-kpis" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)' }}>
             <KpiCard label="Score médio" value={scopedAgg.score !== null ? formatNumber(scopedAgg.score) : '—'} meta={scopedAgg.level !== null ? `Nível ${scopedAgg.level} · ${LEVEL_LABELS[scopedAgg.level as Level]}` : undefined} />
-            <KpiCard label="No nível 3 ou acima" value={share3 !== null ? `${formatNumber(share3, 0)}%` : '—'} meta={uf && brasilShare3 !== null ? `Brasil: ${formatNumber(brasilShare3, 0)}%` : 'das organizações'} />
             <KpiCard label="Avaliações" value={scopedAgg.n} meta={uf ? undefined : `${estadosComDados} estados com dados`} />
             <KpiCard label="Dimensão mais baixa" value={dimensaoMaisBaixa ? <span className="mg-row" style={{ gap: 6 }}><DimensionTag dimension={dimensaoMaisBaixa} short /></span> : '—'}
-              meta={dimensaoMaisBaixa && scopedAgg.dims ? `${formatNumber(scopedAgg.dims[dimensaoMaisBaixa])} · ${scopedAgg.dims[dimensaoMaisBaixa] < META ? `${formatNumber(META - scopedAgg.dims[dimensaoMaisBaixa])} abaixo da meta` : 'já acima da meta'}` : undefined} />
+              meta={dimensaoMaisBaixa && scopedAgg.dims ? formatNumber(scopedAgg.dims[dimensaoMaisBaixa]) : undefined} />
           </div>
 
           {/* EVOLUÇÃO + COMPARATIVOS */}
@@ -516,8 +510,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
               <div>
                 <p className="mg-small">
                   Cada prática é respondida numa escala NPLF (Nulo = 0, Parcial = 1, Larga = 2, Total = 3). O score de cada
-                  dimensão é a média das práticas respondidas; o score global é a média ponderada das 5 dimensões. A meta de
-                  referência em todo o painel é <strong>1,50</strong> (Nível 3 · Definido).
+                  dimensão é a média das práticas respondidas; o score global é a média ponderada das 5 dimensões.
                 </p>
                 <p className="mg-small" style={{ marginTop: 12 }}>
                   Por sigilo estatístico, nenhum grupo — estado, região, setor, porte, mês ou qualquer combinação de filtros —
@@ -572,7 +565,6 @@ function DimensionBarRow({ id, value, brasilValue }: { id: DimensionId; value: n
       <span className="v">{formatNumber(value)}</span>
       <div className="mg-bar" role="img" aria-label={`${DIMENSIONS[id].shortName}: ${formatNumber(value)} de 3`}>
         <span className="mg-bar-fill" style={{ width: `${pct}%`, background: 'var(--brand)' }} />
-        <span style={{ position: 'absolute', left: '50%', top: -4, bottom: -4, width: 2, background: 'var(--text-muted)', opacity: 0.6 }} aria-hidden="true" />
         {brasilPct !== null && <span className="mg-obs-ref" style={{ left: `${brasilPct}%` }} aria-hidden="true" />}
       </div>
     </div>
@@ -590,7 +582,6 @@ function CompareList({ rows }: { rows: { grupo: string; agg: Agg }[] }) {
             <>
               <div className="mg-obs-dot">
                 <div className="t" />
-                <div className="goal" style={{ left: `${(META / 3) * 100}%` }} />
                 <div className="d" style={{ left: `${Math.min(100, (agg.score / 3) * 100)}%` }} />
               </div>
               <b>{formatNumber(agg.score)}</b>
@@ -619,7 +610,6 @@ function TrendChart({ records }: { records: HistoricalRecord[] }) {
   const stepX = (W - 20) / (data.length - 1);
   const x = (i: number) => 10 + i * stepX;
   const scoreY = (score: number) => chartTop + (1 - score / 3) * (chartBottom - chartTop);
-  const metaY = scoreY(META);
 
   // Um segmento de linha por trecho contínuo de meses com score — quebra nos pontos nulos.
   const paths: string[] = [];
@@ -642,8 +632,6 @@ function TrendChart({ records }: { records: HistoricalRecord[] }) {
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }} role="img" aria-label="Evolução do score médio nos últimos 12 meses">
         <line x1="10" y1={chartBottom} x2={W - 10} y2={chartBottom} stroke="var(--surface-deep)" strokeWidth="1" />
         <line x1="10" y1={chartTop} x2={W - 10} y2={chartTop} stroke="var(--surface-deep)" strokeWidth="1" strokeDasharray="3 3" />
-        <line x1="10" y1={metaY} x2={W - 10} y2={metaY} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="4 4" />
-        <text x="12" y={metaY - 4} fill="var(--text-muted)" fontSize="8" fontFamily="var(--mg-font-mono)">Meta 1,50 · Nível 3</text>
         <text x="12" y={chartTop + 8} fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">3,0</text>
         <text x="12" y={chartBottom - 2} fill="var(--text-muted)" fontSize="7" fontFamily="var(--mg-font-mono)">0,0</text>
 
@@ -671,7 +659,6 @@ function TrendChart({ records }: { records: HistoricalRecord[] }) {
       </svg>
       <div className="mg-row" style={{ gap: 16, flexWrap: 'wrap', marginTop: 8 }}>
         <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k d" /><span className="mg-small mg-muted">Score médio</span></span>
-        <span className="mg-row" style={{ gap: 6 }}><span style={{ width: 16, height: 0, borderTop: '2px dashed var(--text-muted)', display: 'inline-block' }} /><span className="mg-small mg-muted">Meta 1,50</span></span>
         <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k bar" style={{ width: 10, height: 10 }} /><span className="mg-small mg-muted">Avaliações no mês</span></span>
         <span className="mg-row" style={{ gap: 6 }}><span className="mg-obs-k hollow" /><span className="mg-small mg-muted">Mês com menos de 5 avaliações</span></span>
       </div>
