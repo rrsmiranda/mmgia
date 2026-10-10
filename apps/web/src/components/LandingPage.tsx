@@ -83,7 +83,7 @@ const FOUNDATION_GROUPS: { title: string; items: string[] }[] = [
 
 const FAQ_DATA = [
   { q: 'A avaliação é realmente anônima?', a: 'Sim. O questionário não pergunta nome, CNPJ, e-mail ou qualquer outro dado de identificação, e o score é calculado inteiramente no seu navegador — nada disso é enviado a lugar nenhum. O banco de dados por trás do painel público também é desenhado sem colunas para IP, nome, CNPJ ou e-mail: anonimidade por arquitetura, não por promessa de política.' },
-  { q: 'Quanto tempo leva para completar?', a: 'Entre 20 e 40 minutos, dependendo do conhecimento prévio sobre as práticas da organização. O progresso é salvo automaticamente no browser — você pode pausar e retomar a qualquer momento.' },
+  { q: 'Quanto tempo leva para completar?', a: 'Varia de organização para organização, de acordo com o conhecimento prévio sobre as próprias práticas. O progresso é salvo automaticamente no browser — você pode pausar e retomar quando quiser, sem pressa.' },
   { q: 'Preciso criar uma conta ou fazer login?', a: 'Não. A avaliação é iniciada sem cadastro. Ao final, você recebe um código único para editar sua avaliação depois — sem e-mail, sem senha.' },
   { q: 'O que acontece com os dados enviados?', a: 'Os scores são pensados para compor, de forma anônima, o painel público de benchmark nacional, publicado sob licença CC BY 4.0 — nenhum dado permite identificar qual organização respondeu.' },
   { q: 'A plataforma tem algum custo?', a: 'Não. A plataforma é gratuita e de código aberto (licença MIT), desenhada para rodar com custo operacional próximo de zero.' },
@@ -183,7 +183,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           <Reveal>
             <SectionHeader
               eyebrow="Como funciona"
-              title="Da primeira pergunta ao relatório em 20 a 40 minutos."
+              title="Da primeira pergunta ao relatório, no seu ritmo."
               description="O fluxo foi desenhado como uma jornada operacional: contexto mínimo, avaliação guiada, score local e relatório exportável. O objetivo é transformar maturidade em decisões, não em burocracia."
             />
           </Reveal>
