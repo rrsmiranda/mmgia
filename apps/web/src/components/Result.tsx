@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import {
   Check,
@@ -61,12 +61,22 @@ interface LevelRow {
   scores: Record<1 | 2 | 3 | 4 | 5, number | null>;
 }
 
+type ResultTab = 'overview' | 'calc' | 'gaps';
+
+const TABS: { id: ResultTab; label: string }[] = [
+  { id: 'overview', label: 'Visão geral' },
+  { id: 'calc', label: 'Memória de cálculo' },
+  { id: 'gaps', label: 'Lacunas priorizadas' },
+];
+
 const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
 const PRIORITY_GAPS_SHOWN = 8;
 
 export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<ResultTab>('overview');
   const prefersReducedMotion = useReducedMotion();
+  const tabPanelRef = useRef<HTMLDivElement | null>(null);
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(metadata.code);
@@ -74,8 +84,9 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const scrollToSection = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
+  const handleTabChange = (tab: ResultTab) => {
+    setActiveTab(tab);
+    tabPanelRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? 'auto' : 'smooth', block: 'start' });
   };
 
   // Score Calculus (ver packages/shared/src/lib/scoring.ts — Passos 3-5 da metodologia oficial)
@@ -119,7 +130,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
             <RiskBadge level={levelInfo.num as Level} />
           </div>
           <p className="mg-lead" style={{ maxWidth: 640, margin: '16px auto 0' }}>
-            Sua organização cumpre em caráter parcial ou pleno grande parte das práticas fundamentais de governança no grupo de <strong>{areaLabel}</strong>. Confira abaixo o mapeamento detalhado e as prioridades regulatórias.
+            {levelInfo.desc} Resultado calculado para o grupo de <strong>{areaLabel}</strong> — explore as abas abaixo para o detalhamento completo.
           </p>
           <ActionBar inline>
             <Button
@@ -134,13 +145,23 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </section>
 
-        {/* NAVEGAÇÃO RÁPIDA — leva direto a cada seção, para não precisar rolar a tela toda */}
-        <nav className="mg-row" aria-label="Ir para seção do diagnóstico" style={{ justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
-          <Button variant="secondary" size="sm" onClick={() => scrollToSection('dimension-analysis')}>Visão geral</Button>
-          <Button variant="secondary" size="sm" onClick={() => scrollToSection('calc-memory')}>Memória de cálculo</Button>
-          <Button variant="secondary" size="sm" onClick={() => scrollToSection('key-findings')}>Principais conclusões</Button>
-          <Button variant="secondary" size="sm" onClick={() => scrollToSection('priority-gaps')}>Lacunas priorizadas</Button>
-        </nav>
+        {/* ABAS — cada seção troca de conteúdo no lugar, sem rolar a tela toda */}
+        <div className="mg-row" role="tablist" aria-label="Seções do diagnóstico" style={{ justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+          {TABS.map((tab) => (
+            <Button
+              key={tab.id}
+              variant={activeTab === tab.id ? 'primary' : 'secondary'}
+              size="sm"
+              role="tab"
+              id={`tab-${tab.id}`}
+              aria-selected={activeTab === tab.id}
+              aria-controls={`tabpanel-${tab.id}`}
+              onClick={() => handleTabChange(tab.id)}
+            >
+              {tab.label}
+            </Button>
+          ))}
+        </div>
 
         {/* RECOVERY CODE */}
         <Card style={{ marginBottom: 24 }} id="code-recovery-card">
@@ -160,103 +181,126 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
           </div>
         </Card>
 
-        {/* VISÃO GERAL — radar das 5 dimensões, com peso e contribuição de cada uma na lista abaixo */}
-        <div style={{ marginBottom: 24 }}>
-          <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
-        </div>
+        <div ref={tabPanelRef} style={{ scrollMarginTop: 96, marginBottom: 24 }}>
+          {activeTab === 'overview' && (
+            <div role="tabpanel" id="tabpanel-overview" aria-labelledby="tab-overview">
+              {/* PRINCIPAIS CONCLUSÕES — mesmos números do PDF (report/Summary.tsx), via getKeyFindings.
+                  Junto da Visão geral (não isolada): são 4 frases, pouco conteúdo para uma aba própria,
+                  e funcionam como introdução antes do radar/lista por dimensão logo abaixo. */}
+              <Card style={{ marginBottom: 24 }}>
+                <CardHeader title="Principais conclusões" />
+                <CardBody>
+                  <ul className="mg-stack" style={{ gap: 8, paddingLeft: 18, listStyle: 'disc' }}>
+                    <li>{findings.totalGaps} das {findings.totalPractices} práticas estão inexistentes ou parciais (respostas N ou P).</li>
+                    {findings.naoRespondidas > 0 && (
+                      <li>
+                        Dessas, <strong>{findings.naoRespondidas}</strong> sem resposta e <strong>{findings.nulas}</strong> Nulo
+                        — ambas valem zero no cálculo.
+                      </li>
+                    )}
+                    {levelInfo.num < 5 && (
+                      <li>
+                        {findings.gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {findings.proximoNivel}.
+                      </li>
+                    )}
+                    <li>
+                      Recomenda-se tratar primeiro <strong>{DIMENSIONS[findings.menorId].name}</strong>: é a dimensão com menor
+                      score e peso de {findings.menorPesoPercent}% no resultado global.
+                    </li>
+                  </ul>
+                </CardBody>
+              </Card>
 
-        {/* MEMÓRIA DE CÁLCULO — só a matriz dimensão × nível; peso e contribuição já aparecem na lista de dimensões acima */}
-        <Card id="calc-memory" style={{ marginBottom: 24 }}>
-          <CardHeader title="Memória de cálculo da média de maturidade ponderada" />
-          <CardBody>
-            <DataTable<LevelRow>
-              caption="Score por nível de maturidade — média das práticas respondidas em cada nível"
-              rowKey={(r) => r.id}
-              columns={[
-                { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} /> },
-                ...PRACTICE_LEVELS.map((lvl) => ({
-                  key: `lvl${lvl}`,
-                  header: `Nível ${lvl}`,
-                  numeric: true,
-                  render: (r: LevelRow) => (r.scores[lvl] !== null ? formatNumber(r.scores[lvl]!) : '—'),
-                })),
-              ]}
-              rows={levelRows}
-            />
-            <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
-              Cada célula é a média das práticas respondidas naquele nível — a base do score de cada dimensão.
-              "—" indica nível sem nenhuma prática respondida.
-            </p>
-          </CardBody>
-        </Card>
+              {/* VISÃO GERAL — radar das 5 dimensões, com peso e contribuição de cada uma na lista abaixo */}
+              <DimensionAnalysis answers={answers} onEditPractice={onEditPractice} />
+            </div>
+          )}
 
-        {/* PRINCIPAIS CONCLUSÕES — mesmos números do PDF (report/Summary.tsx), via getKeyFindings */}
-        <Card id="key-findings" style={{ marginBottom: 24 }}>
-          <CardHeader title="Principais conclusões" />
-          <CardBody>
-            <ul className="mg-stack" style={{ gap: 8, paddingLeft: 18, listStyle: 'disc' }}>
-              <li>{findings.totalGaps} das {findings.totalPractices} práticas estão inexistentes ou parciais (respostas N ou P).</li>
-              {findings.naoRespondidas > 0 && (
-                <li>
-                  Dessas, <strong>{findings.naoRespondidas}</strong> sem resposta e <strong>{findings.nulas}</strong> Nulo
-                  — ambas valem zero no cálculo.
-                </li>
-              )}
-              {levelInfo.num < 5 && (
-                <li>
-                  {findings.gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {findings.proximoNivel}.
-                </li>
-              )}
-              <li>
-                Recomenda-se tratar primeiro <strong>{DIMENSIONS[findings.menorId].name}</strong>: é a dimensão com menor
-                score e peso de {findings.menorPesoPercent}% no resultado global.
-              </li>
-            </ul>
-          </CardBody>
-        </Card>
-
-        {/* LACUNAS PRIORIZADAS — mesma ordenação do plano de ação do PDF (report/ActionPlan.tsx), via getGaps */}
-        <Card flush id="priority-gaps" style={{ marginBottom: 24 }}>
-          <CardHeader title="Lacunas priorizadas" />
-          <>
-            {gaps.length === 0 ? (
-              <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
-                Nenhuma lacuna identificada — todas as práticas foram respondidas como Larga (L) ou Total (F).
-              </p>
-            ) : (
-              <>
-                {topGaps.map((practice) => {
-                  const answer = answers[practice.id];
-                  return (
-                    <button
-                      key={practice.id}
-                      type="button"
-                      className="mg-acc-item mg-an-row"
-                      style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--surface-deep)', cursor: 'pointer' }}
-                      onClick={() => onEditPractice(practice.dimensionId)}
-                    >
-                      <span className="mg-code">{practice.id}</span>
-                      <div style={{ minWidth: 0 }}>
-                        <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
-                        <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
-                      </div>
-                      <span className="mg-an-legal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
-                        <DimensionTag dimension={practice.dimensionId} short />
-                        <span className="mg-small mg-muted">Nível {practice.level}</span>
-                        {answer ? <NplfBadge value={answer} /> : <span className="mg-small mg-muted">Sem resposta</span>}
-                      </span>
-                    </button>
-                  );
-                })}
-                {gaps.length > topGaps.length && (
-                  <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
-                    +{gaps.length - topGaps.length} lacunas adicionais — veja o detalhamento completo por dimensão abaixo.
+          {activeTab === 'calc' && (
+            <div role="tabpanel" id="tabpanel-calc" aria-labelledby="tab-calc">
+              {/* MEMÓRIA DE CÁLCULO — só a matriz dimensão × nível; peso e contribuição já aparecem na aba Visão geral */}
+              <Card>
+                <CardHeader title="Score por nível de maturidade" />
+                <CardBody>
+                  <DataTable<LevelRow>
+                    caption="Score por nível de maturidade — média das práticas respondidas em cada nível"
+                    rowKey={(r) => r.id}
+                    columns={[
+                      { key: 'dim', header: 'Dimensão', render: (r) => <DimensionTag dimension={r.id} /> },
+                      ...PRACTICE_LEVELS.map((lvl) => ({
+                        key: `lvl${lvl}`,
+                        header: `Nível ${lvl}`,
+                        numeric: true,
+                        render: (r: LevelRow) => (r.scores[lvl] !== null ? formatNumber(r.scores[lvl]!) : '—'),
+                      })),
+                    ]}
+                    rows={levelRows}
+                  />
+                  <p className="mg-small mg-muted" style={{ marginTop: 8 }}>
+                    Cada célula é a média das práticas respondidas naquele nível — a base do score de cada dimensão
+                    (que, ponderado pelo peso de cada eixo, chega ao Score Global do topo da página). Peso e
+                    contribuição de cada dimensão estão na aba Visão geral. "—" indica nível sem nenhuma prática
+                    respondida.
                   </p>
-                )}
-              </>
-            )}
-          </>
-        </Card>
+                </CardBody>
+              </Card>
+            </div>
+          )}
+
+          {activeTab === 'gaps' && (
+            <div role="tabpanel" id="tabpanel-gaps" aria-labelledby="tab-gaps">
+              {/* LACUNAS PRIORIZADAS — mesma ordenação do plano de ação do PDF (report/ActionPlan.tsx), via getGaps */}
+              <Card flush>
+                <CardHeader title="Lacunas priorizadas" />
+                <>
+                  {gaps.length === 0 ? (
+                    <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
+                      Nenhuma lacuna identificada — todas as práticas foram respondidas como Larga (L) ou Total (F).
+                    </p>
+                  ) : (
+                    <>
+                      {topGaps.map((practice) => {
+                        const answer = answers[practice.id];
+                        return (
+                          <button
+                            key={practice.id}
+                            type="button"
+                            className="mg-acc-item mg-an-row"
+                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 0, borderBottom: '1px solid var(--surface-deep)', cursor: 'pointer' }}
+                            onClick={() => onEditPractice(practice.dimensionId)}
+                          >
+                            <span className="mg-code">{practice.id}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
+                              <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
+                            </div>
+                            <span className="mg-an-legal" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
+                              <DimensionTag dimension={practice.dimensionId} short />
+                              <span className="mg-small mg-muted">Nível {practice.level}</span>
+                              {answer ? <NplfBadge value={answer} /> : <span className="mg-small mg-muted">Sem resposta</span>}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {gaps.length > topGaps.length && (
+                        <p className="mg-small mg-muted" style={{ padding: 'var(--space-5)' }}>
+                          +{gaps.length - topGaps.length} lacunas adicionais —{' '}
+                          <button
+                            type="button"
+                            onClick={() => handleTabChange('overview')}
+                            style={{ background: 'none', border: 0, padding: 0, color: 'var(--brand)', textDecoration: 'underline', cursor: 'pointer', font: 'inherit' }}
+                          >
+                            veja o detalhamento completo por dimensão na Visão geral
+                          </button>.
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              </Card>
+            </div>
+          )}
+        </div>
 
         {/* EXPORT ACTIONS — os dois primeiros abrem o mesmo relatório executivo (ReportViewer). */}
         <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 12 }} id="action-buttons-row">

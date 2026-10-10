@@ -226,7 +226,10 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
           <span>Dimensão</span>
           <span>Score</span>
         </div>
-        {DIMENSION_ORDER.map((id) => {
+        {/* Com uma dimensão selecionada (radar/segmentado), a lista mostra só ela — radar,
+            painel lateral e lista já contam a mesma história em vez de ficar uma repetindo
+            as outras 4 fechadas por baixo. "Geral" ou o breadcrumb acima voltam às 5. */}
+        {(openDim ? [openDim] : DIMENSION_ORDER).map((id) => {
           const Icon = DIMENSION_ICONS[id];
           const dim = DIMENSIONS[id];
           const score = scores[id];
