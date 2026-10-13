@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, Database, Gauge, Info, Lock, X } from 'lucide-react';
+import { ChevronDown, Gauge, Info, Lock, X } from 'lucide-react';
 import BrazilMap from './BrazilMap';
 import { DimensionId, DIMENSIONS, HistoricalRecord, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
@@ -62,10 +62,6 @@ import {
   type Column,
   type Level,
 } from '@mmgia/shared/design-system';
-
-interface PublicPanelProps {
-  onChangeTab: (tab: string) => void;
-}
 
 type MapMetric = 'global' | DimensionId;
 type Granularity = 'uf' | 'regiao';
@@ -146,7 +142,7 @@ function recorteLabel(filters: ObsFilters): string {
   return parts.length > 0 ? parts.join(' · ') : 'Brasil';
 }
 
-export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
+export default function PublicPanel() {
   const initial = useMemo(readUrlState, []);
   const [filters, setFilters] = useState<ObsFilters>(initial.filters);
   const [uf, setUf] = useState<string | null>(initial.uf);
@@ -271,10 +267,7 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
             title="Observatório Nacional de Maturidade em Governança de IA"
             description="Como as organizações brasileiras se autoavaliam em governança de inteligência artificial. Dados agregados e anônimos."
             actions={
-              <div className="mg-row" style={{ gap: 8, flexShrink: 0 }}>
-                <Button variant="secondary" size="sm" icon={Info} onClick={() => setShowDetails(true)}>Como ler</Button>
-                <Button variant="secondary" size="sm" icon={Database} onClick={() => onChangeTab('opendata')}>Dados abertos</Button>
-              </div>
+              <Button variant="secondary" size="sm" icon={Info} onClick={() => setShowDetails(true)}>Como ler</Button>
             }
           />
           <p className="mg-obs-meta mg-small mg-muted">
@@ -487,17 +480,6 @@ export default function PublicPanel({ onChangeTab }: PublicPanelProps) {
               </CardBody>
             </Card>
           </div>
-
-          {/* DADOS ABERTOS */}
-          <Card style={{ marginBottom: 24 }}>
-            <div className="mg-row" style={{ gap: 16, alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-              <div className="mg-row" style={{ gap: 16 }}>
-                <Database className="mg-ico" aria-hidden="true" style={{ color: 'var(--brand)' }} />
-                <p className="mg-small mg-muted">Baixe a base anonimizada em CSV ou JSON, sob licença CC BY 4.0. Grupos com menos de 5 avaliações já vêm agregados.</p>
-              </div>
-              <Button variant="primary" icon={Database} onClick={() => onChangeTab('opendata')}>Acessar</Button>
-            </div>
-          </Card>
 
           {/* COMO LER */}
           <details className="mg-obs-how mg-card" open={showDetails} onToggle={(e) => setShowDetails(e.currentTarget.open)}>

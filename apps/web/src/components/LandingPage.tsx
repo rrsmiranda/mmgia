@@ -518,7 +518,6 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
               <button onClick={() => onChangeTab('editar')} className="mg-footer-btn">Editar avaliação</button>
               <button onClick={() => onChangeTab('mapa')} className="mg-footer-btn">Painel público</button>
               <button onClick={() => onChangeTab('metodologia')} className="mg-footer-btn">Metodologia</button>
-              <button onClick={() => onChangeTab('opendata')} className="mg-footer-btn">Open data</button>
             </div>
 
             <div>

@@ -14,7 +14,6 @@ const Revision = lazy(() => import('./components/Revision'));
 const Result = lazy(() => import('./components/Result'));
 const PublicPanel = lazy(() => import('./components/PublicPanel'));
 const Methodology = lazy(() => import('./components/Methodology'));
-const OpenData = lazy(() => import('./components/OpenData'));
 const EditAssessment = lazy(() => import('./components/EditAssessment'));
 const ReportViewer = lazy(() => import('./components/ReportViewer'));
 
@@ -225,20 +224,11 @@ export default function App() {
         )}
 
         {currentTab === 'mapa' && (
-          <PublicPanel
-            onChangeTab={(tab) => {
-              setCurrentTab(tab);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-          />
+          <PublicPanel />
         )}
 
         {currentTab === 'metodologia' && (
           <Methodology />
-        )}
-
-        {currentTab === 'opendata' && (
-          <OpenData />
         )}
 
         {currentTab === 'editar' && (
