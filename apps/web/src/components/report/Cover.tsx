@@ -41,27 +41,31 @@ export default function CoverContent({ metadata }: { metadata: AssessmentMetadat
         <ReportLogo />
         <p className="rp-eyebrow" style={{ marginTop: 24 }}>Relatório de autoavaliação</p>
         <h1 className="rp-title">Maturidade em governança de inteligência artificial</h1>
-        <p className="rp-cover-sub">Modelo de Maturidade em Governança de IA (MMGIA) · alinhado à ENIA 2026–2029</p>
+        <p className="rp-cover-sub">
+          Modelo de Maturidade em Governança de IA (MMGIA) · Grupo de Pesquisa em Governança e Gestão de
+          Inteligência Artificial (GGIA) da Universidade de Brasília (UnB)
+        </p>
       </div>
       <div className="rp-cover-body">
         <h2 className="rp-h3" style={{ marginTop: 0 }}>Organização avaliada</h2>
-        <dl className="rp-dl">
-          <Field label="Setor" value={setorLabel} />
-          {esferaLabel && <Field label="Esfera" value={esferaLabel} />}
-          <Field label="Área de atuação" value={areaLabel} />
-          <Field label="Estado (UF)" value={estadoLabel} />
-          <Field label="Porte" value={porteLabel} />
-          {relacaoLabel && <Field label="Relação com IA" value={relacaoLabel} />}
-        </dl>
-
-        <dl className="rp-dl rp-dl--3" style={{ marginTop: 20 }}>
-          <Field label="Data de emissão" value={dataEmissao} />
-          <div>
-            <dt className="rp-label">Código da avaliação</dt>
-            <dd className="rp-mono">{metadata.code}</dd>
-          </div>
-          <Field label="Versão do modelo" value={`MMGIA 1.0 · ${LIST_PRACTICES.length} práticas`} />
-        </dl>
+        <div className="rp-dl">
+          <dl className="rp-dl rp-dl--1">
+            <Field label="Setor" value={setorLabel} />
+            {esferaLabel && <Field label="Esfera" value={esferaLabel} />}
+            <Field label="Estado (UF)" value={estadoLabel} />
+            {relacaoLabel && <Field label="Relação com IA" value={relacaoLabel} />}
+            <Field label="Data de emissão" value={dataEmissao} />
+            <div>
+              <dt className="rp-label">Código da avaliação</dt>
+              <dd className="rp-mono">{metadata.code}</dd>
+            </div>
+          </dl>
+          <dl className="rp-dl rp-dl--1">
+            <Field label="Área de atuação" value={areaLabel} />
+            <Field label="Porte" value={porteLabel} />
+            <Field label="Versão do modelo" value={`MMGIA 1.0 · ${LIST_PRACTICES.length} práticas`} />
+          </dl>
+        </div>
 
         <div className="rp-note">
           <Info className="mg-ico" aria-hidden="true" />

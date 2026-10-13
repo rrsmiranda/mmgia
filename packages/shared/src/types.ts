@@ -22,6 +22,12 @@ export interface Practice {
   name: string;
   description: string;
   criterion: string;
+  /**
+   * Reformulação em modo imperativo do `criterion`, sem adicionar passo, prazo ou
+   * requisito que não esteja nele — não é texto do documento oficial do MMGIA.
+   * Rascunho aprovado internamente; pendente de validação formal do GGIA.
+   */
+  whatToDo: string;
   evidence: string;
   level: number;
   legalReference?: string;
@@ -113,6 +119,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Consciência Regulatória',
     description: 'A organização identifica, de forma reativa e informal, as principais leis e normas que podem impactar seus projetos de IA. Não há um processo formal e o conhecimento está concentrado em indivíduos ou em departamentos específicos.',
     criterion: 'Existe uma lista ou um registro, ainda que informal, das principais obrigações legais relacionadas à IA.',
+    whatToDo: 'Levante e registre, ainda que informalmente, as principais obrigações legais relacionadas à IA.',
     evidence: 'E-mails, atas de reunião ou documentos de projeto que mencionem a LGPD ou outras regulamentações pertinentes.',
     level: 1,
     legalReference: 'LGPD Art. 6º'
@@ -123,6 +130,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Definição de Políticas Iniciais de IA',
     description: 'Uma política de alto nível sobre o uso aceitável de IA é criada e aprovada. O documento estabelece os primeiros princípios éticos e diretrizes gerais para o desenvolvimento e uso da tecnologia na organização.',
     criterion: 'A organização possui uma política formalizada e aprovada pela gestão com diretrizes e princípios éticos para o uso aceitável de IA.',
+    whatToDo: 'Formalize e leve à aprovação da gestão uma política com diretrizes e princípios éticos para o uso aceitável de IA.',
     evidence: 'Documento formal da "Política de Uso de Inteligência Artificial", com data de aprovação e responsável.',
     level: 2,
     legalReference: 'ISO/IEC 42001 Cl. 5.2'
@@ -133,6 +141,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Atribuição de Responsabilidades Básicas',
     description: 'Um ponto focal ou responsável (ainda que informalmente) é designado para a supervisão geral das iniciativas de IA. As responsabilidades, embora não totalmente formalizadas, são conhecidas pelas equipes de projeto.',
     criterion: 'O papel de supervisão das iniciativas de IA é atribuído a um indivíduo ou a um grupo, e essa atribuição é comunicada às equipes.',
+    whatToDo: 'Atribua o papel de supervisão das iniciativas de IA a um indivíduo ou grupo, e comunique essa atribuição às equipes.',
     evidence: 'E-mail de designação, menção em ata de reunião ou descrição de papel em um documento de projeto.',
     level: 2,
     legalReference: 'ISO/IEC 42001 Cl. 5.3'
@@ -143,6 +152,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Estruturação do Comitê de IA',
     description: 'Um comitê ou função de governança de IA é formalmente estabelecido, com um termo de referência claro, composição multissetorial (jurídico, TI, negócio, segurança) e reuniões periódicas.',
     criterion: 'Existe um comitê formalmente instituído, de composição multissetorial, com mandato e responsabilidades documentados, para a governança de IA.',
+    whatToDo: 'Institua formalmente um comitê de governança de IA de composição multissetorial, com mandato e responsabilidades documentados.',
     evidence: 'Termo de Abertura ou Regimento Interno do Comitê de IA; atas das reuniões realizadas.',
     level: 3,
     legalReference: 'ENIA Meta 4.1'
@@ -153,6 +163,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Adoção de Framework de Gestão de Riscos',
     description: 'A organização adota e padroniza um processo de gestão de riscos de IA, baseado em um framework reconhecido. O processo inclui etapas de identificação, análise, avaliação e tratamento de riscos específicos de IA.',
     criterion: 'O processo de gestão de riscos de IA está documentado, baseado em um framework reconhecido e aplicado de forma consistente em projetos relevantes.',
+    whatToDo: 'Documente um processo de gestão de riscos de IA baseado em um framework reconhecido e aplique-o de forma consistente nos projetos relevantes.',
     evidence: 'Documento de processo de gestão de riscos de IA; registros de riscos de projetos-piloto.',
     level: 3,
     legalReference: 'ISO/IEC 23894'
@@ -163,6 +174,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Monitoramento de Conformidade e KPIs',
     description: 'A organização define, coleta e analisa indicadores-chave de desempenho (KPIs) para a eficácia da governança de IA (ex.: % de projetos com avaliação de risco, tempo de aprovação da ética, nº de incidentes).',
     criterion: 'A organização mede, reporta e utiliza indicadores-chave de desempenho (KPIs) para avaliar a eficácia da governança de IA.',
+    whatToDo: 'Defina, meça e reporte indicadores-chave de desempenho (KPIs) para avaliar a eficácia da governança de IA.',
     evidence: 'Painéis (dashboards) com os KPIs de governança; relatórios de análise de desempenho apresentados ao Comitê de IA.',
     level: 4,
     legalReference: 'ISO/IEC 42001 Cl. 9.1'
@@ -173,6 +185,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Realização de Auditorias Internas de IA',
     description: 'Auditorias internas são planejadas e executadas periodicamente para verificar a conformidade com as políticas de IA e a eficácia dos controles implementados. Os resultados são documentados e os planos de ação são monitorados.',
     criterion: 'Existe um plano anual de auditoria que abrange sistemas de IA, incluindo a emissão de relatórios e o tratamento de não conformidades.',
+    whatToDo: 'Elabore um plano anual de auditoria que abranja os sistemas de IA, com emissão de relatórios e tratamento das não conformidades encontradas.',
     evidence: 'Plano de Auditoria Interna; relatórios de auditoria de sistemas de IA; planos de ação para correção de achados.',
     level: 4,
     legalReference: 'ISO/IEC 42001 Cl. 9.2'
@@ -183,6 +196,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Otimização Contínua da Governança',
     description: 'A organização utiliza dados de KPIs, auditorias e análise de causa raiz de incidentes para identificar tendências e oportunidades de melhoria, refinando proativamente as políticas, controles e processos de governança.',
     criterion: 'Existem processos formais para revisar e refinar, de forma proativa, as políticas e controles de governança de IA, com base em análise de dados e KPIs.',
+    whatToDo: 'Formalize processos para revisar e refinar proativamente as políticas e controles de governança de IA, com base em análise de dados e KPIs.',
     evidence: 'Atas de reuniões de melhoria contínua; registros de mudanças nos processos de governança com justificativa baseada em dados.',
     level: 5,
     legalReference: 'ISO/IEC 42001 Cl. 10'
@@ -193,6 +207,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Engajamento Proativo no Ecossistema',
     description: 'A organização participa ativamente de fóruns setoriais e de consultas públicas e colabora com reguladores para influenciar a evolução do arcabouço regulatório, compartilhando melhores práticas e lições aprendidas.',
     criterion: 'A organização demonstra participação ativa e contribuições relevantes para o desenvolvimento de normas e regulamentos de IA no setor.',
+    whatToDo: 'Participe ativamente e contribua para o desenvolvimento de normas e regulamentos de IA no setor.',
     evidence: 'Registros de participação em consultas públicas; apresentações em eventos do setor; publicação de white papers sobre governança de IA.',
     level: 5,
     legalReference: 'ENIA Pilar 3'
@@ -205,6 +220,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Experimentação Ad-Hoc',
     description: 'A organização realiza provas de conceito (PoCs) de forma isolada e reativa, geralmente impulsionada pela curiosidade das equipes técnicas, sem metodologia definida nem alinhamento estratégico.',
     criterion: 'Existem provas de conceito (PoCs) ou experimentos de IA registrados na organização, mesmo que isolados e sem metodologia definida.',
+    whatToDo: 'Registre as provas de conceito (PoCs) ou experimentos de IA realizados, mesmo que isolados e sem metodologia definida.',
     evidence: 'Apresentações de resultados de PoCs; e-mails trocados sobre os experimentos; código-fonte em repositórios individuais.',
     level: 1,
   },
@@ -214,6 +230,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Gestão de Projetos de IA',
     description: 'Práticas básicas de gerenciamento de projetos (escopo, cronograma, custos) são aplicadas às iniciativas de IA. Os projetos são rastreados individualmente, mas ainda não há uma visão integrada de portfólio.',
     criterion: 'Os projetos de IA possuem planos básicos que definem o escopo, as fases, as entregas, o cronograma e os custos.',
+    whatToDo: 'Elabore, para os projetos de IA, planos básicos que definam escopo, fases, entregas, cronograma e custos.',
     evidence: 'Plano de projeto, cronograma e documento de escopo para um projeto específico de IA.',
     level: 2,
   },
@@ -223,6 +240,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Definição do Ciclo de Vida do Modelo',
     description: 'Um ciclo de vida básico para o desenvolvimento de modelos de machine learning é esboçado e aplicado nos projetos, cobrindo, no mínimo, as fases de coleta de dados, treinamento e teste.',
     criterion: 'O ciclo de vida de desenvolvimento de modelos de machine learning está documentado e inclui a coleta de dados, o treinamento e o teste.',
+    whatToDo: 'Documente o ciclo de vida de desenvolvimento dos modelos de machine learning, incluindo coleta de dados, treinamento e teste.',
     evidence: 'Documento que descreve as fases do ciclo de vida; templates de projeto que as incluem.',
     level: 2,
     legalReference: 'ISO/IEC 42001 Cl. 8.1'
@@ -233,6 +251,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Padronização de MLOps',
     description: 'A organização adota e padroniza uma plataforma e um conjunto de processos para o ciclo de vida de Machine Learning (MLOps), incluindo versionamento de código, dados e modelos, e automação de pipelines de CI/CD.',
     criterion: 'Existe uma plataforma de MLOps definida como padrão, com processos documentados e utilizados pela maioria das equipes para CI/CD e versionamento.',
+    whatToDo: 'Defina uma plataforma de MLOps padrão, com processos documentados para CI/CD e versionamento, e leve a maioria das equipes a utilizá-la.',
     evidence: 'Documentação da arquitetura da plataforma de MLOps; guias de uso e processos de CI/CD para modelos de IA.',
     level: 3,
   },
@@ -242,6 +261,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Gestão de Portfólio de IA',
     description: 'Um processo formal é estabelecido para propor, avaliar, priorizar e gerenciar o portfólio de iniciativas de IA, com base em critérios estratégicos, de viabilidade e de risco.',
     criterion: 'Há um processo documentado de gestão de portfólio e um registro centralizado para propor, avaliar e priorizar iniciativas de IA.',
+    whatToDo: 'Documente um processo de gestão de portfólio e mantenha um registro centralizado para propor, avaliar e priorizar as iniciativas de IA.',
     evidence: 'Documento do processo de gestão de portfólio; ferramenta ou planilha que contém o portfólio de projetos de IA.',
     level: 3,
     legalReference: 'ISO/IEC 38507'
@@ -252,6 +272,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Métricas de Desempenho de P&D',
     description: 'A organização mede o retorno sobre o investimento (ROI) e o impacto de negócio dos projetos de IA. As métricas de desempenho dos modelos (acurácia, precisão etc.) são coletadas e analisadas estatisticamente.',
     criterion: 'O desempenho dos modelos e o Retorno sobre o Investimento (ROI) dos projetos de IA são medidos e comparados com metas quantitativas.',
+    whatToDo: 'Meça o desempenho dos modelos e o Retorno sobre o Investimento (ROI) dos projetos de IA, e compare os resultados com metas quantitativas.',
     evidence: 'Relatórios de análise de ROI; dashboards com métricas de desempenho dos modelos em produção.',
     level: 4,
   },
@@ -261,6 +282,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Gestão de Infraestrutura de IA',
     description: 'A capacidade, o desempenho e os custos da infraestrutura de dados e computação para IA são gerenciados de forma quantitativa. A demanda é prevista e a capacidade é ajustada para atender aos níveis de serviço.',
     criterion: 'Existem modelos preditivos de capacidade/custos, e o desempenho da infraestrutura computacional para IA é monitorado em relação às metas.',
+    whatToDo: 'Crie modelos preditivos de capacidade e custos, e monitore o desempenho da infraestrutura computacional de IA em relação às metas.',
     evidence: 'Relatórios de gestão de capacidade; análise de custos de infraestrutura por projeto de IA.',
     level: 4,
   },
@@ -270,6 +292,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Otimização do Portfólio de Inovação',
     description: 'A organização utiliza modelos preditivos e análise de cenários para otimizar continuamente o balanceamento de seu portfólio de P&D em IA, alocando recursos de forma a maximizar o valor estratégico e a inovação.',
     criterion: 'A organização utiliza técnicas quantitativas, simulações e análise de cenários para otimizar a tomada de decisão no portfólio de P&D.',
+    whatToDo: 'Utilize técnicas quantitativas, simulações e análise de cenários para otimizar as decisões sobre o portfólio de P&D em IA.',
     evidence: 'Simulações de portfólio; análises de sensibilidade e cenários para decisões de investimento em P&D.',
     level: 5,
   },
@@ -279,6 +302,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Pesquisa Aplicada e Colaboração',
     description: 'A organização conduz pesquisa aplicada em IA, publica resultados em conferências e periódicos relevantes e colabora ativamente com a academia e com centros de pesquisa para desenvolver conhecimento de ponta e gerar propriedade intelectual.',
     criterion: 'A organização possui histórico ativo de pesquisa aplicada, de geração de propriedade intelectual, de publicações e de patentes em IA.',
+    whatToDo: 'Conduza pesquisa aplicada em IA de forma contínua, gerando propriedade intelectual, publicações e patentes.',
     evidence: 'Registros de patentes; acordos de cooperação em pesquisa com universidades.',
     level: 5,
     legalReference: 'Lei de Inovação Art. 9º'
@@ -291,6 +315,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Controles Básicos de Acesso a Dados',
     description: 'Controles de acesso rudimentares e, muitas vezes, manuais são aplicados aos conjuntos de dados utilizados em projetos de IA. A preocupação principal é evitar o acesso não autorizado aos dados brutos.',
     criterion: 'Existem evidências e controles, ainda que rudimentares, de que o acesso aos dados brutos de treinamento/teste é restrito às equipes do projeto.',
+    whatToDo: 'Implemente controles, ainda que rudimentares, que restrinjam o acesso aos dados brutos de treinamento e teste às equipes do projeto.',
     evidence: 'Logs de acesso a pastas ou bancos de dados; e-mails de solicitação ou concessão de permissões.',
     level: 1,
     legalReference: 'LGPD Art. 46'
@@ -301,6 +326,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Conformidade com a LGPD',
     description: 'A organização implementa os requisitos básicos da Lei Geral de Proteção de Dados nos projetos de IA, como a nomeação de um DPO, a garantia dos direitos dos titulares e a elaboração de Relatórios de Impacto à Proteção de Dados (RIPD) quando necessário.',
     criterion: 'Os projetos de IA que tratam dados pessoais elaboram Relatórios de Impacto à Proteção de Dados (RIPD) ou realizam análises de legitimidade documentadas.',
+    whatToDo: 'Elabore Relatórios de Impacto à Proteção de Dados (RIPD) ou análises de legitimidade documentadas para os projetos de IA que tratam dados pessoais.',
     evidence: 'RIPD aprovado; registros de atendimento às solicitações dos titulares de dados.',
     level: 2,
     legalReference: 'LGPD Art. 38'
@@ -311,6 +337,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Análise de Segurança de Aplicações',
     description: 'Sistemas que utilizam componentes de IA são incluídos nas varreduras de segurança de aplicações (SAST/DAST) convencionais, com foco em vulnerabilidades tradicionais de software presentes em aplicações que consomem esses componentes.',
     criterion: 'Os sistemas que utilizam IA são incluídos e testados nas varreduras de segurança de aplicações convencionais (SAST/DAST).',
+    whatToDo: 'Inclua os sistemas que utilizam IA nas varreduras de segurança de aplicações convencionais (SAST/DAST) e teste-os.',
     evidence: 'Relatório de ferramenta SAST/DAST que apresenta a análise de um sistema com IA.',
     level: 2,
     legalReference: 'ISO/IEC 27001 Cl. A.8.12'
@@ -321,6 +348,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Avaliação de Impacto Algorítmico',
     description: 'A organização padroniza e executa um processo de Avaliação de Impacto Algorítmico para sistemas de IA de alto risco antes de sua implantação, visando identificar e documentar riscos de viés, discriminação e outros impactos negativos.',
     criterion: 'Existe um processo documentado de Avaliação de Impacto Algorítmico, executado como pré-requisito antes de implantar sistemas de IA de alto risco.',
+    whatToDo: 'Documente um processo de Avaliação de Impacto Algorítmico e execute-o como pré-requisito antes de implantar sistemas de IA de alto risco.',
     evidence: 'Documento de Avaliação de Impacto Algorítmico preenchido para um sistema específico.',
     level: 3,
     legalReference: 'LGPD Art. 20'
@@ -331,6 +359,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Segurança do Ciclo de Vida de IA (Secure AI Lifecycle)',
     description: 'Controles de segurança específicos para IA são integrados em cada fase do ciclo de vida de MLOps, incluindo a verificação da origem e da integridade dos dados, a segurança da plataforma de treinamento e a proteção dos modelos em produção.',
     criterion: 'A política de segurança da informação e os processos de desenvolvimento seguro incluem ameaças e controles específicos para IA.',
+    whatToDo: 'Inclua ameaças e controles específicos de IA na política de segurança da informação e nos processos de desenvolvimento seguro.',
     evidence: 'Política de Desenvolvimento Seguro atualizada; checklist de segurança para projetos de IA.',
     level: 3,
   },
@@ -340,6 +369,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Testes de Robustez e Ataques Adversariais',
     description: 'A organização executa testes quantitativos para medir a resiliência dos modelos a ataques adversários, envenenamento de dados e outras formas de manipulação. Métricas de robustez são definidas e monitoradas.',
     criterion: 'A organização executa e monitora testes quantitativos (com ferramentas adequadas) para medir a resiliência dos modelos contra ataques adversários e envenenamento.',
+    whatToDo: 'Execute e monitore testes quantitativos, com ferramentas adequadas, para medir a resiliência dos modelos contra ataques adversários e envenenamento de dados.',
     evidence: 'Relatórios de testes de robustez; ferramentas de teste adversário configuradas nos pipelines de CI/CD.',
     level: 4,
     legalReference: 'NIST AI RMF 3.4'
@@ -350,6 +380,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Monitoramento de Vieses em Produção',
     description: 'A organização implementa monitoramento contínuo para detectar a degradação de desempenho (model drift) e os desvios de equidade (fairness drift) nos modelos em produção, com alertas automáticos para a equipe de governança.',
     criterion: 'Existem dashboards e alertas que monitoram, em tempo real ou quase real, a degradação do desempenho (model drift) e os desvios de equidade (fairness drift).',
+    whatToDo: 'Implemente dashboards e alertas que monitorem, em tempo real ou quase real, a degradação de desempenho (model drift) e os desvios de equidade (fairness drift) dos modelos em produção.',
     evidence: 'Painéis de monitoramento de modelos em produção, com métricas de equidade; registros de alertas de desequilíbrio de equidade.',
     level: 4,
   },
@@ -359,6 +390,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Red Teaming para IA',
     description: 'A organização conduz exercícios de ataque simulado (Red Teaming), em que uma equipe independente tenta ativamente contornar, enganar ou quebrar os sistemas de IA em produção, a fim de identificar vulnerabilidades complexas e não previstas.',
     criterion: 'Exercícios de Red Teaming independentes para sistemas de IA são planejados, executados e utilizados periodicamente para aprimorar as defesas.',
+    whatToDo: 'Planeje e execute periodicamente exercícios de Red Teaming independentes para os sistemas de IA, e use os resultados para aprimorar as defesas.',
     evidence: 'Relatório de Red Teaming para um sistema de IA, com as vulnerabilidades identificadas e as respectivas recomendações.',
     level: 5,
   },
@@ -368,6 +400,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Mecanismos de Contestabilidade e Remediação',
     description: 'A organização otimiza continuamente os canais para que os indivíduos afetados por decisões algorítmicas possam contestá-las, obter uma explicação significativa e, quando apropriado, buscar reparação. O feedback é usado para melhorar os modelos.',
     criterion: 'Os canais de contestação para decisões algorítmicas são claros e o feedback recebido é analisado sistematicamente para a melhoria contínua dos modelos.',
+    whatToDo: 'Mantenha canais claros de contestação para decisões algorítmicas e analise sistematicamente o feedback recebido para melhorar continuamente os modelos.',
     evidence: 'Análise de dados sobre as contestações recebidas; registros de ajustes em modelos decorrentes do feedback dos usuários.',
     level: 5,
     legalReference: 'LGPD Art. 20 §1º'
@@ -380,6 +413,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Treinamentos Pontuais',
     description: 'A organização oferece treinamentos introdutórios ou sobre ferramentas específicas de IA de forma reativa, geralmente sob demanda de equipes técnicas, sem um plano de capacitação estruturado.',
     criterion: 'Existem registros de que funcionários participaram, sob demanda ou de forma isolada, de cursos introdutórios ou de ferramentas de IA.',
+    whatToDo: 'Registre a participação dos funcionários em cursos introdutórios ou de ferramentas de IA, ainda que sob demanda ou de forma isolada.',
     evidence: 'Lista de presença em treinamentos; certificados de conclusão de cursos.',
     level: 1,
     legalReference: 'ENIA Diretriz 3'
@@ -390,6 +424,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Plano de Capacitação em IA',
     description: 'Um plano básico de treinamento em IA é elaborado, com foco principalmente nas equipes técnicas (cientistas de dados e analistas). O plano define as necessidades de treinamento e estabelece um cronograma para sua execução.',
     criterion: 'Há um plano básico de treinamento em IA elaborado para o ano corrente, contendo cronograma e necessidades definidas, especialmente técnicas.',
+    whatToDo: 'Elabore um plano básico de treinamento em IA para o ano corrente, com cronograma e necessidades definidas, especialmente para as equipes técnicas.',
     evidence: 'Documento do Plano de Capacitação; cronograma de treinamentos.',
     level: 2,
   },
@@ -399,6 +434,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Comunicação Interna sobre IA',
     description: 'Ações de comunicação interna são realizadas para informar os colaboradores sobre os projetos de IA em andamento, seus objetivos e benefícios esperados, visando reduzir a incerteza e a resistência.',
     criterion: 'A organização emite comunicados internos periódicos para informar os colaboradores sobre os objetivos e os benefícios dos projetos de IA em andamento.',
+    whatToDo: 'Emita comunicados internos periódicos informando os colaboradores sobre os objetivos e os benefícios dos projetos de IA em andamento.',
     evidence: 'E-mails, posts na intranet ou newsletters internas sobre projetos de IA.',
     level: 2,
   },
@@ -408,6 +444,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Programa de Letramento em Dados e IA',
     description: 'Um programa de capacitação estruturado e contínuo é implementado em toda a organização, com trilhas de aprendizagem definidas por função (executivos, gestores, técnicos e usuários de negócio), abrangendo temas como ética, riscos e oportunidades da IA.',
     criterion: 'O programa de capacitação em IA está estruturado e documentado com trilhas de aprendizagem contínuas definidas por função (técnicos, negócio, executivos).',
+    whatToDo: 'Estruture e documente um programa de capacitação em IA com trilhas de aprendizagem contínuas definidas por função (técnicos, negócio, executivos).',
     evidence: 'Matriz de competências e treinamentos por função; conteúdo dos cursos das trilhas de aprendizagem.',
     level: 3,
     legalReference: 'ISO/IEC 42001 Cl. 7.2'
@@ -418,6 +455,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Gestão de Mudança Organizacional',
     description: 'Uma metodologia formal de Gestão da Mudança Organizacional (GMO) é aplicada aos projetos de IA de alto impacto, incluindo a análise de stakeholders, a comunicação direcionada e ações para mitigar resistências.',
     criterion: 'Projetos de IA de alto impacto possuem e executam um plano formal de Gestão da Mudança Organizacional, com análise de stakeholders e mitigação de resistências.',
+    whatToDo: 'Elabore e execute, para os projetos de IA de alto impacto, um plano formal de Gestão da Mudança Organizacional, com análise de stakeholders e mitigação de resistências.',
     evidence: 'Plano de Gestão da Mudança para um projeto de IA; pesquisas sobre o clima e a prontidão para a mudança.',
     level: 3,
   },
@@ -427,6 +465,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Métricas de Competências em IA',
     description: 'A organização mapeia e mede quantitativamente as competências em IA na força de trabalho, por meio de avaliações e certificações. A lacuna de competências (skills gap) é medida e monitorada.',
     criterion: 'Existem um inventário (Skill Matrix) e um monitoramento quantitativo das lacunas de competências (skills gap) da força de trabalho em relação às metas.',
+    whatToDo: 'Crie um inventário de competências (Skill Matrix) e monitore quantitativamente as lacunas de competências da força de trabalho em relação às metas.',
     evidence: 'Matriz de competências (Skill Matrix) com níveis de proficiência; relatórios de progresso da capacitação em relação às metas.',
     level: 4,
   },
@@ -436,6 +475,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Planejamento da Força de Trabalho',
     description: 'A organização utiliza análise de dados para prever o impacto da IA nos cargos e funções, planejando proativamente as necessidades futuras de contratação, automação e requalificação.',
     criterion: 'Existem análises e relatórios baseados em dados que preveem o impacto da IA nas funções e propõem planos proativos de transição ou de requalificação.',
+    whatToDo: 'Produza análises e relatórios baseados em dados que prevejam o impacto da IA nas funções e proponha planos proativos de transição ou requalificação.',
     evidence: 'Relatório de Análise de Impacto da IA no Trabalho; planos de carreira e de mobilidade interna para as funções impactadas.',
     level: 4,
   },
@@ -445,6 +485,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Cultura de Aprendizagem Contínua',
     description: 'A organização institucionaliza uma cultura que incentiva a experimentação, o compartilhamento de conhecimento e o aprendizado contínuo em IA. Erros são vistos como oportunidades de aprendizado e a inovação é recompensada.',
     criterion: 'A avaliação de desempenho organizacional e os programas de reconhecimento formal incluem critérios relacionados à inovação e ao aprendizado em IA.',
+    whatToDo: 'Inclua critérios relacionados à inovação e ao aprendizado em IA na avaliação de desempenho organizacional e nos programas de reconhecimento formal.',
     evidence: 'Descrição do programa de avaliação de desempenho; exemplos de reconhecimento a iniciativas inovadoras em IA.',
     level: 5,
   },
@@ -454,6 +495,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Atração e Retenção de Talentos de IA',
     description: 'A organização otimiza continuamente sua marca empregadora (employer branding) e suas estratégias de recrutamento, desenvolvimento e retenção para se tornar um polo de atração e desenvolvimento de talentos em IA.',
     criterion: 'A organização utiliza análise de dados de RH (como a taxa de turnover e o tempo de contratação) para otimizar continuamente suas estratégias de atração e retenção de talentos em IA.',
+    whatToDo: 'Utilize análise de dados de RH, como taxa de turnover e tempo de contratação, para otimizar continuamente as estratégias de atração e retenção de talentos em IA.',
     evidence: 'Análise de dados de RH sobre talentos em IA; pesquisas sobre engajamento com equipes de IA.',
     level: 5,
   },
@@ -465,6 +507,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Monitoramento Passivo do Mercado',
     description: 'A organização acompanha, de forma informal e não estruturada, as notícias, os concorrentes e as tendências de IA em seu setor, principalmente por meio de publicações e relatórios de mercado.',
     criterion: 'As equipes demonstram, mesmo de forma informal, conhecimento básico sobre tendências e concorrentes do mercado de IA no seu setor.',
+    whatToDo: 'Acompanhe, mesmo que de forma informal, as tendências e os concorrentes do mercado de IA no seu setor.',
     evidence: 'Apresentações internas que citam concorrentes ou tendências de IA.',
     level: 1,
   },
@@ -474,6 +517,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Participação em Eventos do Setor',
     description: 'Colaboradores da organização participam de conferências, seminários e workshops sobre IA para se manterem atualizados e fazer networking. A participação é gerenciada em nível departamental.',
     criterion: 'Há registros departamentais de inscrição e de participação dos colaboradores em conferências, seminários e workshops sobre IA.',
+    whatToDo: 'Registre, em nível departamental, a inscrição e a participação dos colaboradores em conferências, seminários e workshops sobre IA.',
     evidence: 'Inscrições em eventos; relatórios de despesas de viagem para conferências de IA.',
     level: 2,
   },
@@ -483,6 +527,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Relacionamento com Fornecedores',
     description: 'A organização estabelece um processo básico para gerenciar o relacionamento com seus principais fornecedores de tecnologia de IA, incluindo a avaliação de novos fornecedores e o acompanhamento dos contratos.',
     criterion: 'Há uma lista de fornecedores de IA aprovados e um processo básico definido para gerenciar relacionamentos, aquisições e o acompanhamento de contratos.',
+    whatToDo: 'Mantenha uma lista de fornecedores de IA aprovados e defina um processo básico para gerenciar relacionamentos, aquisições e acompanhamento de contratos.',
     evidence: 'Lista de fornecedores homologados; contratos com fornecedores de IA.',
     level: 2,
     legalReference: 'LGPD Art. 39'
@@ -493,6 +538,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Parcerias Estratégicas com Academia e Startups',
     description: 'A organização formaliza convênios e parcerias com universidades, centros de pesquisa e startups para a execução de projetos de P&D em IA. A estratégia de parceria está documentada.',
     criterion: 'A estratégia de parceria está documentada e há acordos formais de cooperação com universidades, centros de pesquisa e startups para P&D em IA.',
+    whatToDo: 'Documente a estratégia de parcerias e formalize acordos de cooperação com universidades, centros de pesquisa e startups para P&D em IA.',
     evidence: 'Acordos de cooperação técnica assinados; planos de projeto de P&D em parceria.',
     level: 3,
     legalReference: 'Lei de Inovação Art. 9º'
@@ -503,6 +549,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Participação em Associações Setoriais',
     description: 'A organização participa ativamente de grupos de trabalho sobre IA em associações de classe ou consórcios setoriais, contribuindo para as discussões e os posicionamentos do setor.',
     criterion: 'A organização atua ativamente como membro de associações de classe, com representantes alocados em grupos de trabalho ou em comitês de IA.',
+    whatToDo: 'Atue ativamente como membro de associações de classe, alocando representantes em grupos de trabalho ou comitês de IA.',
     evidence: 'Comprovante de filiação a associações; atas de reuniões de grupos de trabalho com a presença de representantes da organização.',
     level: 3,
   },
@@ -512,6 +559,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Projetos de Cooperação com Métricas de Sucesso',
     description: 'Os projetos colaborativos com parceiros são executados com métricas claras de sucesso, monitoradas quantitativamente. O valor gerado pelas parcerias (financeiras, tecnológicas etc.) é mensurado.',
     criterion: 'As parcerias estratégicas possuem indicadores de desempenho (KPIs) definidos, medidos quantitativamente e reportados.',
+    whatToDo: 'Defina indicadores de desempenho (KPIs) para as parcerias estratégicas, meça-os quantitativamente e reporte os resultados.',
     evidence: 'Relatórios de acompanhamento de parcerias com análise de KPIs.',
     level: 4,
   },
@@ -521,6 +569,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Benchmarking de Capacidades de IA',
     description: 'A organização realiza um processo de benchmarking para comparar quantitativamente seu desempenho, seus custos e sua maturidade em IA com os de organizações pares ou líderes de mercado.',
     criterion: 'Existem processos e relatórios formais de benchmarking para comparar custos, desempenho e maturidade em IA com organizações pares ou líderes do mercado.',
+    whatToDo: 'Realize processos formais de benchmarking, com relatórios, para comparar custos, desempenho e maturidade em IA com organizações pares ou líderes de mercado.',
     evidence: 'Relatório de benchmarking; análise de lacunas (gap analysis) com base nos resultados.',
     level: 4,
   },
@@ -530,6 +579,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Liderança de Iniciativas no Ecossistema',
     description: 'A organização assume um papel de liderança na criação de consórcios, no desenvolvimento de padrões abertos ou na construção de plataformas setoriais de IA, buscando gerar vantagens competitivas para todo o ecossistema.',
     criterion: 'A organização demonstra liderança na criação de consórcios de grande impacto, de plataformas setoriais de IA ou de padrões abertos.',
+    whatToDo: 'Assuma a liderança na criação de consórcios de grande impacto, plataformas setoriais de IA ou padrões abertos.',
     evidence: 'Atas de fundação de um consórcio; publicação de um padrão aberto liderado pela organização.',
     level: 5,
     legalReference: 'OCDE Princípios de IA'
@@ -540,6 +590,7 @@ export const LIST_PRACTICES: Practice[] = [
     name: 'Contribuição para o Desenvolvimento de Políticas Públicas',
     description: 'A organização colabora ativamente com reguladores e o governo, fornecendo dados, insights e expertise técnica para subsidiar a elaboração de políticas públicas e de regulamentações de IA mais eficazes e baseadas em evidências.',
     criterion: 'A organização é consultada formalmente por órgãos reguladores ou governamentais e participa de diálogos de alto nível sobre políticas de IA baseadas em evidências.',
+    whatToDo: 'Participe de diálogos de alto nível e de consultas formais com órgãos reguladores ou governamentais sobre políticas de IA baseadas em evidências.',
     evidence: 'Registros de participação em audiências públicas; convites para reuniões com agências governamentais.',
     level: 5,
     legalReference: 'ENIA Pilar 3'

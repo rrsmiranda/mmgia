@@ -105,7 +105,14 @@ backend, com dados de exemplo embutidos em `packages/shared`.
 
 ## Mapa completo de telas (15 telas)
 
-### apps/web — público anônimo (10 telas)
+> **Mudança de rumo (commit `74b4731`, branch `feat/observatorio-v2`):** a tela
+> de Dados Abertos/Open Data saiu do app público. Microdados agregados são
+> informação operacional da plataforma (não um direito do avaliado individual),
+> então a exportação CSV/JSON vive na área admin, ao lado dos exports PDF/Excel
+> da Tela 11 — não como rota pública própria. O app público passa a ter 9
+> telas, não 10; a tabela abaixo já reflete isso.
+
+### apps/web — público anônimo (9 telas)
 | # | Tela | Rota | Fase |
 |---|------|------|------|
 | 1 | Landing | `/` | A |
@@ -115,18 +122,18 @@ backend, com dados de exemplo embutidos em `packages/shared`.
 | 5 | Resultado | `/resultado` | A |
 | 6 | Painel Público | `/painel` | A |
 | 7 | Metodologia | `/metodologia` | A |
-| 8 | Open Data | `/opendata` | A |
-| 9 | Editar com código | `/editar/:codigo?` | A |
-| 10 | Notícias | `/noticias` | B |
+| 8 | Editar com código | `/editar/:codigo?` | A |
+| 9 | Notícias | `/noticias` | B |
 
-### apps/admin — administrativo identificado (5 telas)
+### apps/admin — administrativo identificado (6 telas)
 | # | Tela | Rota | Fase |
 |---|------|------|------|
-| 11 | Login | `/login` | A |
-| 12 | Dashboard + Gestão de dados | `/admin` | A |
-| 13 | Usuários + Perfis (RBAC) | `/admin/usuarios` | A |
-| 14 | Curadoria de notícias | `/admin/noticias` | B |
-| 15 | Base legal | `/admin/base-legal` | A |
+| 10 | Login | `/login` | A |
+| 11 | Dashboard + Gestão de dados | `/admin` | A |
+| 12 | Usuários + Perfis (RBAC) | `/admin/usuarios` | A |
+| 13 | Curadoria de notícias | `/admin/noticias` | B |
+| 14 | Base legal | `/admin/base-legal` | A |
+| 15 | Dados abertos (export CSV/JSON) | `/admin/dados-abertos` | A |
 
 **Fase A** = núcleo (sem mudar custo). **Fase B** = notícias (RSS/API gratuitos).
 
@@ -393,6 +400,8 @@ ADMIN (JWT obrigatório):
   GET    /admin/data                  dados agregados com filtros
   GET    /admin/export/pdf            exporta PDF
   GET    /admin/export/xlsx           exporta Excel
+  GET    /admin/export/csv            exporta CSV (dados abertos)
+  GET    /admin/export/json           exporta JSON (dados abertos, com schema)
   GET    /admin/news                  lista todas as notícias (incl. pendentes)
   POST   /admin/news/aggregate        dispara agregador RSS/API
   PATCH  /admin/news/:id              aprova/rejeita/destaca
@@ -421,7 +430,7 @@ Telas 1–8: seguir `MMGIA_ZOVA_PROMPT.md` (base) + `MMGIA_DESIGN_PROMPT.md`
 (componentes) + `MMGIA_GAPS.md` (resultado e painel) + estética Venus com
 Plus Jakarta Sans + interações de `MMGIA_VENUS_INTERACTIONS.md`.
 
-### Tela 9 [NOVA] — Editar com código (`/editar/:codigo?`)
+### Tela 8 [NOVA] — Editar com código (`/editar/:codigo?`)
 
 Layout:
 ```
@@ -451,7 +460,7 @@ Comportamento:
 - Aviso explícito sobre irrecuperabilidade (decisão registrada)
 - Link de "Editar com meu código" aparece no hero da landing
 
-### Tela 10 [NOVA, Fase B] — Notícias (`/noticias`)
+### Tela 9 [NOVA, Fase B] — Notícias (`/noticias`)
 
 Seguir o mockup validado (estilo Venus). Estrutura:
 - Hero com eyebrow + título + subtítulo
@@ -491,7 +500,7 @@ topbar, KPIs, tabelas densas) com brand MMGIA. Plus Jakarta Sans + Geist Mono.
 Mesma stack do web (React + Vite + Tailwind + Zustand + Recharts), mais:
 proteção de rota por JWT, `react-router` com guards de RBAC.
 
-### Tela 11 — Login (`/login`)
+### Tela 10 — Login (`/login`)
 ```
 Centralizado, fundo gradiente azul institucional.
 Card branco com: logo MMGIA, campo e-mail, campo senha,
@@ -500,7 +509,7 @@ RHF + Zod. POST /admin/auth/login. Guarda JWT em memória + httpOnly cookie.
 Rate limit visual após 5 tentativas.
 ```
 
-### Tela 12 — Dashboard + Gestão de dados (`/admin`)
+### Tela 11 — Dashboard + Gestão de dados (`/admin`)
 Seguir o mockup Gentelella validado:
 - Sidebar: Dashboard, Gestão de dados, Mapa nacional, Relatórios,
   Curadoria notícias, Base legal, Usuários, Perfis, Configurações
@@ -513,7 +522,7 @@ Seguir o mockup Gentelella validado:
 - 2 painéis: score médio por dimensão + distribuição por nível
 - `painel.store.ts` admin reutiliza lógica do `MMGIA_GAPS.md`
 
-### Tela 13 — Usuários + Perfis RBAC (`/admin/usuarios`)
+### Tela 12 — Usuários + Perfis RBAC (`/admin/usuarios`)
 - Tabela de usuários: nome, e-mail, perfil (badge), status, último login, ações
 - Botão "Novo usuário" abre modal: nome, e-mail, perfil (select), senha inicial
 - 3 perfis com permissões documentadas:
@@ -523,16 +532,24 @@ Seguir o mockup Gentelella validado:
 - Apenas super_admin acessa esta tela (guard de rota)
 - Editar/desativar usuário (nunca excluir, só desativar — auditoria)
 
-### Tela 15 — Base legal (`/admin/base-legal`)
+### Tela 14 — Base legal (`/admin/base-legal`)
 - Lista as 45 práticas agrupadas por dimensão (accordion)
 - Cada prática: referências legais editáveis (norma, artigo, descrição, url)
 - Adicionar/editar/remover referência
 - Salva via `PUT /admin/legal/:id`
 - Preview de como aparece no relatório da organização
 
+### Tela 15 [NOVA] — Dados abertos (`/admin/dados-abertos`)
+
+Movida do app público (ver nota na seção "Mapa completo de telas"): exportação
+de microdados agregados em CSV/JSON, com o schema documentado na própria tela.
+Reaproveita os mesmos filtros e dados agregados da Tela 11 (gestão de dados) —
+mesma fonte, mesma regra de k-anonimidade ≥ 5, apenas formatos de saída
+adicionais além de PDF/Excel. Sem rota pública equivalente.
+
 **✅ Conclusão Fase 7:** login com JWT; RBAC aplicado nas rotas; gestão de dados
-com filtros e exportação PDF/Excel; CRUD de usuários; base legal editável;
-todos os dados exibidos são anônimos/agregados.
+com filtros e exportação PDF/Excel/CSV/JSON; CRUD de usuários; base legal
+editável; todos os dados exibidos são anônimos/agregados.
 
 ---
 
@@ -553,7 +570,7 @@ todos os dados exibidos são anônimos/agregados.
 // Cron trigger diário (Cloudflare Cron Triggers — gratuito)
 ```
 
-### 8.2 Tela 14 — Curadoria de notícias (`/admin/noticias`)
+### 8.2 Tela 13 — Curadoria de notícias (`/admin/noticias`)
 - Lista notícias pendentes/aprovadas/rejeitadas (filtro por status)
 - Cada item: título, resumo, fonte, tags, data, preview do link
 - Ações: aprovar, rejeitar, marcar como destaque, editar tags/categoria
@@ -575,7 +592,7 @@ funciona; notícias aprovadas aparecem no público; sem reprodução de texto in
 
 ### Checklist de telas (15)
 ```
-apps/web (10):
+apps/web (9):
 □ Landing — hero + mapa Brasil + counters + serviços + CTA escuro + notícias preview + footer
 □ Onboarding — 3 etapas com validação
 □ Avaliação — 45 práticas, auto-save, sidebar score
@@ -583,15 +600,15 @@ apps/web (10):
 □ Resultado — score + gaps + plano de ação + benchmark + código de avaliação + downloads
 □ Painel Público — mapa UF + filtros + KPIs + insights + heatmap + trend
 □ Metodologia — seções + base legal por prática
-□ Open Data — CSV/JSON + schema
 □ Editar com código — busca por hash + aviso de irrecuperabilidade
 □ Notícias — trending + destaque + grade (Fase B)
 
-apps/admin (5):
+apps/admin (6):
 □ Login — JWT + rate limit
 □ Dashboard/Gestão — KPIs + tabela anônima + filtros + export PDF/Excel
 □ Usuários/RBAC — CRUD + 3 perfis
 □ Curadoria notícias — aprovar/rejeitar/destaque (Fase B)
+□ Dados abertos — export CSV/JSON + schema
 □ Base legal — 45 práticas editáveis
 ```
 

@@ -84,7 +84,7 @@ export default function Methodology() {
                   <li key={item.id}>
                     <button
                       onClick={() => handleMenuClick(item.id)}
-                      className="mg-btn mg-btn--ghost"
+                      className="mg-btn mg-btn--ghost mg-method-navbtn"
                       style={{ width: '100%', justifyContent: 'flex-start', ...(activeSection === item.id ? { background: 'var(--brand)', color: 'var(--on-brand)' } : {}) }}
                     >
                       {item.label}
@@ -110,21 +110,24 @@ export default function Methodology() {
               <CardHeader title="O que é o MMGIA?" />
               <CardBody>
                 <p className="mg-small mg-muted">
-                  O MMGIA é uma régua de conformidade autoaplicável formulada com o intuito de democratizar a governança ética e cibernética de sistemas algorítmicos. O modelo serve de diagnóstico preventivo guiando equipes na formulação de portarias jurídicas e de blindagens contra vieses.
+                  O MMGIA é um modelo de autoavaliação gratuito e anônimo que ajuda organizações brasileiras a medir sua
+                  maturidade em governança de inteligência artificial, alinhado à Estratégia Nacional de Inteligência
+                  Artificial (ENIA 2026–2029). A avaliação cobre 45 práticas distribuídas em 5 dimensões; o resultado
+                  aponta em quais delas a organização está mais atrasada e o que fazer para evoluir.
                 </p>
                 <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(2,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }}>
                   <div className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}>
                     <CheckCircle2 className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} />
                     <div>
-                      <p className="mg-title">Autoavaliação direta</p>
-                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Cálculos locais efetuados e processados instantaneamente dentro do seu navegador.</p>
+                      <p className="mg-title">Sem cadastro</p>
+                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Sem login, nome, CNPJ ou e-mail. O score é calculado inteiramente no seu navegador.</p>
                     </div>
                   </div>
                   <div className="mg-row" style={{ gap: 10, alignItems: 'flex-start' }}>
                     <CheckCircle2 className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--status-good)', flexShrink: 0, marginTop: 2 }} />
                     <div>
-                      <p className="mg-title">Alinhamento legislativo</p>
-                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Referenciais que cruzam artigos da LGPD do Brasil e principais normativas ISO/IEC europeias.</p>
+                      <p className="mg-title">Com base legal</p>
+                      <p className="mg-small mg-muted" style={{ marginTop: 2 }}>Práticas relacionadas, quando cabível, a LGPD, ISO/IEC 42001 e AI Act da União Europeia.</p>
                     </div>
                   </div>
                 </div>
@@ -139,17 +142,19 @@ export default function Methodology() {
                   O score global (0 a 3) é convertido em um nível de maturidade (0 a 5); cada nível tem um risco
                   associado, descrito no documento oficial do MMGIA.
                 </p>
-                <DataTable<{ lvl: Level; info: ReturnType<typeof getMaturityLevel> }>
-                  caption="Níveis de maturidade, faixa de score, descrição e risco associado"
-                  rowKey={(r) => String(r.lvl)}
-                  columns={[
-                    { key: 'lvl', header: 'Nível', render: (r) => <LevelBadge level={r.lvl} /> },
-                    { key: 'range', header: 'Faixa de score', render: (r) => SCORE_RANGES[r.lvl] },
-                    { key: 'desc', header: 'Descrição', render: (r) => r.info.desc },
-                    { key: 'risk', header: 'Risco associado', render: (r) => <RiskBadge level={r.lvl} /> },
-                  ]}
-                  rows={LEVEL_ROWS}
-                />
+                <div className="mg-lvltable">
+                  <DataTable<{ lvl: Level; info: ReturnType<typeof getMaturityLevel> }>
+                    caption="Níveis de maturidade, faixa de score, descrição e risco associado"
+                    rowKey={(r) => String(r.lvl)}
+                    columns={[
+                      { key: 'lvl', header: 'Nível', render: (r) => <LevelBadge level={r.lvl} /> },
+                      { key: 'range', header: 'Faixa de score', render: (r) => SCORE_RANGES[r.lvl] },
+                      { key: 'desc', header: 'Descrição', render: (r) => r.info.desc },
+                      { key: 'risk', header: 'Risco associado', render: (r) => <RiskBadge level={r.lvl} /> },
+                    ]}
+                    rows={LEVEL_ROWS}
+                  />
+                </div>
               </CardBody>
             </Card>
 
@@ -177,8 +182,16 @@ export default function Methodology() {
                         </div>
                         <p className="mg-title" style={{ marginTop: 6 }}>{p.name}</p>
                         <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{p.description}</p>
-                        <p className="mg-small" style={{ marginTop: 8 }}><strong>Critério de verificação:</strong> {p.criterion}</p>
-                        <p className="mg-small mg-muted" style={{ marginTop: 4 }}><strong>Artefato chave:</strong> {p.evidence}</p>
+                        <div className="mg-practice-meta">
+                          <div>
+                            <p className="mg-eyebrow">Critério de verificação</p>
+                            <p className="mg-small" style={{ marginTop: 4 }}>{p.criterion}</p>
+                          </div>
+                          <div>
+                            <p className="mg-eyebrow">Artefato chave</p>
+                            <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{p.evidence}</p>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </details>
@@ -249,11 +262,14 @@ export default function Methodology() {
               <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldCheck className="mg-ico mg-ico-sm" aria-hidden="true" />Arquitetura de privacidade</span>} />
               <CardBody>
                 <p className="mg-small mg-muted">
-                  Todos os diagnósticos e seleções de conformidade de práticas são processados de forma isolada do servidor por padrão. O código hash de sessão é a única chave que vincula os itens em local storage.
+                  O score é calculado inteiramente no seu navegador — nenhuma resposta é enviada a um servidor. As
+                  respostas ficam salvas no armazenamento local do navegador, associadas ao código de avaliação gerado
+                  ao final; é esse código, e não login ou e-mail, que permite editar a avaliação depois.
                 </p>
                 <div style={{ marginTop: 16 }}>
-                  <Banner tone="good" title="Sem microdados identificáveis">
-                    Os microdados agregados jamais exportam nomes de prefeituras, e-mails das equipes ou coordenadas lógicas confidenciais de banco de dados.
+                  <Banner tone="good" title="Sem dados que identifiquem a organização">
+                    Os dados agregados do painel público nunca incluem nome da organização, CNPJ, e-mail ou IP — essas
+                    informações não são coletadas em nenhuma etapa da avaliação.
                   </Banner>
                 </div>
               </CardBody>

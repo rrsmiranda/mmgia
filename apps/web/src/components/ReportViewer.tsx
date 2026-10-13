@@ -60,7 +60,7 @@ export default function ReportViewer({ answers, metadata, onBack, autoPrint = fa
       dimensionLevels={dimensionLevels}
       answers={answers}
     />,
-    ...buildActionPlanContents(gaps, answers),
+    ...buildActionPlanContents(gaps, answers, levelInfo),
     <MethodologyContent currentLevel={levelInfo.num as Level} />,
     <AnnexContent answers={answers} />,
   ];

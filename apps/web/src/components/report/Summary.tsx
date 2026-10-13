@@ -6,8 +6,9 @@
 import type { DimensionId, Practice, ScoreLevel } from '@mmgia/shared/types';
 import { DIMENSIONS, LIST_PRACTICES } from '@mmgia/shared/types';
 import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
+import { getOfficialPracticeCode } from '@mmgia/shared/scoring';
 import { DimensionBars, LevelBadge, RiskBadge, formatNumber, type Level } from '@mmgia/shared/design-system';
-import { getKeyFindings } from './ActionPlan';
+import { getKeyFindings, getNextStep } from './ActionPlan';
 
 interface SummaryContentProps {
   globalScore: number;
@@ -18,8 +19,9 @@ interface SummaryContentProps {
 }
 
 export default function SummaryContent({ globalScore, levelInfo, dimensionScores, gaps, answers }: SummaryContentProps) {
-  const { naoRespondidas, nulas, gapsIniciais, proximoNivel, maiorId, menorId, menorPesoPercent } =
+  const { naoRespondidas, nulas, gapsIniciais, proximoNivel, maiorId, menorId } =
     getKeyFindings(gaps, dimensionScores, levelInfo, answers);
+  const nextStep = getNextStep(gaps, answers, levelInfo);
 
   return (
     <>
@@ -59,9 +61,18 @@ export default function SummaryContent({ globalScore, levelInfo, dimensionScores
             {gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {proximoNivel}.
           </li>
         )}
-        <li>
-          Recomenda-se tratar primeiro {DIMENSIONS[menorId].name}: é a dimensão com menor score e peso de {menorPesoPercent}% no resultado global.
-        </li>
+        {nextStep && nextStep.steps.length > 0 && (
+          <li>
+            {nextStep.steps.length === 1 ? 'Uma prática' : `${nextStep.steps.length} práticas`} (
+            {nextStep.steps.map((s, i) => (
+              <span key={s.practice.id}>
+                {i > 0 && (i === nextStep.steps.length - 1 ? ' e ' : ', ')}
+                <strong>{getOfficialPracticeCode(s.practice)} {DIMENSIONS[s.practice.dimensionId].shortName}</strong>
+              </span>
+            ))}
+            ) {nextStep.steps.length === 1 ? 'leva' : 'levam'} ao nível {proximoNivel} ({formatNumber(nextStep.toScore)}) se passarem para Larga — veja a seção 3.
+          </li>
+        )}
       </ul>
 
       <h2 className="rp-h2">Como ler este relatório</h2>

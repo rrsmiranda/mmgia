@@ -5,6 +5,7 @@
 
 import type { Practice, ScoreLevel } from '@mmgia/shared/types';
 import { LIST_PRACTICES } from '@mmgia/shared/types';
+import { getOfficialPracticeCode } from '@mmgia/shared/scoring';
 import { NplfBadge } from '@mmgia/shared/design-system';
 
 function AnnexTable({ practices, answers }: { practices: Practice[]; answers: Record<string, ScoreLevel> }) {
@@ -23,7 +24,7 @@ function AnnexTable({ practices, answers }: { practices: Practice[]; answers: Re
           const ans = answers[p.id];
           return (
             <tr key={p.id}>
-              <td className="rp-mono">{p.id}</td>
+              <td className="rp-mono">{getOfficialPracticeCode(p)}</td>
               <td>{p.name}</td>
               <td>{p.level}</td>
               <td>{ans ? <NplfBadge value={ans} /> : '—'}</td>

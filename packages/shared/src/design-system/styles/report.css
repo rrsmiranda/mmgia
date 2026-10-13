@@ -1,10 +1,11 @@
 /* ===== Relatório (PDF · A4) — mesma identidade do sistema, escala gov.br em pontos =====
    base 10,5pt (= 14px) · up-01 12,6pt · up-03 18pt · up-05 26pt · down-01 8,75pt
-   corpo justificado com hifenização pt-BR; tabelas, títulos e listas curtas alinhados à esquerda */
+   corpo justificado, sem hifenização (sem quebra de palavra por sílabas); tabelas, títulos e
+   listas curtas alinhados à esquerda */
 .rp { --font-sans: var(--mg-font-sans); --font-mono: var(--mg-font-mono); background: var(--surface-sunken); }
 .rp-page { box-sizing: border-box; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 18mm 20mm 14mm; display: flex; flex-direction: column; background: #FFFFFF; color: var(--text); font-family: var(--font-sans); font-size: 10.5pt; line-height: 1.5; font-variant-numeric: lining-nums; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rp-body { flex: 1; }
-.rp-body p { margin: 0 0 8pt; text-align: justify; text-justify: inter-word; hyphens: auto; -webkit-hyphens: auto; }
+.rp-body p { margin: 0 0 8pt; text-align: justify; text-justify: inter-word; hyphens: none; -webkit-hyphens: none; }
 .rp-head { display: flex; align-items: center; gap: 10pt; padding-bottom: 6pt; margin-bottom: 18pt; border-bottom: .75pt solid var(--surface-deep); font-size: 8.75pt; color: var(--text-muted); }
 .rp-head > span:nth-child(2) { flex: 1; }
 .rp-head .mg-logo { gap: 6pt; }
@@ -21,7 +22,7 @@
 .rp-list { margin: 0 0 8pt; padding-left: 14pt; list-style: disc; }
 .rp-list li { margin-bottom: 4pt; }
 .rp-score { display: grid; grid-template-columns: 170pt 1fr; gap: 18pt; align-items: center; padding: 12pt 14pt; margin-bottom: 4pt; border: .75pt solid var(--surface-deep); border-radius: var(--radius-lg); }
-.rp-score > p { margin: 0; text-align: left; hyphens: manual; }
+.rp-score > p { margin: 0; text-align: justify; text-justify: inter-word; hyphens: none; -webkit-hyphens: none; }
 .rp-score .mg-row { flex-wrap: wrap; }
 .rp-big { margin: 2pt 0 0 !important; font-size: 34pt; font-weight: 700; line-height: 1; text-align: left !important; font-variant-numeric: tabular-nums; }
 .rp-big span { margin-left: 4pt; font-size: 12.6pt; font-weight: 500; color: var(--text-muted); }
@@ -41,16 +42,23 @@
 .rp-chip { display: inline-flex; align-items: center; gap: 3pt; margin: 1pt 4pt 1pt 0; white-space: nowrap; }
 .rp-gaps td { padding-top: 4pt; padding-bottom: 4pt; }
 .rp-gaps .rp-small { font-size: 8.25pt; }
-.rp-gaps td:nth-child(2) { width: 54pt; }
-.rp-gap-head { grid-template-columns: 150pt 1fr; gap: 16pt; margin-bottom: 10pt; break-inside: avoid; }
-.rp-gap-radar { max-width: 150pt; margin: 0 auto; }
-.rp-gap-radar text { font-size: 7pt !important; }
+.rp-gaps td:first-child { width: 16pt; }
+.rp-gaps td:nth-child(2) { width: 42pt; }
+.rp-gaps td:last-child { width: 40pt; }
+.rp-gaps tr { break-inside: avoid; }
+.rp-gain { font-weight: 700; color: var(--brand); }
+.rp-wtf { margin: 4pt 0 2pt; padding: 4pt 7pt; background: var(--brand-soft); border-left: 2pt solid var(--brand); border-radius: 0 3pt 3pt 0; }
+.rp-wtf-label { display: block; font-size: 7pt; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand); margin-bottom: 1pt; }
+.rp-wtf p { margin: 0 !important; font-size: 8.75pt; text-align: left; }
+.rp-nextstep { margin: 10pt 0 14pt; padding: 10pt 14pt; border: .75pt solid var(--surface-deep); border-radius: var(--radius-lg); background: var(--surface-sunken); break-inside: avoid; }
+.rp-nextstep-scores { display: flex; align-items: baseline; gap: 10pt; margin: 4pt 0 6pt; }
+.rp-nextstep-arrow { font-size: 14pt; color: var(--text-muted); }
 .rp-annex { font-size: 8pt; line-height: 1.25; }
 .rp-annex td, .rp-annex th { padding: 2.5pt 4pt; }
 .rp-annex .mg-badge { min-width: 0; height: 13pt; width: 13pt; font-size: 7pt; }
 .rp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14pt; align-items: start; }
 .rp-dl { display: grid; grid-template-columns: 1fr 1fr; gap: 10pt 18pt; margin: 0; }
-.rp-dl--3 { grid-template-columns: repeat(3, 1fr); }
+.rp-dl--1 { grid-template-columns: 1fr; align-content: start; }
 .rp-dl dt { font-size: 8pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--text-muted); }
 .rp-dl dd { margin: 2pt 0 0; font-size: 10.5pt; font-weight: 600; }
 .rp-note { display: flex; gap: 8pt; margin-top: 24pt; padding: 10pt 12pt; border-radius: var(--radius-md); background: var(--surface-sunken); font-size: 9pt; }

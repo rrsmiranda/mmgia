@@ -34,8 +34,7 @@ export default function DimensionResultsContent({
       <p className="rp-eyebrow">2 · Resultado por dimensão</p>
       <h1 className="rp-h1">Desempenho nas cinco dimensões</h1>
       <p>
-        Score de cada dimensão, nível correspondente e contribuição para o score global, segundo os pesos do modelo.
-        Escala de 0 a 3.
+        Score de cada dimensão, nível correspondente e peso no score global, segundo o modelo. Escala de 0 a 3.
       </p>
 
       <table className="rp-table rp-dim-summary">
@@ -44,8 +43,7 @@ export default function DimensionResultsContent({
             <th scope="col">Dimensão</th>
             <th scope="col">Score</th>
             <th scope="col">Nível</th>
-            <th scope="col">Peso</th>
-            <th scope="col" className="num">Contribuição</th>
+            <th scope="col" className="num">Peso</th>
           </tr>
         </thead>
         <tbody>
@@ -62,8 +60,7 @@ export default function DimensionResultsContent({
                     <LevelBadge level={lvl.num as Level} showLabel={false} /> {lvl.label}
                   </span>
                 </td>
-                <td>{Math.round(weight * 100)}%</td>
-                <td className="num">{formatNumber(score * weight, 3)}</td>
+                <td className="num">{Math.round(weight * 100)}%</td>
               </tr>
             );
           })}
@@ -77,8 +74,7 @@ export default function DimensionResultsContent({
                 <LevelBadge level={levelInfo.num as Level} showLabel={false} /> {levelInfo.label}
               </span>
             </td>
-            <td>100%</td>
-            <td className="num">{formatNumber(globalScore, 3)}</td>
+            <td className="num">100%</td>
           </tr>
         </tfoot>
       </table>

@@ -29,6 +29,8 @@ interface RadarChartProps {
   onAxisHover?: (id: string | null) => void;
   onAxisClick?: (id: string) => void;
   ariaLabel: string;
+  /** Largura máxima de exibição em px. A geometria interna (viewBox) é sempre 300×300 e escala proporcionalmente. */
+  size?: number;
 }
 
 const SIZE = 300;
@@ -36,7 +38,7 @@ const CENTER = SIZE / 2;
 const MAX_RADIUS = 92;
 const MAX_SCORE = 3;
 
-export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel }: RadarChartProps) {
+export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel, size = SIZE }: RadarChartProps) {
   const prefersReducedMotion = useReducedMotion();
   const n = axes.length;
 
@@ -74,11 +76,11 @@ export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, 
   const highlightPoint = highlightIndex >= 0 ? userPoints[highlightIndex] : null;
 
   return (
-    <div className="mg-an-radar-wrap" style={{ position: 'relative', width: '100%', maxWidth: SIZE }}>
+    <div className="mg-an-radar-wrap" style={{ position: 'relative', width: '100%', maxWidth: size }}>
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         width="100%"
-        style={{ maxWidth: SIZE, overflow: 'visible', display: 'block', margin: '0 auto' }}
+        style={{ maxWidth: size, overflow: 'visible', display: 'block', margin: '0 auto' }}
         role="img"
         aria-label={ariaLabel}
         className="mg-an-radar-svg"

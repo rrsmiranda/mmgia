@@ -81,24 +81,26 @@ interface DataTableProps<T> {
 /** Tabela do sistema: cabeçalho em surface-sunken, sem zebra, números tabulares. */
 export function DataTable<T>({ columns, rows, rowKey, stacked = true, caption }: DataTableProps<T>) {
   return (
-    <table className={cx('mg-table', stacked && 'mg-table--stack')}>
-      {caption && <caption className="mg-sr">{caption}</caption>}
-      <thead>
-        <tr>
-          {columns.map((c) => (
-            <th key={c.key} scope="col" className={c.numeric ? 'num' : undefined}>{c.header}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((r) => (
-          <tr key={rowKey(r)}>
+    <div className="mg-table-wrap">
+      <table className={cx('mg-table', stacked && 'mg-table--stack')}>
+        {caption && <caption className="mg-sr">{caption}</caption>}
+        <thead>
+          <tr>
             {columns.map((c) => (
-              <td key={c.key} data-label={c.header} className={c.numeric ? 'num' : undefined}>{c.render(r)}</td>
+              <th key={c.key} scope="col" className={c.numeric ? 'num' : undefined}>{c.header}</th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={rowKey(r)}>
+              {columns.map((c) => (
+                <td key={c.key} data-label={c.header} className={c.numeric ? 'num' : undefined}>{c.render(r)}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

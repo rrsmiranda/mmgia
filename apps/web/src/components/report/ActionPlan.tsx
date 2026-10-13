@@ -10,58 +10,60 @@ import type { MaturityLevelInfo } from '@mmgia/shared/scoring';
 import {
   DIMENSION_WEIGHTS,
   getAllDimensionScores,
-  getMaturityLevel,
+  getGlobalScore,
   getOfficialPracticeCode,
-  getPracticeScores,
-  NPLF_VALUE,
 } from '@mmgia/shared/scoring';
 import {
-  DIMENSION_ICONS,
   DIMENSION_ORDER,
   DimensionTag,
   formatNumber,
-  LevelBadge,
   NplfBadge,
-  RiskBadge,
-  type Level,
 } from '@mmgia/shared/design-system';
-import RadarChart, { type RadarAxis } from '../RadarChart';
 
-const DIM_FIRST_PAGE_ROWS = 5;
-const DIM_CONTINUATION_ROWS = 12;
+const AGORA_FIRST_PAGE_ROWS = 3;
+const AGORA_CONTINUATION_ROWS = 4;
+const DEPOIS_FIRST_PAGE_ROWS = 8;
+const DEPOIS_CONTINUATION_ROWS = 8;
+
+/** Faixas de score que definem cada nível (mesmos limites de getMaturityLevel). */
+const LEVEL_THRESHOLDS = [0.5, 1.0, 1.5, 2.0, 2.5];
 
 /**
- * Lacunas (prática respondida como N ou P, ou sem resposta), agrupadas por dimensão —
- * a de menor score primeiro — e, dentro de cada dimensão, ordenadas pelo nível da
- * prática e, dentro do nível, da resposta mais fraca para a mais forte. Nenhum desses
- * critérios é "a forma oficial" de priorizar (o documento da metodologia não define
- * isso); são só os números que o próprio modelo já calcula, sem inventar nenhuma
- * métrica nova (ex.: esforço). Em empate exato de score entre duas dimensões, a ordem
- * fixa das dimensões na interface desempata — garante que cada dimensão continue um
- * bloco contíguo na lista, nunca intercalada com outra.
+ * Lacunas (prática respondida como N ou P, ou sem resposta), ordenadas pelo nível da
+ * prática primeiro — a lógica cumulativa do próprio modelo: práticas de nível 1 em
+ * qualquer dimensão vêm antes de práticas de nível 2, e assim por diante — e, dentro
+ * do mesmo nível, pelo ganho que cada uma traria ao score global se passasse para
+ * Larga (maior ganho primeiro). O ganho não é uma métrica nova: é a diferença entre
+ * `getGlobalScore` com e sem essa mudança, calculada pela mesma fórmula do modelo.
+ * Em empate de ganho, a ordem fixa das dimensões na interface desempata.
  */
 export function getGaps(answers: Record<string, ScoreLevel>): Practice[] {
-  const dimScores = getAllDimensionScores(answers);
-  const dimRank = Object.fromEntries(
-    [...DIMENSION_ORDER]
-      .sort((a, b) => dimScores[a] - dimScores[b] || DIMENSION_ORDER.indexOf(a) - DIMENSION_ORDER.indexOf(b))
-      .map((id, i) => [id, i])
-  ) as Record<DimensionId, number>;
+  const gaps = LIST_PRACTICES.filter((p) => {
+    const ans = answers[p.id];
+    return !ans || ans === 'N' || ans === 'P';
+  });
 
-  return LIST_PRACTICES
-    .filter((p) => {
-      const ans = answers[p.id];
-      return !ans || ans === 'N' || ans === 'P';
-    })
-    .sort((a, b) => {
-      const dimDiff = dimRank[a.dimensionId] - dimRank[b.dimensionId];
-      if (dimDiff !== 0) return dimDiff;
-      if (a.level !== b.level) return a.level - b.level;
-      const va = answers[a.id] ? NPLF_VALUE[answers[a.id]] : 0;
-      const vb = answers[b.id] ? NPLF_VALUE[answers[b.id]] : 0;
-      if (va !== vb) return va - vb;
-      return a.id.localeCompare(b.id);
-    });
+  const gainCache = new Map<string, number>();
+  const gainOf = (p: Practice) => {
+    if (!gainCache.has(p.id)) gainCache.set(p.id, getPracticeGain(p, answers));
+    return gainCache.get(p.id)!;
+  };
+
+  return [...gaps].sort((a, b) => {
+    if (a.level !== b.level) return a.level - b.level;
+    const gainDiff = gainOf(b) - gainOf(a);
+    if (Math.abs(gainDiff) > 1e-9) return gainDiff;
+    const dimDiff = DIMENSION_ORDER.indexOf(a.dimensionId) - DIMENSION_ORDER.indexOf(b.dimensionId);
+    if (dimDiff !== 0) return dimDiff;
+    return a.id.localeCompare(b.id);
+  });
+}
+
+/** Quanto o score global sobe se só esta prática passar para Larga — mesma fórmula do modelo, nada novo. */
+export function getPracticeGain(practice: Practice, answers: Record<string, ScoreLevel>): number {
+  const base = getGlobalScore(answers);
+  const withLarga = getGlobalScore({ ...answers, [practice.id]: 'L' });
+  return withLarga - base;
 }
 
 export interface KeyFindings {
@@ -104,52 +106,88 @@ export function getKeyFindings(
   };
 }
 
-interface DimensionGapBlock {
-  dimensionId: DimensionId;
-  gaps: Practice[];
+export interface NextStep {
+  steps: { practice: Practice; gain: number }[];
+  fromScore: number;
+  toScore: number;
+  reached: boolean;
 }
 
-/** `getGaps` já devolve as lacunas agrupadas por dimensão — aqui só se materializa essa divisão em blocos. */
-function groupGapsByDimension(gaps: Practice[]): DimensionGapBlock[] {
-  const blocks: DimensionGapBlock[] = [];
-  for (const gap of gaps) {
-    const last = blocks[blocks.length - 1];
-    if (last && last.dimensionId === gap.dimensionId) {
-      last.gaps.push(gap);
-    } else {
-      blocks.push({ dimensionId: gap.dimensionId, gaps: [gap] });
-    }
+/**
+ * Caminho mínimo até o próximo nível: a cada passo, escolhe entre as lacunas
+ * restantes a que mais aumenta o score global SE passasse para Larga, aplica essa
+ * mudança e repete — até cruzar o limiar do próximo nível ou esgotar as lacunas.
+ * É uma simulação gulosa, não uma soma: o ganho de uma prática muda conforme outras
+ * já aplicadas na mesma dimensão/nível, então os ganhos individuais não se somam
+ * livremente fora desse caminho (só quando práticas estão em níveis ou dimensões
+ * diferentes, como costuma ser o caso das primeiras escolhidas).
+ */
+export function getNextStep(gaps: Practice[], answers: Record<string, ScoreLevel>, levelInfo: MaturityLevelInfo): NextStep | null {
+  if (levelInfo.num >= 5) return null;
+  const threshold = LEVEL_THRESHOLDS[levelInfo.num];
+  let sim = { ...answers };
+  let current = getGlobalScore(sim);
+  const fromScore = current;
+  const remaining = [...gaps];
+  const steps: { practice: Practice; gain: number }[] = [];
+
+  while (current < threshold && remaining.length > 0) {
+    let bestIdx = -1;
+    let bestGain = -Infinity;
+    remaining.forEach((p, i) => {
+      const gain = getGlobalScore({ ...sim, [p.id]: 'L' }) - current;
+      if (gain > bestGain) {
+        bestGain = gain;
+        bestIdx = i;
+      }
+    });
+    if (bestIdx === -1 || bestGain <= 0) break;
+    const practice = remaining.splice(bestIdx, 1)[0];
+    sim = { ...sim, [practice.id]: 'L' };
+    const newScore = getGlobalScore(sim);
+    steps.push({ practice, gain: newScore - current });
+    current = newScore;
   }
-  return blocks;
+
+  return { steps, fromScore, toScore: current, reached: current >= threshold };
 }
 
-function chunkRows(gaps: Practice[], firstPageRows: number, continuationRows: number): Practice[][] {
-  const chunks: Practice[][] = [];
-  let i = Math.min(firstPageRows, gaps.length);
-  chunks.push(gaps.slice(0, i));
-  while (i < gaps.length) {
-    chunks.push(gaps.slice(i, i + continuationRows));
+function chunkRows<T>(rows: T[], firstPageRows: number, continuationRows: number): T[][] {
+  const chunks: T[][] = [];
+  let i = Math.min(firstPageRows, rows.length);
+  chunks.push(rows.slice(0, i));
+  while (i < rows.length) {
+    chunks.push(rows.slice(i, i + continuationRows));
     i += continuationRows;
   }
   return chunks;
 }
 
-function TableHead() {
+function GainCell({ gain }: { gain: number }) {
+  return <td className="num rp-gain">+{formatNumber(gain, 2)}</td>;
+}
+
+function EvidenceList({ practice }: { practice: Practice }) {
+  // A evidência mínima esperada do modelo costuma listar itens separados por ";" —
+  // cada um vira uma linha do checklist, sem reescrever ou resumir o texto do documento.
+  const items = practice.evidence.split(';').map((s) => s.trim()).filter(Boolean);
   return (
-    <thead>
-      <tr>
-        <th scope="col">#</th>
-        <th scope="col">Nível</th>
-        <th scope="col">Prática e próximo passo</th>
-      </tr>
-    </thead>
+    <>
+      <p className="rp-small" style={{ marginTop: 4, marginBottom: 2 }}>Evidência mínima esperada:</p>
+      <ul className="rp-list rp-small">
+        {items.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+    </>
   );
 }
 
-function GapRow({ num, practice, answer }: { num: number; practice: Practice; answer?: ScoreLevel }) {
-  // A evidência mínima esperada do modelo costuma listar itens separados por ";" —
-  // cada um vira uma linha do checklist, sem reescrever ou resumir o texto do documento.
-  const evidenceItems = practice.evidence.split(';').map((s) => s.trim()).filter(Boolean);
+/**
+ * Ficha completa (Agora, níveis 1-3): código + nome + resposta, a orientação "O que
+ * fazer" (reformulação do `criterion` em modo imperativo — rascunho interno, não é
+ * texto do documento oficial, pendente de validação do GGIA) e a evidência mínima
+ * esperada, que essa sim é o texto oficial.
+ */
+function RichGapRow({ num, practice, answer, gain }: { num: number; practice: Practice; answer?: ScoreLevel; gain: number }) {
   return (
     <tr>
       <td>{num}</td>
@@ -157,73 +195,60 @@ function GapRow({ num, practice, answer }: { num: number; practice: Practice; an
       <td>
         <strong>{getOfficialPracticeCode(practice)} {practice.name}</strong>{' '}
         {answer && <NplfBadge value={answer} />}
-        <p className="rp-small" style={{ marginTop: 2, marginBottom: 2 }}>Evidência mínima esperada:</p>
-        <ul className="rp-list rp-small">
-          {evidenceItems.map((item) => <li key={item}>{item}</li>)}
-        </ul>
+        <div className="rp-wtf">
+          <span className="rp-wtf-label">O que fazer</span>
+          <p>{practice.whatToDo}</p>
+        </div>
+        <EvidenceList practice={practice} />
       </td>
+      <GainCell gain={gain} />
     </tr>
   );
 }
 
-/**
- * Cabeçalho da primeira página de cada dimensão: radar das 9 práticas (mesmo
- * componente e mesma leitura da tela de Resultado) ao lado do score e do total de
- * lacunas — visão de conjunto antes da lista detalhada, sem repetir essa lista em
- * forma de gráfico (o gráfico não carrega a evidência mínima esperada de cada item).
- */
-function DimensionGapHeader({ dimensionId, answers, score, gapCount }: {
-  dimensionId: DimensionId;
-  answers: Record<string, ScoreLevel>;
-  score: number;
-  gapCount: number;
-}) {
-  const dim = DIMENSIONS[dimensionId];
-  const Icon = DIMENSION_ICONS[dimensionId];
-  const level = getMaturityLevel(score);
-
-  const axes: RadarAxis[] = getPracticeScores(dimensionId, answers).map(({ practice, answer, value }) => {
-    const code = getOfficialPracticeCode(practice);
-    return {
-      id: practice.id,
-      label: code,
-      sub: answer ?? '—',
-      value,
-      title: practice.name,
-      detail: answer ? `Nível ${practice.level} · ${answer} · ${value} de 3` : `Nível ${practice.level} · Sem resposta`,
-      ariaLabel: `${code} ${practice.name}: ${answer ? `${answer}, ${value} de 3` : 'sem resposta'}`,
-    };
-  });
-
+/** Linha compacta (Depois, níveis 4-5): sem "O que fazer", para não inflar o relatório com metas distantes. */
+function CompactGapRow({ num, practice, answer, gain }: { num: number; practice: Practice; answer?: ScoreLevel; gain: number }) {
   return (
-    <div className="rp-cols rp-gap-head">
-      <div className="rp-gap-radar">
-        <RadarChart axes={axes} ariaLabel={`Radar das 9 práticas de ${dim.name}`} />
+    <tr>
+      <td>{num}</td>
+      <td className="rp-small">Nível {practice.level}</td>
+      <td>
+        <strong>{getOfficialPracticeCode(practice)} {practice.name}</strong>{' '}
+        {answer && <NplfBadge value={answer} />}
+        <EvidenceList practice={practice} />
+      </td>
+      <GainCell gain={gain} />
+    </tr>
+  );
+}
+
+function NextStepCard({ nextStep }: { nextStep: NextStep }) {
+  if (nextStep.steps.length === 0) return null;
+  return (
+    <div className="rp-nextstep">
+      <p className="rp-label">Seu próximo passo</p>
+      <div className="rp-nextstep-scores">
+        <span className="rp-big" style={{ fontSize: '20pt' }}>{formatNumber(nextStep.fromScore)}</span>
+        <span className="rp-nextstep-arrow">→</span>
+        <span className="rp-big" style={{ fontSize: '20pt' }}>{formatNumber(nextStep.toScore)}</span>
       </div>
-      <div>
-        <div className="mg-row" style={{ gap: 8, alignItems: 'center' }}>
-          <Icon className="mg-ico" aria-hidden="true" />
-          <h2 className="rp-h2" style={{ margin: 0 }}>{dim.name}</h2>
-        </div>
-        <p className="rp-big" style={{ fontSize: '22pt', marginTop: 6 }}>
-          {formatNumber(score)}<span style={{ fontSize: '10.5pt' }}> / 3</span>
-        </p>
-        <div className="mg-row" style={{ gap: 6, marginTop: 4 }}>
-          <LevelBadge level={level.num as Level} />
-          <RiskBadge level={level.num as Level} />
-        </div>
-        <p className="rp-small" style={{ marginTop: 10 }}>{level.risco}</p>
-        <p className="rp-small" style={{ marginTop: 6 }}>
-          {gapCount} {gapCount === 1 ? 'lacuna' : 'lacunas'} nesta dimensão — cada eixo do radar é uma das 9 práticas
-          (N · P · L · F), na ordem dos níveis de maturidade.
-        </p>
-      </div>
+      <p className="rp-small">
+        Levar {nextStep.steps.length === 1 ? 'esta prática' : `estas ${nextStep.steps.length} práticas`} de Parcial
+        (ou Nulo) para Larga {nextStep.reached ? 'alcança o próximo nível de maturidade' : 'é o máximo que as lacunas atuais permitem — não é suficiente para alcançar o próximo nível'}.
+      </p>
+      <ul className="rp-list rp-small" style={{ marginTop: 6 }}>
+        {nextStep.steps.map(({ practice, gain }) => (
+          <li key={practice.id}>
+            <strong>{getOfficialPracticeCode(practice)} {practice.name}</strong> — {DIMENSIONS[practice.dimensionId].shortName}, +{formatNumber(gain, 2)} no score
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 /** Conteúdo (sem o wrapper ReportPage) de cada página do plano de ação — 1 ou mais. */
-export function buildActionPlanContents(gaps: Practice[], answers: Record<string, ScoreLevel>): ReactNode[] {
+export function buildActionPlanContents(gaps: Practice[], answers: Record<string, ScoreLevel>, levelInfo: MaturityLevelInfo): ReactNode[] {
   if (gaps.length === 0) {
     return [
       <>
@@ -235,8 +260,16 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
   }
 
   const dimScores = getAllDimensionScores(answers);
-  const blocks = groupGapsByDimension(gaps);
+  const agora = gaps.filter((g) => g.level <= 3);
+  const depois = gaps.filter((g) => g.level > 3);
+  const nextStep = getNextStep(gaps, answers, levelInfo);
   const pages: ReactNode[] = [];
+
+  const gainsByDim = DIMENSION_ORDER.map((id) => ({
+    dimensionId: id,
+    score: dimScores[id],
+    count: gaps.filter((g) => g.dimensionId === id).length,
+  })).filter((d) => d.count > 0);
 
   pages.push(
     <>
@@ -244,11 +277,14 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
       <h1 className="rp-h1">Lacunas priorizadas</h1>
       <p>
         Foram identificadas <strong>{gaps.length} lacunas</strong>: práticas respondidas como Nulo (N) ou Parcial (P),
-        ou sem resposta. A seguir, cada dimensão com lacunas tem sua própria página — a de menor score primeiro —,
-        com um radar das 9 práticas (visão de conjunto) seguido da lista de lacunas daquela dimensão, ordenadas por
-        nível e, dentro do nível, da resposta mais fraca para a mais forte. O código de cada prática e a evidência
-        mínima esperada seguem exatamente o documento oficial do MMGIA.
+        ou sem resposta. A ordem segue a lógica cumulativa do modelo — nível 1 antes de nível 2, e assim por diante
+        — e, dentro do mesmo nível, o ganho que cada prática traria ao score global se passasse para Larga.{' '}
+        <strong>Agora</strong> reúne as {agora.length} lacunas de níveis 1 a 3, que sustentam o nível seguinte;{' '}
+        <strong>Depois</strong> reúne as {depois.length} de níveis 4 e 5, metas para depois de consolidar o nível 3.
       </p>
+
+      {nextStep && <NextStepCard nextStep={nextStep} />}
+
       <h2 className="rp-h2">Lacunas por dimensão</h2>
       <table className="rp-table">
         <thead>
@@ -259,11 +295,11 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
           </tr>
         </thead>
         <tbody>
-          {blocks.map(({ dimensionId, gaps: dimGaps }) => (
+          {gainsByDim.map(({ dimensionId, score, count }) => (
             <tr key={dimensionId}>
               <td><DimensionTag dimension={dimensionId} /></td>
-              <td>{formatNumber(dimScores[dimensionId])}</td>
-              <td className="num">{dimGaps.length}</td>
+              <td>{formatNumber(score)}</td>
+              <td className="num">{count}</td>
             </tr>
           ))}
         </tbody>
@@ -271,9 +307,15 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
     </>
   );
 
-  blocks.forEach(({ dimensionId, gaps: dimGaps }) => {
-    const score = dimScores[dimensionId];
-    const chunks = chunkRows(dimGaps, DIM_FIRST_PAGE_ROWS, DIM_CONTINUATION_ROWS);
+  const buildSection = (
+    title: string,
+    rows: Practice[],
+    firstPageRows: number,
+    continuationRows: number,
+    rich: boolean
+  ) => {
+    if (rows.length === 0) return;
+    const chunks = chunkRows(rows, firstPageRows, continuationRows);
     let rowStart = 0;
 
     chunks.forEach((chunk, pageIndex) => {
@@ -284,27 +326,33 @@ export function buildActionPlanContents(gaps: Practice[], answers: Record<string
       pages.push(
         <>
           <p className="rp-eyebrow">3 · Plano de ação{!isFirst && ' (continuação)'}</p>
-          {isFirst ? (
-            <DimensionGapHeader dimensionId={dimensionId} answers={answers} score={score} gapCount={dimGaps.length} />
-          ) : (
-            <div className="mg-row" style={{ gap: 8, alignItems: 'center', marginBottom: 10 }}>
-              <DimensionTag dimension={dimensionId} />
-              <h2 className="rp-h2" style={{ margin: 0 }}>{DIMENSIONS[dimensionId].name}</h2>
-            </div>
-          )}
-
-          <table className="rp-table rp-gaps">
-            <TableHead />
+          <h2 className="rp-h2" style={{ marginTop: 0 }}>{title}</h2>
+          <table className={rich ? 'rp-table rp-gaps rp-gaps--rich' : 'rp-table rp-gaps'}>
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Nível</th>
+                <th scope="col">{rich ? 'Prática, orientação e evidência' : 'Prática e evidência'}</th>
+                <th scope="col" className="num">Ganho</th>
+              </tr>
+            </thead>
             <tbody>
-              {chunk.map((practice, i) => (
-                <GapRow key={practice.id} num={startNum + i} practice={practice} answer={answers[practice.id]} />
-              ))}
+              {chunk.map((practice, i) => {
+                const gain = getPracticeGain(practice, answers);
+                const answer = answers[practice.id];
+                return rich
+                  ? <RichGapRow key={practice.id} num={startNum + i} practice={practice} answer={answer} gain={gain} />
+                  : <CompactGapRow key={practice.id} num={startNum + i} practice={practice} answer={answer} gain={gain} />;
+              })}
             </tbody>
           </table>
         </>
       );
     });
-  });
+  };
+
+  buildSection('Agora · níveis 1 a 3', agora, AGORA_FIRST_PAGE_ROWS, AGORA_CONTINUATION_ROWS, true);
+  buildSection('Depois · níveis 4 e 5', depois, DEPOIS_FIRST_PAGE_ROWS, DEPOIS_CONTINUATION_ROWS, false);
 
   return pages;
 }

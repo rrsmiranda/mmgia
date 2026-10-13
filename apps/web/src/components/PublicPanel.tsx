@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Gauge, Info, Lock, X } from 'lucide-react';
 import BrazilMap from './BrazilMap';
+import RadarChart, { type RadarAxis } from './RadarChart';
 import { DimensionId, DIMENSIONS, HistoricalRecord, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
@@ -429,16 +430,8 @@ export default function PublicPanel() {
             </div>
           </Card>
 
-          {/* KPIS */}
-          <div className="mg-grid mg-obs-kpis" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)' }}>
-            <KpiCard label="Score médio" value={scopedAgg.score !== null ? formatNumber(scopedAgg.score) : '—'} meta={scopedAgg.level !== null ? `Nível ${scopedAgg.level} · ${LEVEL_LABELS[scopedAgg.level as Level]}` : undefined} />
-            <KpiCard label="Avaliações" value={scopedAgg.n} meta={uf ? undefined : `${estadosComDados} estados com dados`} />
-            <KpiCard label="Dimensão mais baixa" value={dimensaoMaisBaixa ? <span className="mg-row" style={{ gap: 6 }}><DimensionTag dimension={dimensaoMaisBaixa} short /></span> : '—'}
-              meta={dimensaoMaisBaixa && scopedAgg.dims ? formatNumber(scopedAgg.dims[dimensaoMaisBaixa]) : undefined} />
-          </div>
-
-          {/* EVOLUÇÃO + COMPARATIVOS */}
-          <div className="mg-grid mg-obs-2" style={{ ['--cols-d' as string]: 'minmax(0,1.1fr) minmax(0,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr' }}>
+          {/* EVOLUÇÃO + KPIS */}
+          <div className="mg-grid mg-obs-evo" style={{ ['--cols-d' as string]: 'minmax(0,1.7fr) minmax(0,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr' }}>
             <Card>
               <CardHeader title={`Evolução do score médio · ${uf ? nomeUf : label}`} />
               <CardBody>
@@ -446,40 +439,47 @@ export default function PublicPanel() {
               </CardBody>
             </Card>
 
-            <Card>
-              <CardHeader title="Comparativos" actions={
-                <Segmented<CompareTab>
-                  label="Agrupar comparativos por"
-                  value={compareTab}
-                  onChange={setCompareTab}
-                  options={[
-                    { value: 'setor_porte', label: 'Setor e porte' },
-                    { value: 'esfera', label: 'Esfera' },
-                    { value: 'area', label: 'Área' },
-                    { value: 'relacaoIA', label: 'Relação com IA' },
-                  ]}
-                />
-              } />
-              <CardBody>
-                {scopedRecords.length < K_MIN ? (
-                  <p className="mg-small mg-muted">Este recorte tem menos de 5 avaliações. Amplie os filtros para ver os dados.</p>
-                ) : compareTab === 'setor_porte' ? (
-                  <div className="mg-obs-cmpgrid">
-                    <div>
-                      <p className="mg-label">Setor</p>
-                      <CompareList rows={compareBy(scopedRecords, 'setor')} />
-                    </div>
-                    <div>
-                      <p className="mg-label">Porte</p>
-                      <CompareList rows={compareBy(scopedRecords, 'porte')} />
-                    </div>
-                  </div>
-                ) : (
-                  <CompareList rows={compareBy(scopedRecords, compareTab)} />
-                )}
-              </CardBody>
-            </Card>
+            <div className="mg-obs-kpicol">
+              <KpiCard label="Score médio" value={scopedAgg.score !== null ? formatNumber(scopedAgg.score) : '—'} meta={scopedAgg.level !== null ? `Nível ${scopedAgg.level} · ${LEVEL_LABELS[scopedAgg.level as Level]}` : undefined} />
+              <KpiCard label="Avaliações" value={scopedAgg.n} meta={uf ? undefined : `${estadosComDados} estados com dados`} />
+              <KpiCard label="Dimensão mais baixa" value={dimensaoMaisBaixa ? <span className="mg-row" style={{ gap: 6 }}><DimensionTag dimension={dimensaoMaisBaixa} short /></span> : '—'}
+                meta={dimensaoMaisBaixa && scopedAgg.dims ? formatNumber(scopedAgg.dims[dimensaoMaisBaixa]) : undefined} />
+            </div>
           </div>
+
+          {/* COMPARATIVOS — largura total, para o radar ter mais espaço */}
+          <Card className="mg-obs-cmpcard">
+            <CardHeader title="Comparativos" actions={
+              <Segmented<CompareTab>
+                label="Agrupar comparativos por"
+                value={compareTab}
+                onChange={setCompareTab}
+                options={[
+                  { value: 'setor_porte', label: 'Setor e porte' },
+                  { value: 'esfera', label: 'Esfera' },
+                  { value: 'area', label: 'Área' },
+                  { value: 'relacaoIA', label: 'Relação com IA' },
+                ]}
+              />
+            } />
+            <CardBody>
+              {scopedRecords.length < K_MIN ? (
+                <p className="mg-small mg-muted">Este recorte tem menos de 5 avaliações. Amplie os filtros para ver os dados.</p>
+              ) : (
+                <CompareRadarPanel
+                  key={compareTab}
+                  rows={
+                    compareTab === 'setor_porte'
+                      ? [
+                          ...compareBy(scopedRecords, 'setor').map((r) => ({ ...r, section: 'Setor' })),
+                          ...compareBy(scopedRecords, 'porte').map((r) => ({ ...r, section: 'Porte' })),
+                        ]
+                      : compareBy(scopedRecords, compareTab).map((r) => ({ ...r, section: undefined }))
+                  }
+                />
+              )}
+            </CardBody>
+          </Card>
 
           {/* COMO LER */}
           <details className="mg-obs-how mg-card" open={showDetails} onToggle={(e) => setShowDetails(e.currentTarget.open)}>
@@ -553,30 +553,117 @@ function DimensionBarRow({ id, value, brasilValue }: { id: DimensionId; value: n
   );
 }
 
-function CompareList({ rows }: { rows: { grupo: string; agg: Agg }[] }) {
-  if (rows.length === 0) return <p className="mg-small mg-muted">Sem dados para este agrupamento.</p>;
+interface CompareRow { grupo: string; agg: Agg; section?: string }
+
+function CompareRadarPanel({ rows }: { rows: CompareRow[] }) {
+  const withKey = rows.map((r) => ({ ...r, key: r.section ? `${r.section}:${r.grupo}` : r.grupo }));
+  const selectable = withKey.filter((r) => r.agg.score !== null);
+
+  const [picked, setPicked] = useState<string[]>(() => selectable.slice(0, 2).map((r) => r.key));
+
+  if (withKey.length === 0) return <p className="mg-small mg-muted">Sem dados para este agrupamento.</p>;
+
+  const togglePick = (key: string) => {
+    setPicked((prev) => {
+      if (prev.includes(key)) return prev.filter((k) => k !== key);
+      if (prev.length < 2) return [...prev, key];
+      return [prev[1], key];
+    });
+  };
+
+  const bySection = new Map<string, typeof withKey>();
+  for (const r of withKey) {
+    const sec = r.section ?? '';
+    bySection.set(sec, [...(bySection.get(sec) ?? []), r]);
+  }
+
+  const selectedRows = picked
+    .map((key) => withKey.find((r) => r.key === key))
+    .filter((r): r is (typeof withKey)[number] => !!r && r.agg.dims !== null);
+
   return (
-    <ul className="mg-obs-cmp">
-      {rows.map(({ grupo, agg }) => (
-        <li key={grupo}>
-          <span className="nm">{grupo}<small>{agg.n} {agg.n === 1 ? 'avaliação' : 'avaliações'}</small></span>
-          {agg.score !== null ? (
-            <>
-              <div className="mg-obs-dot">
-                <div className="t" />
-                <div className="d" style={{ left: `${Math.min(100, (agg.score / 3) * 100)}%` }} />
-              </div>
-              <b>{formatNumber(agg.score)}</b>
-            </>
-          ) : (
-            <span className="mg-obs-na mg-small mg-muted">
-              <Lock size={14} aria-hidden="true" />
-              Dados insuficientes · menos de 5 avaliações
-            </span>
+    <div>
+      <div
+        className="mg-obs-radarpick-sections"
+        style={{ display: 'grid', gridTemplateColumns: bySection.size > 1 ? 'repeat(auto-fit, minmax(220px, 1fr))' : '1fr', gap: '10px 24px', marginBottom: 12 }}
+      >
+        {[...bySection.entries()].map(([sec, items]) => (
+          <div key={sec || 'all'}>
+            {sec && <p className="mg-label" style={{ marginBottom: 6 }}>{sec}</p>}
+            <div className="mg-obs-radarpick">
+              {items.map((r) => {
+                const disabled = r.agg.score === null;
+                const on = picked.includes(r.key);
+                return (
+                  <button
+                    key={r.key}
+                    type="button"
+                    className={cx('mg-obs-uf', on && 'is-on')}
+                    disabled={disabled}
+                    aria-pressed={on}
+                    title={disabled ? 'Dados insuficientes · menos de 5 avaliações' : `${r.agg.n} avaliações`}
+                    onClick={() => togglePick(r.key)}
+                  >
+                    {r.grupo} <b>{r.agg.n}</b>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {selectedRows.length === 0 ? (
+        <p className="mg-small mg-muted" style={{ marginTop: 8 }}>Selecione até dois grupos acima para comparar.</p>
+      ) : (
+        <div className="mg-obs-radargrid">
+          {selectedRows.map((r) => <RadarGroupCard key={r.key} label={r.grupo} agg={r.agg} />)}
+          {selectedRows.length === 1 && (
+            <div className="mg-obs-radarcard mg-obs-radarcard--empty">
+              <p className="mg-small mg-muted">Selecione outro grupo acima para comparar lado a lado.</p>
+            </div>
           )}
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RadarGroupCard({ label, agg }: { label: string; agg: Agg }) {
+  const [hoverId, setHoverId] = useState<string | null>(null);
+
+  const axes: RadarAxis[] = DIMENSION_ORDER.map((id) => {
+    const value = agg.dims![id];
+    const level = getMaturityLevel(value);
+    return {
+      id,
+      label: DIMENSIONS[id].shortName,
+      sub: formatNumber(value),
+      value,
+      title: DIMENSIONS[id].name,
+      detail: `${label} · Nível ${level.num} · ${LEVEL_LABELS[level.num]} · ${formatNumber(value)} / 3`,
+      ariaLabel: `${DIMENSIONS[id].name} em ${label}: nível ${level.num}, ${LEVEL_LABELS[level.num]}, score ${formatNumber(value)} de 3`,
+    };
+  });
+  return (
+    <div className="mg-obs-radarcard">
+      <div className="mg-obs-radarcard-head">
+        <p className="mg-title" style={{ fontSize: 15 }}>
+          {label} <span className="mg-small mg-muted" style={{ fontWeight: 400 }}>· {agg.n} {agg.n === 1 ? 'avaliação' : 'avaliações'}</span>
+        </p>
+      </div>
+      <RadarChart
+        axes={axes}
+        highlightId={hoverId}
+        onAxisHover={setHoverId}
+        ariaLabel={`Radar de dimensões · ${label}`}
+        size={320}
+      />
+      <div className="mg-row" style={{ justifyContent: 'center', gap: 8, marginTop: 4 }}>
+        <span style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 20 }}>{formatNumber(agg.score!)}</span>
+        <LevelBadge level={agg.level as Level} />
+      </div>
+    </div>
   );
 }
 

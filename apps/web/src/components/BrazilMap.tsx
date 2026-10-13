@@ -5,6 +5,7 @@
 
 import { useState, useRef, useMemo, useLayoutEffect, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Table2, Map as MapIcon } from 'lucide-react';
 import brazilMapData from '@svg-maps/brazil';
 import { REGIAO_POR_UF } from '@mmgia/shared/taxonomy';
@@ -45,6 +46,7 @@ type SortKey = 'uf' | 'regiao' | 'n' | 'score';
 
 export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, metricLabel = 'Score global' }: BrazilMapProps) {
   const isHeatmap = mode === 'heatmap';
+  const prefersReducedMotion = useReducedMotion();
 
   const [hoveredUf, setHoveredUf] = useState<string | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
@@ -107,15 +109,17 @@ export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, m
   const highlightLoc = highlightUf ? locations.find((l) => l.uf === highlightUf) : undefined;
 
   const fillFor = (uf: string): string => {
-    if (!isHeatmap) return selectedUf === uf ? 'var(--brand)' : hoveredUf === uf ? 'var(--surface-deep)' : 'var(--surface-sunken)';
+    if (!isHeatmap) return selectedUf === uf ? 'var(--brand)' : hoveredUf === uf ? 'var(--brand-soft)' : 'var(--surface-deep)';
     const agg = data?.[uf];
     if (!agg || agg.score === null || agg.level === null) return 'url(#obs-hatch)';
     return `var(--level-${agg.level})`;
   };
 
   // O destaque de borda do hover/seleção vem do <path> extra (highlightLoc) — aqui fica só o
-  // separador neutro entre estados, sempre igual, para não duplicar a borda.
-  const strokeFor = (): string => 'var(--surface-raised)';
+  // separador neutro entre estados. No heatmap, as cores de nível já são escuras, então o
+  // separador branco (--surface-raised) funciona; no modo de seleção as cores de preenchimento
+  // são claras, então o separador precisa de mais contraste para o mapa não sumir na página.
+  const strokeFor = (): string => (isHeatmap ? 'var(--surface-raised)' : 'var(--border-control)');
   const strokeWidthFor = (): number => 1;
 
   const opacityFor = (uf: string): number => {
@@ -141,14 +145,18 @@ export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, m
       preserveAspectRatio="xMidYMid meet"
       onPointerLeave={() => setHoveredUf(null)}
     >
-      {isHeatmap && (
-        <defs>
+      <defs>
+        {/* Suaviza levemente os vértices do contorno de destaque, sem alterar a geometria dos estados. */}
+        <filter id="map-soften" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0.6" />
+        </filter>
+        {isHeatmap && (
           <pattern id="obs-hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
             <rect width="6" height="6" fill="var(--surface-sunken)" />
             <line x1="0" y1="0" x2="0" y2="6" stroke="var(--text-muted)" strokeWidth="2" />
           </pattern>
-        </defs>
-      )}
+        )}
+      </defs>
       {locations.map((loc) => {
         const agg = data?.[loc.uf];
         const insuficiente = isHeatmap && (!agg || agg.score === null);
@@ -175,17 +183,25 @@ export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, m
           />
         );
       })}
-      {highlightLoc && (
-        <path
-          d={highlightLoc.path}
-          fill="none"
-          stroke="var(--text)"
-          strokeWidth={selectedUf === highlightLoc.uf ? 3 : 2}
-          strokeLinejoin="round"
-          pointerEvents="none"
-          aria-hidden="true"
-        />
-      )}
+      <AnimatePresence>
+        {highlightLoc && (
+          <motion.path
+            key={highlightLoc.uf}
+            d={highlightLoc.path}
+            fill="none"
+            stroke="var(--surface-raised)"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+            filter="url(#map-soften)"
+            pointerEvents="none"
+            aria-hidden="true"
+            initial={prefersReducedMotion ? { opacity: 1, strokeWidth: selectedUf === highlightLoc.uf ? 2.5 : 1.5 } : { opacity: 0, strokeWidth: 1.5 }}
+            animate={{ opacity: 1, strokeWidth: selectedUf === highlightLoc.uf ? 2.5 : 1.5 }}
+            exit={prefersReducedMotion ? { opacity: 1 } : { opacity: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: 'easeOut' }}
+          />
+        )}
+      </AnimatePresence>
     </svg>
   );
 
