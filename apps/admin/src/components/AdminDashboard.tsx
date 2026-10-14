@@ -43,22 +43,31 @@ import {
   Setor,
   SETORES,
 } from '@mmgia/shared/taxonomy';
+import { aggregate, levelDistribution, monthly } from '@mmgia/shared/observatory';
+import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
   Badge,
   Button,
+  Card,
+  CardHeader,
+  CardBody,
   DataTable,
   DIMENSION_ORDER,
+  DimensionBars,
   DimensionTag,
   DsRoot,
   Field,
   Input,
   KpiCard,
+  LEVEL_LABELS,
+  LevelBadge,
   PageHeader,
   Segmented,
   Select,
   StatusBadge,
   Textarea,
   formatNumber,
+  type Level,
 } from '@mmgia/shared/design-system';
 
 interface AdminDashboardProps {
@@ -164,6 +173,16 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     return matchesSearch && matchesSector && matchesRevisar;
   });
 
+  // Mesmas funções de agregação do Painel Público (packages/shared/lib/observatory.ts) — um só
+  // lugar calcula score médio/distribuição, para os números nunca divergirem entre as duas telas.
+  // nationalAgg nunca reflete os filtros (é "nacional" por definição); os painéis abaixo da
+  // tabela usam dataAgg/dataDist, que reagem aos filtros aplicados pelo admin.
+  const nationalAgg = aggregate(historicalRecords);
+  const dataAgg = aggregate(filteredRecords);
+  const dataDist = levelDistribution(filteredRecords);
+  const ufsComDados = new Set(historicalRecords.map((r) => r.estado)).size;
+  const avaliacoesMesRecente = monthly(historicalRecords, 1)[0]?.n ?? 0;
+
   const openReclassify = (rec: HistoricalRecord) => {
     setReclassifyRecord(rec);
     setReclassifySetor(rec.setor);
@@ -268,10 +287,10 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 />
 
                 <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12, marginTop: 24 }} id="dados-kpi-row">
-                  <KpiCard label="Avaliados total" value="1.847" unit="registros" />
-                  <KpiCard label="Média nacional score" value={formatNumber(1.42)} unit="/ 3,00" />
-                  <KpiCard label="Novas avaliações (30d)" value="312" unit="registradas" />
-                  <KpiCard label="Estados mapeados" value="27 de 27" unit="UFs" />
+                  <KpiCard label="Avaliados total" value={historicalRecords.length.toLocaleString('pt-BR')} unit="registros" />
+                  <KpiCard label="Média nacional score" value={nationalAgg.score !== null ? formatNumber(nationalAgg.score) : '—'} unit="/ 3,00" />
+                  <KpiCard label="Avaliações no último mês" value={avaliacoesMesRecente} unit="registradas" />
+                  <KpiCard label="Estados mapeados" value={`${ufsComDados} de 27`} unit="UFs" />
                 </div>
 
                 <div className="mg-row" style={{ gap: 12, flexWrap: 'wrap', marginTop: 24 }} id="dados-filter-rail">
@@ -300,6 +319,49 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   </Field>
                 </div>
 
+                {(sectorFilter !== 'Todos' || revisarFilter !== 'Todos' || searchCode !== '') && (
+                  <p className="mg-small mg-muted" style={{ marginTop: 16 }}>Os painéis abaixo refletem os filtros aplicados ({filteredRecords.length} de {historicalRecords.length} registros).</p>
+                )}
+
+                <div className="mg-grid" style={{ ['--cols-d' as string]: '1fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 12 }} id="dados-analytics-row">
+                  <Card>
+                    <CardHeader title="Score médio por dimensão" />
+                    <CardBody>
+                      {dataAgg.dims ? (
+                        <DimensionBars scores={dataAgg.dims} />
+                      ) : (
+                        <p className="mg-small mg-muted">Menos de 5 registros no recorte atual — sem média para exibir.</p>
+                      )}
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader title="Distribuição por nível" />
+                    <CardBody>
+                      {dataDist ? (
+                        <>
+                          <div className="mg-obs-stack">
+                            {dataDist.map((pct, lvl) => (
+                              <span key={lvl} style={{ width: `${pct}%`, background: `var(--level-${lvl})` }} />
+                            ))}
+                          </div>
+                          <ul className="mg-obs-distlist" style={{ marginTop: 12 }}>
+                            {dataDist.map((pct, lvl) => (
+                              <li key={lvl}>
+                                <i style={{ background: `var(--level-${lvl})` }} />
+                                {lvl} · {LEVEL_LABELS[lvl as Level]}
+                                <b>{formatNumber(pct, 0)}%</b>
+                              </li>
+                            ))}
+                          </ul>
+                        </>
+                      ) : (
+                        <p className="mg-small mg-muted">Menos de 5 registros no recorte atual — sem distribuição para exibir.</p>
+                      )}
+                    </CardBody>
+                  </Card>
+                </div>
+
                 <div style={{ marginTop: 24 }} id="evaluations-table-card">
                   <DataTable<HistoricalRecord>
                     caption="Registros de avaliação com score e ações"
@@ -315,11 +377,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                       { key: 'estado', header: 'UF', render: (r) => r.estado },
                       { key: 'porte', header: 'Porte', render: (r) => r.porte },
                       { key: 'score', header: 'Score', numeric: true, render: (r) => <strong>{formatNumber(r.score_global)}</strong> },
-                      { key: 'nivel', header: 'Maturidade', render: (r) => {
-                        const scoreLevel = r.score_global < 1.0 ? 'Nível 1' : r.score_global < 1.5 ? 'Nível 2' : 'Nível 3';
-                        const status = scoreLevel === 'Nível 1' ? 'critical' : scoreLevel === 'Nível 2' ? 'attention' : 'good';
-                        return <StatusBadge status={status}>{scoreLevel}</StatusBadge>;
-                      } },
+                      { key: 'nivel', header: 'Maturidade', render: (r) => <LevelBadge level={getMaturityLevel(r.score_global).num as Level} /> },
                       { key: 'acoes', header: 'Ações', render: (r) => (
                         <div className="mg-row" style={{ gap: 8, justifyContent: 'flex-end' }}>
                           {r.revisar && <Button variant="secondary" size="sm" onClick={() => openReclassify(r)}>Reclassificar</Button>}
