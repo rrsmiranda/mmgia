@@ -649,15 +649,15 @@ export const SEED_ADMIN_USERS: AdminUser[] = [
   {
     id: 'u1',
     name: 'Júlia Costa',
-    email: 'julia.costa@instituto.gov.br',
+    email: 'julia.costa@ggia.unb.br',
     role: 'super_admin',
     status: 'Ativo',
     lastLogin: '08/06/2026 10:14',
   },
   {
     id: 'u2',
-    name: 'Rafael Miranda',
-    email: 'rafael.miranda@exemplo.gov.br',
+    name: 'Rafael Almeida',
+    email: 'rafael.almeida@ggia.unb.br',
     role: 'gestor',
     status: 'Ativo',
     lastLogin: '07/06/2026 18:42',
@@ -665,7 +665,7 @@ export const SEED_ADMIN_USERS: AdminUser[] = [
   {
     id: 'u3',
     name: 'Mateus Azevedo',
-    email: 'mateus.azevedo@advocacia.com',
+    email: 'mateus.azevedo@ggia.unb.br',
     role: 'leitor',
     status: 'Ativo',
     lastLogin: '05/06/2026 09:30',
@@ -673,7 +673,7 @@ export const SEED_ADMIN_USERS: AdminUser[] = [
   {
     id: 'u4',
     name: 'Patrícia Rocha',
-    email: 'patricia.r@inteligencia.com',
+    email: 'patricia.rocha@ggia.unb.br',
     role: 'gestor',
     status: 'Inativo',
     lastLogin: '12/05/2026 15:10',

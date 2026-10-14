@@ -104,7 +104,7 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
 
             <div className="mg-row" style={{ gap: 8, justifyContent: 'center', marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--surface-deep)' }}>
               <ShieldCheck className="mg-ico mg-ico-sm" aria-hidden="true" style={{ color: 'var(--status-good)' }} />
-              <span className="mg-small mg-muted">Serviço monitorado por auditoria trilateral securitária gov.br</span>
+              <span className="mg-small mg-muted">Acesso restrito a administradores autorizados da plataforma.</span>
             </div>
           </Card>
         </div>

@@ -525,8 +525,8 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               <div id="tab-legal-root">
                 <PageHeader
                   level="h1"
-                  title="Alinhamento trilateral de base legal"
-                  description="Vincule as 45 práticas às normativas constitucionais, do Congresso ou ISO."
+                  title="Base legal das práticas"
+                  description="Vincule as 45 práticas às referências normativas aplicáveis (LGPD, AI Act, ISO/IEC 42001, ENIA)."
                   actions={<Button variant="primary" icon={Plus} onClick={() => setShowAddRefModal(true)}>Novo alinhamento legal</Button>}
                 />
 
