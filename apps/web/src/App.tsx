@@ -242,18 +242,20 @@ export default function App() {
 
       {/* Footer is also excluded on deep custom administrative viewports and home landing, which renders its own complete brand footer */}
       {currentTab !== 'home' && currentTab !== 'relatorio-viewer' && !isFlowScreen && (
-        <footer className={`py-12 px-6 border-t text-center select-none transition-colors duration-500 ${
-          theme === 'dark' ? 'bg-slate-950 text-slate-400 border-slate-900' : 'bg-slate-900 text-slate-400 border-slate-800'
-        }`} id="global-application-footer">
-          <div className="max-w-7xl mx-auto space-y-4">
-            <p className="text-xs font-mono uppercase tracking-widest text-brand-accent">
-              mmgia · modelo de maturidade em governança de inteligência artificial
+        <footer className="mg-footer select-none" style={{ textAlign: 'center' }} id="global-application-footer">
+          <div
+            className="mg-stack"
+            style={{ gap: 10, alignItems: 'center', maxWidth: 560, marginInline: 'auto', fontFamily: 'var(--mg-font-sans)' }}
+          >
+            <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--on-ink)', margin: 0 }}>
+              MMGIA · Modelo de Maturidade em Governança de Inteligência Artificial
             </p>
-            <p className="text-[10px] font-sans text-slate-500 max-w-lg mx-auto leading-normal">
-              Plataforma desenvolvida para auxílio à conformação civil de engenhos de IA no Brasil, amparada pelas diretrizes trilaterais do PL 2338/2023, LGPD e marcos gerais da ENIA.
+            <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--on-ink-muted)', margin: 0 }}>
+              Plataforma desenvolvida pelo Grupo de Pesquisa em Governança e Gestão de Inteligência Artificial (GGIA)
+              da Universidade de Brasília (UnB).
             </p>
-            <p className="text-[9px] font-mono text-slate-600">
-              © {new Date().getFullYear()} MMGIA. Todos os direitos reservados. Licenciado para microdados sob CC BY 4.0.
+            <p style={{ fontSize: 12, color: 'var(--on-ink-muted)', opacity: 0.8, margin: 0 }}>
+              © {new Date().getFullYear()} MMGIA - GGIA. Todos os direitos reservados.
             </p>
           </div>
         </footer>
