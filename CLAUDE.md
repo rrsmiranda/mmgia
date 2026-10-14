@@ -73,16 +73,24 @@ tabela `submissions` (avaliações anônimas) não têm relação por chave estr
 ## Estrutura do monorepo
 
 > Esta seção reflete a estrutura real do repositório nesta sessão (npm
-> workspaces — sem pnpm/turbo). `apps/worker/` e `infra/` (Cloudflare Worker,
-> migrations SQL) ainda não existem: os dados hoje são seeds estáticos em
-> `packages/shared/src/types.ts`, e o cálculo de score roda inteiramente no
-> browser, sem backend. O plano de backend nas fases 5/8 abaixo continua
-> válido como próximo passo, mas ainda é aspiracional, não implementado.
+> workspaces — sem pnpm/turbo). `infra/` existe desde a branch
+> `feat/observatorio-v2`: schema completo (migrations SQL) + seed de
+> desenvolvimento, documentado em `infra/README.md` — validado rodando contra
+> SQLite local, ainda não contra um Turso/D1 de verdade. `apps/worker/`
+> (Cloudflare Worker que lê/escreve nesse schema) continua não existindo: os
+> dados hoje são seeds estáticos em `packages/shared/src/types.ts`, e o
+> cálculo de score roda inteiramente no browser, sem backend. O plano de
+> backend nas fases 5/8 abaixo continua válido como próximo passo — a parte
+> de schema já não é mais aspiracional, mas a API em si ainda é.
 
 ```
 mmgia/
 ├── CLAUDE.md                    ← este arquivo
 ├── package.json                 ← workspace root (npm workspaces)
+├── infra/
+│   ├── README.md                ← como rodar as migrations (Turso/D1) + mapeamento banco↔frontend
+│   ├── migrations/               ← 001_submissions, 002_edit_code, 003_admin, 004_news, 005_legal
+│   └── seeds/dev_seed.sql        ← dados de exemplo só para desenvolvimento local
 ├── apps/
 │   ├── web/                     ← SPA pública anônima
 │   │   └── src/components/      ← telas públicas (Landing, Onboarding, Avaliação…)
@@ -99,7 +107,8 @@ mmgia/
 **As 2 apps são deployadas separadamente** (domínios distintos), o que isola
 completamente o código administrativo do público. `apps/worker` (API) é
 planejado, não implementado — hoje `apps/web` e `apps/admin` operam sem
-backend, com dados de exemplo embutidos em `packages/shared`.
+backend, com dados de exemplo embutidos em `packages/shared`. O schema em
+`infra/` já reflete o contrato que essa API vai precisar seguir.
 
 ---
 
