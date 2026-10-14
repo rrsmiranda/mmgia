@@ -73,24 +73,36 @@ tabela `submissions` (avaliações anônimas) não têm relação por chave estr
 ## Estrutura do monorepo
 
 > Esta seção reflete a estrutura real do repositório nesta sessão (npm
-> workspaces — sem pnpm/turbo). `infra/` existe desde a branch
-> `feat/observatorio-v2`: schema completo (migrations SQL) + seed de
-> desenvolvimento, documentado em `infra/README.md` — validado rodando contra
-> SQLite local, ainda não contra um Turso/D1 de verdade. `apps/worker/`
-> (Cloudflare Worker que lê/escreve nesse schema) continua não existindo: os
+> workspaces — sem pnpm/turbo). **Mudança de rumo de backend:** o plano
+> original desta Fase 5 (Cloudflare Worker + D1/Turso, schema em
+> `infra/migrations/`) foi substituído por **Supabase self-hosted (Postgres)
+> numa VPS própria** — schema equivalente em `infra/supabase/migrations/`,
+> com Row Level Security fazendo a isolação dos "dois mundos" dentro do
+> próprio banco, Supabase Auth no lugar de `admin_users`/`admin_sessions`
+> customizadas, e guia de deploy em `infra/supabase/README.md`. As 6
+> migrations novas (schema + RLS + funções RPC `find_submission_by_code_hash`,
+> `update_submission_by_code_hash`, `painel_aggregate`) já foram validadas
+> rodando de ponta a ponta contra um Postgres real, com testes negativos de
+> RLS — ver `infra/supabase/test/`. O schema SQLite/D1/Turso original
+> (`infra/migrations/`) fica preservado só como referência, não recebe mais
+> mudanças. Em ambos os casos, `apps/worker/` (ou o equivalente PostgREST já
+> embutido no stack Supabase) ainda não está ligado a nenhum dos dois apps: os
 > dados hoje são seeds estáticos em `packages/shared/src/types.ts`, e o
-> cálculo de score roda inteiramente no browser, sem backend. O plano de
-> backend nas fases 5/8 abaixo continua válido como próximo passo — a parte
-> de schema já não é mais aspiracional, mas a API em si ainda é.
+> cálculo de score roda inteiramente no browser, sem backend.
 
 ```
 mmgia/
 ├── CLAUDE.md                    ← este arquivo
 ├── package.json                 ← workspace root (npm workspaces)
 ├── infra/
-│   ├── README.md                ← como rodar as migrations (Turso/D1) + mapeamento banco↔frontend
+│   ├── README.md                ← schema SQLite/D1/Turso original (referência, não ativo)
 │   ├── migrations/               ← 001_submissions, 002_edit_code, 003_admin, 004_news, 005_legal
-│   └── seeds/dev_seed.sql        ← dados de exemplo só para desenvolvimento local
+│   ├── seeds/dev_seed.sql        ← seed de dev equivalente, versão SQLite
+│   └── supabase/                 ← DIREÇÃO ATIVA DO BACKEND
+│       ├── README.md             ← guia de deploy self-hosted na VPS + por que Supabase
+│       ├── migrations/           ← 001_submissions…006_rls_policies (Postgres + RLS)
+│       ├── seeds/dev_seed.sql    ← seed de dev, versão Postgres/Supabase Auth
+│       └── test/                 ← stub de auth.users + roteiro de testes negativos de RLS
 ├── apps/
 │   ├── web/                     ← SPA pública anônima
 │   │   └── src/components/      ← telas públicas (Landing, Onboarding, Avaliação…)
@@ -105,10 +117,11 @@ mmgia/
 ```
 
 **As 2 apps são deployadas separadamente** (domínios distintos), o que isola
-completamente o código administrativo do público. `apps/worker` (API) é
-planejado, não implementado — hoje `apps/web` e `apps/admin` operam sem
-backend, com dados de exemplo embutidos em `packages/shared`. O schema em
-`infra/` já reflete o contrato que essa API vai precisar seguir.
+completamente o código administrativo do público. A API (hoje, PostgREST do
+stack Supabase sobre `infra/supabase/`) ainda não está implementada/ligada —
+`apps/web` e `apps/admin` operam sem backend, com dados de exemplo embutidos
+em `packages/shared`. O schema em `infra/supabase/` já reflete o contrato que
+essa integração vai precisar seguir.
 
 ---
 
@@ -323,6 +336,14 @@ de identidade; cabeçalho com brand azul.
 ---
 
 ## Fase 5 [EXPANDIDA] — Backend Worker (API pública + admin)
+
+> **Superado pelo pivot para Supabase** — ver nota em "Estrutura do
+> monorepo" e `infra/supabase/README.md`. O desenho de rotas/tabelas abaixo
+> (Cloudflare Worker + D1/Turso) fica como registro do roteiro original; o
+> schema e o RBAC realmente implementados e testados estão em
+> `infra/supabase/migrations/` (Postgres + RLS + Supabase Auth no lugar de
+> `admin_users`/`admin_sessions`, PostgREST no lugar das rotas do Worker
+> escritas à mão). Nenhum dos dois ainda está ligado a `apps/web`/`apps/admin`.
 
 A API pública anônima permanece como no roteiro original. Adicionar:
 

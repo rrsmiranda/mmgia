@@ -1,4 +1,11 @@
-# Banco de dados — MMGIA
+# Banco de dados — MMGIA (SQLite / Turso / Cloudflare D1)
+
+> **Caminho alternativo, não o ativo.** A direção atual do projeto é
+> Supabase (Postgres) self-hosted numa VPS — ver [`../supabase/README.md`](../supabase/README.md).
+> Este diretório foi a primeira modelagem do schema (CLAUDE.md Fase 5
+> original, Worker + D1/Turso) e fica preservado como referência e como
+> opção caso o projeto volte a esse stack — mas `infra/supabase/` é quem
+> recebe as mudanças de schema daqui para frente.
 
 Schema completo do banco (CLAUDE.md, Fase 5), ainda sem o Worker que o usa —
 `apps/worker/` não existe no repositório hoje. Isto aqui é só a estrutura de
