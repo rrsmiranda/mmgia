@@ -78,8 +78,8 @@ const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typ
 ];
 
 const SAMPLE_LEGAL_REFS = [
-  { code: 'Prática 1.1', name: 'Política ética', norm: 'PL 2338/23 Art. 8º de Conformidade', ex: 'Deita regras relativas de transparência ao cidadão e comissão supervisora federativa operacional.' },
-  { code: 'Prática 1.2', name: 'Comitê multidisciplinar', norm: 'ISO/IEC 42001 Cl. 5.1 Liderança', ex: 'Delega canais coordenados de escrutínio deliberativo.' },
+  { code: 'Prática 1.1', name: 'Consciência Regulatória', norm: 'LGPD Art. 50', ex: 'Boas práticas e governança no tratamento de dados.' },
+  { code: 'Prática 1.1', name: 'Consciência Regulatória', norm: 'ISO/IEC 42001 Cláusula 5', ex: 'Liderança e comprometimento da alta direção.' },
 ];
 
 export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardProps) {
@@ -540,7 +540,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                       <div style={{ padding: 20 }} id={`dim-legal-expanded-${key}`}>
                         <div className="mg-stack" style={{ gap: 12 }}>
                           {SAMPLE_LEGAL_REFS.map((ref) => (
-                            <div key={ref.code} style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+                            <div key={`${ref.code}-${ref.norm}`} style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
                               <div className="mg-row" style={{ justifyContent: 'space-between' }}>
                                 <span className="mg-code" style={{ fontWeight: 700 }}>{ref.code} — {ref.name}</span>
                                 <span className="mg-code" style={{ color: 'var(--brand)' }}>{ref.norm}</span>
