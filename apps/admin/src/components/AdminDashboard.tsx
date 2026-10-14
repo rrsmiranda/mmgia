@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   Database,
+  Download,
   LogOut,
   Map as MapIcon,
   Newspaper,
@@ -77,12 +78,13 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'dados' | 'mapa' | 'usuarios' | 'noticias' | 'legal';
+type Tab = 'dados' | 'mapa' | 'abertos' | 'usuarios' | 'noticias' | 'legal';
 
 const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typeof Database; count?: number }[] }[] = [
   { label: 'Geral', items: [
     { tab: 'dados', label: 'Gestão de dados', icon: Database },
     { tab: 'mapa', label: 'Mapa nacional', icon: MapIcon },
+    { tab: 'abertos', label: 'Dados abertos', icon: Download },
   ] },
   { label: 'Conteúdo', items: [
     { tab: 'noticias', label: 'Curadoria notícias', icon: Newspaper, count: 12 },
@@ -90,6 +92,55 @@ const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typ
   ] },
   { label: 'Administração', items: [{ tab: 'usuarios', label: 'Gestão de usuários', icon: Users }] },
 ];
+
+/** Colunas exportadas em Dados abertos — mesmas da tabela de Gestão de dados, sem os
+ * campos internos de fluxo administrativo (taxonomiaVersao, revisar). Nenhuma coluna de
+ * identidade: os "id" são códigos anônimos (av1, av2…), nunca nome da organização. */
+const OPEN_DATA_COLUMNS: { key: keyof HistoricalRecord; header: string; desc: string }[] = [
+  { key: 'id', header: 'id', desc: 'Código anônimo da avaliação — nunca o nome da organização.' },
+  { key: 'periodo', header: 'periodo', desc: 'Mês/ano de referência da avaliação.' },
+  { key: 'setor', header: 'setor', desc: 'publico, privado, terceiro ou outro.' },
+  { key: 'esfera', header: 'esfera', desc: 'Federal, estadual ou municipal (só setor público).' },
+  { key: 'area', header: 'area', desc: 'Área de atuação da organização.' },
+  { key: 'regiao', header: 'regiao', desc: 'Região geográfica, derivada do estado.' },
+  { key: 'estado', header: 'uf', desc: 'Unidade federativa (UF).' },
+  { key: 'porte', header: 'porte', desc: 'Micro, Pequena, Média ou Grande.' },
+  { key: 'score_global', header: 'score_global', desc: 'Score global (0 a 3), média ponderada das 5 dimensões.' },
+  { key: 'score_gov', header: 'score_governanca', desc: 'Score da dimensão Governança e Arcabouço Regulatório.' },
+  { key: 'score_tec', header: 'score_inovacao', desc: 'Score da dimensão Desenvolvimento Tecnológico, Pesquisa e Inovação.' },
+  { key: 'score_seg', header: 'score_seguranca', desc: 'Score da dimensão Segurança, Confiança e Proteção da Sociedade.' },
+  { key: 'score_edu', header: 'score_educacao', desc: 'Score da dimensão Educação, Capacitação e Cultura Organizacional.' },
+  { key: 'score_eco', header: 'score_ecossistema', desc: 'Score da dimensão Cooperação e Inserção no Ecossistema.' },
+];
+
+function csvEscape(value: unknown): string {
+  if (value === undefined || value === null) return '';
+  const s = String(value);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+function recordsToCsv(records: HistoricalRecord[]): string {
+  const header = OPEN_DATA_COLUMNS.map((c) => c.header).join(',');
+  const rows = records.map((r) => OPEN_DATA_COLUMNS.map((c) => csvEscape(r[c.key])).join(','));
+  return [header, ...rows].join('\n');
+}
+
+function recordsToJson(records: HistoricalRecord[]): string {
+  const data = records.map((r) => Object.fromEntries(OPEN_DATA_COLUMNS.map((c) => [c.header, r[c.key] ?? null])));
+  return JSON.stringify(data, null, 2);
+}
+
+function downloadFile(content: string, filename: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const SAMPLE_LEGAL_REFS = [
   { code: 'Prática 1.1', name: 'Consciência Regulatória', norm: 'LGPD Art. 50', ex: 'Boas práticas e governança no tratamento de dados.' },
@@ -197,6 +248,11 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const selectedUfAgg = selectedMapUf ? ufData[selectedMapUf] : null;
   const mapRecorteAgg = selectedMapUf ? selectedUfAgg : nationalAgg;
   const mapRecorteLabel = selectedMapUf ?? 'Brasil';
+
+  // Tab Dados abertos — exporta o mesmo recorte filtrado de Gestão de dados.
+  const dataIso = new Date().toISOString().slice(0, 10);
+  const handleExportCsv = () => downloadFile(recordsToCsv(filteredRecords), `mmgia-dados-abertos-${dataIso}.csv`, 'text/csv;charset=utf-8;');
+  const handleExportJson = () => downloadFile(recordsToJson(filteredRecords), `mmgia-dados-abertos-${dataIso}.json`, 'application/json');
 
   const openReclassify = (rec: HistoricalRecord) => {
     setReclassifyRecord(rec);
@@ -504,6 +560,54 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     </CardBody>
                   </Card>
                 </div>
+              </div>
+            )}
+
+            {/* TAB DADOS ABERTOS */}
+            {activeTab === 'abertos' && (
+              <div id="tab-abertos-root">
+                <PageHeader
+                  level="h1"
+                  title="Dados abertos"
+                  description="Exportação dos microdados agregados em CSV ou JSON — mesmos filtros e registros da Gestão de dados."
+                  actions={
+                    <div className="mg-row" style={{ gap: 8 }}>
+                      <Button variant="secondary" icon={Download} onClick={handleExportCsv}>Exportar CSV</Button>
+                      <Button variant="primary" icon={Download} onClick={handleExportJson}>Exportar JSON</Button>
+                    </div>
+                  }
+                />
+
+                <Card style={{ marginTop: 24 }}>
+                  <CardHeader title="Recorte atual" />
+                  <CardBody>
+                    <p className="mg-small mg-muted">
+                      {filteredRecords.length} de {historicalRecords.length} registros serão exportados.
+                      {(sectorFilter !== 'Todos' || revisarFilter !== 'Todos' || searchCode !== '')
+                        ? ' Os filtros de setor, busca e classificação aplicados na aba "Gestão de dados" continuam ativos aqui.'
+                        : ' Nenhum filtro aplicado — ajuste em "Gestão de dados" para exportar um recorte específico.'}
+                    </p>
+                  </CardBody>
+                </Card>
+
+                <Card style={{ marginTop: 16 }}>
+                  <CardHeader title="Schema" />
+                  <CardBody>
+                    <DataTable
+                      caption="Colunas presentes no CSV e no JSON exportados"
+                      rowKey={(c) => c.header}
+                      columns={[
+                        { key: 'coluna', header: 'Coluna', render: (c) => <span className="mg-code">{c.header}</span> },
+                        { key: 'descricao', header: 'Descrição', render: (c) => c.desc },
+                      ]}
+                      rows={OPEN_DATA_COLUMNS}
+                    />
+                    <p className="mg-small mg-muted" style={{ marginTop: 12 }}>
+                      Nenhuma coluna de identidade: sem nome da organização, CNPJ, e-mail ou IP — apenas o código
+                      anônimo da avaliação (ex.: av1), como já exibido na aba Gestão de dados.
+                    </p>
+                  </CardBody>
+                </Card>
               </div>
             )}
 
