@@ -377,7 +377,7 @@ export default function PublicPanel() {
                 {scopedAgg.score !== null && scopedAgg.level !== null ? (
                   <>
                     <div className="mg-row" style={{ gap: 12, alignItems: 'baseline', marginTop: 8 }}>
-                      <span style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 36 }}>{formatNumber(scopedAgg.score)} <small style={{ fontSize: 16, opacity: 0.6 }}>/ 3</small></span>
+                      <span style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 36 }}>{formatNumber(scopedAgg.score)} <small style={{ fontSize: 16, color: 'var(--text-muted)' }}>/ 3</small></span>
                       <LevelBadge level={scopedAgg.level as Level} />
                     </div>
                     <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{scopedAgg.n} autoavaliações · {getMaturityLevel(scopedAgg.score).risk}</p>
@@ -713,7 +713,7 @@ function TrendChart({ records }: { records: HistoricalRecord[] }) {
 
         {data.map((d, i) =>
           d.score === null ? (
-            <circle key={`pt-${d.mes}`} cx={x(i)} cy={chartBottom} r="4" fill="var(--surface-raised)" stroke="var(--brand)" strokeWidth="2" aria-label={`${d.mes}: sem avaliações suficientes`} />
+            <circle key={`pt-${d.mes}`} cx={x(i)} cy={chartBottom} r="4" fill="var(--surface-raised)" stroke="var(--brand)" strokeWidth="2" role="img" aria-label={`${d.mes}: sem avaliações suficientes`} />
           ) : (
             <circle key={`pt-${d.mes}`} cx={x(i)} cy={scoreY(d.score)} r={i === lastIndex ? 4.5 : 3} fill={i === lastIndex ? 'var(--brand-accent)' : 'var(--brand)'} stroke="var(--surface-raised)" strokeWidth="1.5" />
           )

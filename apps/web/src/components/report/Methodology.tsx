@@ -74,7 +74,7 @@ export default function MethodologyContent({ currentLevel }: MethodologyContentP
             <th scope="col">Nível</th>
             <th scope="col">Faixa de score</th>
             <th scope="col">Risco associado</th>
-            <th scope="col"></th>
+            <th scope="col">Status</th>
           </tr>
         </thead>
         <tbody>

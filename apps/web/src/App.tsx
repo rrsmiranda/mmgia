@@ -146,7 +146,7 @@ export default function App() {
 
       {/* Primary content routing switchboard */}
       <Suspense fallback={<main className="mg-page" style={{ paddingBlock: 48 }} aria-live="polite">Carregando…</main>}>
-        <div className="flex-grow" id="primary-viewport-body">
+        <main className="flex-grow" id="primary-viewport-body">
         {currentTab === 'home' && (
           <LandingPage
             onStartOnboarding={handleStartOnboarding}
@@ -237,7 +237,7 @@ export default function App() {
             onGoToOnboarding={handleStartOnboarding}
           />
         )}
-        </div>
+        </main>
       </Suspense>
 
       {/* Footer is also excluded on deep custom administrative viewports and home landing, which renders its own complete brand footer */}

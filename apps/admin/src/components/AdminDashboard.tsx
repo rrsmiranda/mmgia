@@ -256,7 +256,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             {activeTab === 'dados' && (
               <div id="tab-dados-root">
                 <PageHeader
-                  level="h3"
+                  level="h1"
                   title="Registros de avaliação"
                   description="Filtragem e exclusão direta de diagnósticos agregados."
                   actions={
@@ -393,7 +393,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             {activeTab === 'usuarios' && (
               <div id="tab-usuarios-root">
                 <PageHeader
-                  level="h3"
+                  level="h1"
                   title="Gestão de usuários administrativos"
                   description="Controle integrado de auditorias baseada em papel funcional (RBAC)."
                   actions={<Button variant="primary" icon={UserPlus} onClick={() => setShowAddUserModal(true)}>Novo usuário</Button>}
@@ -475,7 +475,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             {activeTab === 'noticias' && (
               <div id="tab-noticias-root">
                 <PageHeader
-                  level="h3"
+                  level="h1"
                   title="Fila de curadoria de notícias"
                   description="Aprove ou descarte boletins regulatórios levantados por varreduras automáticas em RSS."
                   actions={
@@ -524,7 +524,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
             {activeTab === 'legal' && (
               <div id="tab-legal-root">
                 <PageHeader
-                  level="h3"
+                  level="h1"
                   title="Alinhamento trilateral de base legal"
                   description="Vincule as 45 práticas às normativas constitucionais, do Congresso ou ISO."
                   actions={<Button variant="primary" icon={Plus} onClick={() => setShowAddRefModal(true)}>Novo alinhamento legal</Button>}

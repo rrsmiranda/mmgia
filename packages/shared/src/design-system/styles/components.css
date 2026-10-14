@@ -244,6 +244,12 @@
 .mg-hero { background: radial-gradient(ellipse 120% 80% at 20% 0%, var(--ink-raised) 0%, var(--ink) 55%); color: var(--on-ink); }
 .mg-hero .mg-eyebrow { color: var(--on-ink-accent); }
 .mg-hero .mg-lead { color: var(--on-ink-muted); }
+/* Cards claros (fundo var(--surface-raised)) aninhados no hero escuro — ex.: o card de
+   "Exemplo ilustrativo" — não herdam as cores pensadas para texto direto sobre o
+   gradiente escuro: nessa combinação (acento claro sobre fundo claro) o contraste cai
+   para ~1.9:1, abaixo do mínimo WCAG AA de 4.5:1. */
+.mg-hero .mg-card .mg-eyebrow { color: var(--brand); }
+.mg-hero .mg-card .mg-lead { color: var(--text-muted); }
 
 /* Barras por dimensão */
 .mg-bars { display: flex; flex-direction: column; gap: 18px; }
@@ -304,7 +310,7 @@
 /* Footer institucional */
 .mg-footer { background: var(--ink); color: var(--on-ink-muted); font-size: var(--font-size-scale-base); }
 .mg-footer > div { max-width: calc(1200px + 2 * var(--grid-desktop-margin)); margin: 0 auto; padding: var(--space-12) var(--grid-desktop-margin) var(--space-8); }
-.mg-footer h4 { margin: 0 0 12px; font: 600 var(--font-size-scale-base)/16px var(--mg-font-sans); color: var(--on-ink); }
+.mg-footer h3 { margin: 0 0 12px; font: 600 var(--font-size-scale-base)/16px var(--mg-font-sans); color: var(--on-ink); }
 .mg-footer a { color: var(--on-ink-muted); text-decoration: none; display: block; padding: 3px 0; }
 .mg-footer a:hover { color: var(--on-ink); }
 .mg-footer .mg-logo { color: var(--on-ink); }
@@ -539,7 +545,12 @@
 .mg-an-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) 190px; align-items: center; gap: var(--space-4); }
 .mg-an-row.is-hl { background: var(--brand-soft); }
 .mg-an-row.is-hl .mg-code { color: var(--brand); font-weight: 700; }
-.mg-an-row.is-ok { opacity: 0.6; }
+/* Antes usava opacity para destacar visualmente as lacunas em relação às práticas já
+   satisfeitas, mas isso reduzia o contraste de TODO o texto da linha abaixo do mínimo
+   WCAG AA (4.5:1) — a cor já é a mais clara da paleta que ainda passa nesse limite, e
+   opacity multiplica por cima dela. Um fundo sutil preserva a hierarquia visual sem
+   mexer na cor do texto. */
+.mg-an-row.is-ok { background: var(--surface-sunken); }
 .mg-an-legal { display: flex; }
 @media (max-width: 991.98px) {
   .mg-an2-chart { grid-template-columns: 1fr; gap: var(--space-4); }
@@ -598,7 +609,7 @@
 .mg-obs-uf b { font-weight: 500; color: var(--text-muted); }
 .mg-obs-uf:hover { border-color: var(--brand); }
 .mg-obs-uf.is-on { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
-.mg-obs-uf.is-on b { color: inherit; opacity: .85; }
+.mg-obs-uf.is-on b { color: inherit; }
 .mg-obs-legend { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding-top: var(--space-3); border-top: 1px solid var(--surface-deep); }
 .mg-obs-lg { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 6px; border: 1px solid transparent; border-radius: var(--radius-sm); background: none; color: var(--text); font: 500 11px/1.2 var(--font-sans); text-align: left; cursor: pointer; }
 .mg-obs-lg:hover { border-color: var(--surface-deep); background: var(--surface-sunken); }
@@ -636,7 +647,7 @@
 .mg-obs-k.bar { border-radius: 2px; background: var(--surface-deep); }
 .mg-obs-k.hollow { width: 9px; height: 9px; border: 2px solid var(--brand); background: var(--surface-raised); }
 .mg-obs-radarpick { display: flex; flex-wrap: wrap; gap: 8px; }
-.mg-obs-radarpick .mg-obs-uf b { font-weight: 400; opacity: .7; margin-left: 2px; }
+.mg-obs-radarpick .mg-obs-uf b { font-weight: 400; margin-left: 2px; }
 .mg-obs-radargrid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); margin-top: var(--space-3); }
 .mg-obs-radarcard { display: flex; flex-direction: column; align-items: center; padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); background: var(--surface-sunken); border: 1px solid var(--surface-deep); }
 .mg-obs-radarcard-head { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; margin-bottom: 0; }

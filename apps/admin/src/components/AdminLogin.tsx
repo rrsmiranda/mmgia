@@ -43,6 +43,7 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
 
   return (
     <DsRoot>
+      <main>
       <Page>
         <div style={{ maxWidth: 400, margin: '80px auto' }} id="admin-login-root">
           <Card large id="login-form-card" style={{ position: 'relative' }}>
@@ -108,6 +109,7 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
           </Card>
         </div>
       </Page>
+      </main>
     </DsRoot>
   );
 }

@@ -217,17 +217,17 @@ export default function Methodology() {
                   </div>
                   <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(5,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 8, marginTop: 12 }}>
                     {(DIMENSION_ORDER as DimensionId[]).map((id) => (
-                      <div key={id} className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>
+                      <div key={id} className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)', color: 'var(--on-ink)' }}>
                         {DIMENSIONS[id].shortName} = {Math.round(DIMENSION_WEIGHTS[id] * 100)}%
                       </div>
                     ))}
                   </div>
                   <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>Onde as respostas na escala NPLF correspondem aos seguintes pesos numéricos:</p>
                   <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 8, marginTop: 12 }}>
-                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Nulo (N) = {formatNumber(0)}</div>
-                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Parcial (P) = {formatNumber(1)}</div>
-                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Larga (L) = {formatNumber(2)}</div>
-                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)' }}>Total (F) = {formatNumber(3)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)', color: 'var(--on-ink)' }}>Nulo (N) = {formatNumber(0)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)', color: 'var(--on-ink)' }}>Parcial (P) = {formatNumber(1)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)', color: 'var(--on-ink)' }}>Larga (L) = {formatNumber(2)}</div>
+                    <div className="mg-code" style={{ padding: 10, textAlign: 'center', border: '1px solid var(--ink-raised)', borderRadius: 'var(--radius-sm)', color: 'var(--on-ink)' }}>Total (F) = {formatNumber(3)}</div>
                   </div>
                 </div>
               </CardBody>

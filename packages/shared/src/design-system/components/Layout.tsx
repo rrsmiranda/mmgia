@@ -17,11 +17,12 @@ export function PageHeader({ eyebrow, title, description, actions, level = 'h1' 
   level?: 'h1' | 'h2' | 'h3';
 }) {
   const cls = { h1: 'mg-h1', h2: 'mg-h2', h3: 'mg-h3' }[level];
+  const Heading = level;
   return (
     <div className="mg-pagehead">
       <div>
         {eyebrow && <p className="mg-eyebrow">{eyebrow}</p>}
-        <h1 className={cls}>{title}</h1>
+        <Heading className={cls}>{title}</Heading>
         {description && <p className="mg-lead" style={{ maxWidth: 640 }}>{description}</p>}
       </div>
       {actions}

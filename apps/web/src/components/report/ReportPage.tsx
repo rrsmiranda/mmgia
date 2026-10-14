@@ -17,7 +17,7 @@ interface ReportPageProps {
 const Logo = () => (
   <span className="mg-logo" aria-hidden="true">
     <span className="mg-flow-logo-sq">M</span>
-    <span className="mg-logo-word"><b>MMG<span style={{ color: 'var(--brand)' }}>IA</span></b></span>
+    <span className="mg-logo-word"><b>MMG<span className="rp-logo-ia">IA</span></b></span>
   </span>
 );
 

@@ -40,6 +40,7 @@ const MAX_SCORE = 3;
 
 export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, onAxisClick, ariaLabel, size = SIZE }: RadarChartProps) {
   const prefersReducedMotion = useReducedMotion();
+  const interactive = Boolean(onAxisHover || onAxisClick);
   const n = axes.length;
 
   const angleFor = (i: number) => (i * 2 * Math.PI) / n - Math.PI / 2;
@@ -81,7 +82,7 @@ export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, 
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         width="100%"
         style={{ maxWidth: size, overflow: 'visible', display: 'block', margin: '0 auto' }}
-        role="img"
+        role={interactive ? 'group' : 'img'}
         aria-label={ariaLabel}
         className="mg-an-radar-svg"
       >
@@ -124,9 +125,9 @@ export default function RadarChart({ axes, benchmark, highlightId, onAxisHover, 
                 cy={p.y}
                 r={14}
                 fill="transparent"
-                tabIndex={0}
-                role="button"
-                aria-label={axis.ariaLabel}
+                tabIndex={interactive ? 0 : undefined}
+                role={interactive ? 'button' : undefined}
+                aria-label={interactive ? axis.ariaLabel : undefined}
                 className="mg-an-radar-hit"
                 onMouseEnter={() => onAxisHover?.(axis.id)}
                 onMouseLeave={() => onAxisHover?.(null)}

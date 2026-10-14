@@ -116,6 +116,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
         <section className="mg-hero" style={{ borderRadius: 'var(--radius-xl)', padding: '48px 32px', textAlign: 'center', marginBottom: 24, position: 'relative', overflow: 'hidden' }} id="result-hero-box">
           <PlexusBackground />
           <div style={{ position: 'relative', zIndex: 1 }}>
+          <h1 className="mg-sr">Resultado do diagnóstico — Score Global {formatNumber(globalScore)} de 3, nível {levelInfo.num} · {levelInfo.label}</h1>
           <p className="mg-eyebrow">Diagnóstico finalizado · Score Global MMGIA</p>
           <div style={{ position: 'relative', display: 'inline-block', margin: '16px 0' }}>
             <span

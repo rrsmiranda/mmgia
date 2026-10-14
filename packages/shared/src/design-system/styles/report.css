@@ -11,6 +11,7 @@
 .rp-head .mg-logo { gap: 6pt; }
 .rp-head .mg-flow-logo-sq { width: 18pt; height: 18pt; font-size: 8pt; border-radius: 4pt; }
 .rp-head .mg-logo-word b { font-size: 10.5pt; }
+.rp-logo-ia { color: var(--brand); }
 .rp-foot { display: flex; justify-content: space-between; gap: 12pt; margin-top: 16pt; padding-top: 6pt; border-top: .75pt solid var(--surface-deep); font-size: 8pt; color: var(--text-muted); }
 .rp-eyebrow { margin: 0 0 4pt !important; font-size: 8pt; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--brand); text-align: left !important; }
 .rp-h1 { margin: 0 0 12pt; font-size: 18pt; font-weight: 600; line-height: 1.2; color: var(--text); }
@@ -69,6 +70,8 @@
 .rp-page--cover .rp-foot { margin: 0 20mm 14mm; }
 .rp-cover-band { padding: 20mm 20mm 16mm; min-height: 118mm; box-sizing: border-box; background: var(--ink); color: var(--on-ink); }
 .rp-cover-band .mg-logo { color: var(--on-ink); }
+.rp-cover-band .rp-logo-ia { color: var(--on-ink-accent); }
+.rp-cover-band .rp-eyebrow { color: var(--on-ink-accent); }
 .rp-title { margin: 6pt 0 10pt; font-size: 26pt; font-weight: 600; line-height: 1.15; color: var(--on-ink); max-width: 140mm; }
 .rp-cover-sub { margin: 0 !important; font-size: 10.5pt; color: var(--on-ink-muted); text-align: left !important; }
 .rp-cover-body { padding: 14mm 20mm 0; }

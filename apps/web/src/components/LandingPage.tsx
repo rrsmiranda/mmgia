@@ -138,7 +138,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             <Card large>
               <p className="mg-eyebrow">Exemplo ilustrativo</p>
               <div className="mg-row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 8 }}>
-                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}><CountUp value={SAMPLE_GLOBAL_SCORE} decimals={2} formatter={(n) => formatNumber(n)} /> <small style={{ fontSize: 18, opacity: 0.6 }}>/ 3</small></span>
+                <span style={{ fontFamily: 'var(--mg-font-mono)', fontSize: 40, fontWeight: 800 }}><CountUp value={SAMPLE_GLOBAL_SCORE} decimals={2} formatter={(n) => formatNumber(n)} /> <small style={{ fontSize: 18, color: 'var(--text-muted)' }}>/ 3</small></span>
                 <LevelBadge level={SAMPLE_LEVEL.num as Level} />
               </div>
               <div style={{ marginTop: 16 }}>
@@ -485,7 +485,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             </div>
 
             <div>
-              <h4>Plataforma</h4>
+              <h3>Plataforma</h3>
               <button onClick={onStartOnboarding} className="mg-footer-btn">Iniciar diagnóstico</button>
               <button onClick={() => onChangeTab('editar')} className="mg-footer-btn">Editar avaliação</button>
               <button onClick={() => onChangeTab('mapa')} className="mg-footer-btn">Painel público</button>
@@ -493,14 +493,14 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             </div>
 
             <div>
-              <h4>Recursos</h4>
+              <h3>Recursos</h3>
               <a href="#dimensoes">As 5 dimensões</a>
               <a href="#como">Como funciona</a>
               <a href="#privacidade">Privacidade</a>
             </div>
 
             <div>
-              <h4>Newsletter</h4>
+              <h3>Newsletter</h3>
               <p className="mg-small" style={{ marginBottom: 12, color: 'var(--on-ink-muted)' }}>Atualizações sobre governança de IA.</p>
               <Field label="E-mail">
                 {({ id }) => (
