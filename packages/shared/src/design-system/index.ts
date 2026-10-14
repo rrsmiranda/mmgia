@@ -10,3 +10,4 @@ export { Card, CardHeader, CardBody, CardFooter, KpiCard, InsightCard, PracticeC
 export { Field, Input, Select, Textarea, Checkbox } from './components/Form';
 export { OptionCard, OptionList, RadioGroup, Pill, Segmented, Tabs } from './components/Selection';
 export { DsRoot, PageHeader, Page, Grid, ActionBar, Steps, FlowHeader, Banner } from './components/Layout';
+export { default as BrazilMap, type UfAgg } from './components/BrazilMap';

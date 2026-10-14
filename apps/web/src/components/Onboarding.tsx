@@ -38,6 +38,7 @@ import {
 import {
   ActionBar,
   Badge,
+  BrazilMap,
   Button,
   Card,
   CardBody,
@@ -51,7 +52,6 @@ import {
   RadioGroup,
   Segmented,
 } from '@mmgia/shared/design-system';
-import BrazilMap from './BrazilMap';
 
 interface StateInfo { uf: string; name: string; region: string }
 
@@ -366,7 +366,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                 <div className="mg-grid" style={{ ['--cols-d' as string]: '55% 45%', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 24, alignItems: 'start' }}>
                   <div className="mg-stack" style={{ gap: 12 }}>
                     <div className="mg-row mg-nowrap" style={{ justifyContent: 'space-between' }}>
-                      <h4 className="mg-title">Estado (UF) de atuação principal</h4>
+                      <h2 className="mg-title">Estado (UF) de atuação principal</h2>
                       <Segmented<'map' | 'grid'>
                         label="Modo de seleção do estado"
                         value={viewMode}
@@ -399,7 +399,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
 
                   <div className="mg-stack" style={{ gap: 12 }}>
                     <div>
-                      <h4 className="mg-title">Porte da organização</h4>
+                      <h2 className="mg-title">Porte da organização</h2>
                       <p className="mg-small mg-muted">Quantidade aproximada de colaboradores.</p>
                     </div>
                     <OptionList label="Porte" required>

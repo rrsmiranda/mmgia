@@ -8,8 +8,10 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Table2, Map as MapIcon } from 'lucide-react';
 import brazilMapData from '@svg-maps/brazil';
-import { REGIAO_POR_UF } from '@mmgia/shared/taxonomy';
-import { Button, DataTable, LEVEL_LABELS, cx, formatNumber, type Column, type Level } from '@mmgia/shared/design-system';
+import { REGIAO_POR_UF } from '../../lib/taxonomy';
+import { Button } from './Button';
+import { DataTable, type Column } from './Data';
+import { LEVEL_LABELS, cx, formatNumber, type Level } from '../tokens';
 
 export interface UfAgg {
   score: number | null;

@@ -5,7 +5,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Gauge, Info, Lock, X } from 'lucide-react';
-import BrazilMap from './BrazilMap';
 import RadarChart, { type RadarAxis } from './RadarChart';
 import { DimensionId, DIMENSIONS, HistoricalRecord, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
@@ -40,6 +39,7 @@ import {
   rotuloArea,
 } from '@mmgia/shared/taxonomy';
 import {
+  BrazilMap,
   Button,
   Card,
   CardBody,
