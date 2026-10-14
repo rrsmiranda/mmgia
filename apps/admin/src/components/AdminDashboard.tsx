@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Database,
   LogOut,
+  Map as MapIcon,
   Newspaper,
   Plus,
   Search,
@@ -43,10 +44,11 @@ import {
   Setor,
   SETORES,
 } from '@mmgia/shared/taxonomy';
-import { aggregate, levelDistribution, monthly } from '@mmgia/shared/observatory';
+import { aggregate, byUf, levelDistribution, monthly } from '@mmgia/shared/observatory';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
   Badge,
+  BrazilMap,
   Button,
   Card,
   CardHeader,
@@ -75,10 +77,13 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'dados' | 'usuarios' | 'noticias' | 'legal';
+type Tab = 'dados' | 'mapa' | 'usuarios' | 'noticias' | 'legal';
 
 const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typeof Database; count?: number }[] }[] = [
-  { label: 'Geral', items: [{ tab: 'dados', label: 'Gestão de dados', icon: Database }] },
+  { label: 'Geral', items: [
+    { tab: 'dados', label: 'Gestão de dados', icon: Database },
+    { tab: 'mapa', label: 'Mapa nacional', icon: MapIcon },
+  ] },
   { label: 'Conteúdo', items: [
     { tab: 'noticias', label: 'Curadoria notícias', icon: Newspaper, count: 12 },
     { tab: 'legal', label: 'Base legal', icon: BookOpen },
@@ -105,6 +110,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const [reclassifyEsfera, setReclassifyEsfera] = useState<Esfera | undefined>(undefined);
   const [reclassifyArea, setReclassifyArea] = useState<Area | undefined>(undefined);
   const [reclassifyAtividade, setReclassifyAtividade] = useState<AreaPrivada | undefined>(undefined);
+
+  // Tab Mapa nacional
+  const [selectedMapUf, setSelectedMapUf] = useState<string | null>(null);
 
   // Tab 2: Gestão de usuários
   const [usersList, setUsersList] = useState<AdminUser[]>(SEED_ADMIN_USERS);
@@ -182,6 +190,13 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   const dataDist = levelDistribution(filteredRecords);
   const ufsComDados = new Set(historicalRecords.map((r) => r.estado)).size;
   const avaliacoesMesRecente = monthly(historicalRecords, 1)[0]?.n ?? 0;
+
+  // Tab Mapa nacional — mesma agregação por UF do Painel Público (byUf), então o mapa do
+  // admin nunca mostra um número diferente do que o público já vê para o mesmo estado.
+  const ufData = byUf(historicalRecords);
+  const selectedUfAgg = selectedMapUf ? ufData[selectedMapUf] : null;
+  const mapRecorteAgg = selectedMapUf ? selectedUfAgg : nationalAgg;
+  const mapRecorteLabel = selectedMapUf ?? 'Brasil';
 
   const openReclassify = (rec: HistoricalRecord) => {
     setReclassifyRecord(rec);
@@ -444,6 +459,51 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     </form>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* TAB MAPA NACIONAL */}
+            {activeTab === 'mapa' && (
+              <div id="tab-mapa-root">
+                <PageHeader
+                  level="h1"
+                  title="Mapa nacional"
+                  description="Maturidade em governança de IA por estado, a partir dos mesmos registros da Gestão de dados."
+                />
+
+                <div className="mg-grid" style={{ ['--cols-d' as string]: '1.6fr 1fr', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 24 }} id="mapa-nacional-row">
+                  <Card>
+                    <CardBody>
+                      <BrazilMap mode="heatmap" data={ufData} selectedUf={selectedMapUf} onSelectUf={setSelectedMapUf} metricLabel="Score global" />
+                    </CardBody>
+                  </Card>
+
+                  <Card>
+                    <CardHeader title={mapRecorteLabel} />
+                    <CardBody>
+                      {mapRecorteAgg && mapRecorteAgg.score !== null ? (
+                        <>
+                          <div className="mg-row" style={{ alignItems: 'flex-end', gap: 8 }}>
+                            <span style={{ fontFamily: 'var(--mg-font-mono)', fontWeight: 800, fontSize: 32 }}>{formatNumber(mapRecorteAgg.score)}</span>
+                            <span className="mg-small mg-muted">/ 3,00</span>
+                            <LevelBadge level={mapRecorteAgg.level as Level} />
+                          </div>
+                          <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{mapRecorteAgg.n} avaliações</p>
+                          {mapRecorteAgg.dims && (
+                            <div style={{ marginTop: 16 }}>
+                              <DimensionBars scores={mapRecorteAgg.dims} />
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="mg-small mg-muted">Menos de 5 avaliações neste estado — dados insuficientes para exibir (sigilo k≥5).</p>
+                      )}
+                      {selectedMapUf && (
+                        <Button variant="ghost" size="sm" style={{ marginTop: 16 }} onClick={() => setSelectedMapUf(null)}>Limpar seleção</Button>
+                      )}
+                    </CardBody>
+                  </Card>
+                </div>
               </div>
             )}
 

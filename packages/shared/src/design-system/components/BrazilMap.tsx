@@ -207,11 +207,15 @@ export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, m
     </svg>
   );
 
+  // Portal para fora do fluxo normal (precisa de posição fixa relativa à janela, sem ser
+  // cortado por overflow de ancestrais) — mas ainda dentro do landmark <main> da página, não
+  // direto em <body>, para não deixar conteúdo visível fora de qualquer landmark.
   const tooltipPortal = typeof document !== 'undefined' && createPortal(
     hoveredUf ? (
       <div
         ref={tooltipRef}
         className="mg-obs-tip"
+        role="tooltip"
         style={{ top: adjustedPos.y, left: adjustedPos.x }}
       >
         {(() => {
@@ -239,7 +243,7 @@ export default function BrazilMap({ mode, data, selectedUf = null, onSelectUf, m
         })()}
       </div>
     ) : null,
-    document.body
+    document.querySelector('main') ?? document.body
   );
 
   const tableRows: TableRow[] = useMemoTableRows(data, locations);
