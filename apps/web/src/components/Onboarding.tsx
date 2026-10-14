@@ -430,7 +430,7 @@ export default function Onboarding({ onComplete, onCancel }: OnboardingProps) {
                   <CardHeader title={<span className="mg-row" style={{ gap: 8 }}><ShieldAlert className="mg-ico mg-ico-sm" aria-hidden="true" />Compromisso anônimo de privacidade</span>} />
                   <CardBody>
                     <p className="mg-small mg-muted">
-                      Garantimos total integridade de seus dados confidenciais de negócio. Não há dados sensíveis persistidos.
+                      Só pedimos o contexto institucional abaixo — nenhum dado que identifique sua organização é solicitado.
                     </p>
                     <div className="mg-row" style={{ gap: 24, marginTop: 16, alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>

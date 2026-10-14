@@ -14,6 +14,7 @@ import {
   getGlobalScore,
   getLevelScores,
   getMaturityLevel,
+  getOfficialPracticeCode,
   getPracticeScores,
 } from '@mmgia/shared/scoring';
 import {
@@ -83,12 +84,12 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
 
   const practiceAxes: RadarAxis[] = openPracticeScores.map(({ practice, answer, value }) => ({
     id: practice.id,
-    label: practice.id,
+    label: getOfficialPracticeCode(practice),
     sub: answer ? `${answer} · ${value}` : 'sem resposta',
     value,
     title: practice.name,
     detail: answer ? `Nível ${practice.level} · ${NPLF[answer].label} · ${value} de 3` : `Nível ${practice.level} · Sem resposta`,
-    ariaLabel: `Prática ${practice.id}, ${practice.name}: ${answer ? `${NPLF[answer].label}, ${value} de 3` : 'sem resposta'}`,
+    ariaLabel: `Prática ${getOfficialPracticeCode(practice)}, ${practice.name}: ${answer ? `${NPLF[answer].label}, ${value} de 3` : 'sem resposta'}`,
   }));
 
   const axes = openDim ? practiceAxes : generalAxes;
@@ -281,7 +282,7 @@ export default function DimensionAnalysis({ answers, onEditPractice }: Dimension
                         onFocus={() => setHoverId(practice.id)}
                         onBlur={() => setHoverId((h) => (h === practice.id ? null : h))}
                       >
-                        <span className="mg-code">{practice.id}</span>
+                        <span className="mg-code">{getOfficialPracticeCode(practice)}</span>
                         <div style={{ minWidth: 0 }}>
                           <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
                           <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>

@@ -4,7 +4,6 @@
  */
 
 import {
-  ArrowRight,
   BarChart3,
   Building2,
   Check,
@@ -12,7 +11,6 @@ import {
   Database,
   FileText,
   GraduationCap,
-  Github,
   KeyRound,
   Landmark,
   ListChecks,
@@ -59,6 +57,11 @@ const SAMPLE_GLOBAL_SCORE = (Object.keys(SAMPLE_SCORES) as DimensionId[]).reduce
   0
 );
 const SAMPLE_LEVEL = getMaturityLevel(SAMPLE_GLOBAL_SCORE);
+const SAMPLE_CONTRIBUTIONS = (DIMENSION_ORDER as DimensionId[]).map((id) => ({
+  id,
+  weight: DIMENSION_WEIGHTS[id],
+  value: SAMPLE_SCORES[id] * DIMENSION_WEIGHTS[id],
+}));
 
 const HOW_IT_WORKS = [
   { step: '01', icon: Building2, title: 'Contexto institucional', desc: 'Setor, área de atuação, estado e porte. Perguntas objetivas — nenhuma de identidade.', tags: ['sem_nome', 'sem_cnpj', 'sem_email'] },
@@ -85,15 +88,9 @@ const FAQ_DATA = [
   { q: 'A avaliação é realmente anônima?', a: 'Sim. O questionário não pergunta nome, CNPJ, e-mail ou qualquer outro dado de identificação, e o score é calculado inteiramente no seu navegador — nada disso é enviado a lugar nenhum. O banco de dados por trás do painel público também é desenhado sem colunas para IP, nome, CNPJ ou e-mail: anonimidade por arquitetura, não por promessa de política.' },
   { q: 'Quanto tempo leva para completar?', a: 'Varia de organização para organização, de acordo com o conhecimento prévio sobre as próprias práticas. O progresso é salvo automaticamente no browser — você pode pausar e retomar quando quiser, sem pressa.' },
   { q: 'Preciso criar uma conta ou fazer login?', a: 'Não. A avaliação é iniciada sem cadastro. Ao final, você recebe um código único para editar sua avaliação depois — sem e-mail, sem senha.' },
-  { q: 'O que acontece com os dados enviados?', a: 'Os scores são pensados para compor, de forma anônima, o painel público de benchmark nacional, publicado sob licença CC BY 4.0 — nenhum dado permite identificar qual organização respondeu.' },
-  { q: 'A plataforma tem algum custo?', a: 'Não. A plataforma é gratuita e de código aberto (licença MIT), desenhada para rodar com custo operacional próximo de zero.' },
+  { q: 'O que acontece com os dados enviados?', a: 'Os scores são pensados para compor, de forma anônima, o painel público de benchmark nacional — nenhum dado permite identificar qual organização respondeu.' },
+  { q: 'A plataforma tem algum custo?', a: 'Não. A plataforma é gratuita, desenhada para rodar com custo operacional próximo de zero.' },
   { q: 'Posso editar minha avaliação depois?', a: 'Sim, usando o código de avaliação gerado ao final. Ele é a única forma de recuperar e editar — guarde-o em local seguro. Sem o código, não há recuperação, porque o sistema não pede e-mail.' },
-];
-
-const NEWS_ITEMS = [
-  { tag: 'Regulação · 08 jun 2026', title: 'Marco Legal da IA avança no Senado com foco em governança de risco', source: 'Agência Senado' },
-  { tag: 'Internacional · 07 jun 2026', title: 'UE publica diretrizes do AI Act para sistemas de alto risco', source: 'Reuters' },
-  { tag: 'Pesquisa · 05 jun 2026', title: 'Estudo mapeia maturidade em IA de 200 órgãos públicos brasileiros', source: 'FGV' },
 ];
 
 /** Cabeçalho de seção interna da landing (h2 — o único <h1> da página é o do hero). */
@@ -323,7 +320,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 {[
                   { icon: Monitor, title: 'Cálculo no browser', desc: 'Scoring roda localmente, no seu navegador — nenhum dado bruto da avaliação é enviado a servidor nenhum.' },
                   { icon: Database, title: 'Banco sem identidade', desc: 'O desenho do banco não prevê coluna de IP, nome ou CNPJ; agregados públicos seguem k-anonimidade ≥ 5.' },
-                  { icon: Github, title: 'Código aberto', desc: 'Qualquer equipe pode verificar no GitHub.' },
+                  { icon: KeyRound, title: 'Código de avaliação local', desc: 'O código que recupera a avaliação existe só no seu navegador; sem ele, não há como recuperar ou vincular a organização.' },
                 ].map((item) => (
                   <div key={item.title} className="mg-row" style={{ gap: 16, padding: 16, background: 'var(--ink-raised)', borderRadius: 'var(--radius-lg)' }}>
                     <item.icon className="mg-ico" aria-hidden="true" style={{ flexShrink: 0, color: 'var(--on-ink-accent)' }} />
@@ -365,12 +362,15 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <p className="mg-code" style={{ marginTop: 8, color: 'var(--on-ink-muted)' }}>d ∈ {'{gov, tec, seg, edu, eco}'}</p>
               </div>
               <div className="mg-stack" style={{ gap: 8, marginTop: 20 }}>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}><span className="mg-code">gov × 0,25</span><span className="mg-code" style={{ fontWeight: 800 }}>0,525</span></div>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}><span className="mg-code">tec × 0,20</span><span className="mg-code" style={{ fontWeight: 800 }}>0,320</span></div>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}><span className="mg-code">seg × 0,25</span><span className="mg-code" style={{ fontWeight: 800 }}>0,475</span></div>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}><span className="mg-code">edu × 0,15</span><span className="mg-code" style={{ fontWeight: 800 }}>0,225</span></div>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}><span className="mg-code">eco × 0,15</span><span className="mg-code" style={{ fontWeight: 800 }}>0,210</span></div>
-                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '14px 16px', background: 'var(--brand)', color: 'var(--on-brand)', borderRadius: 'var(--radius-md)' }}><strong>Score global</strong><strong>1,755</strong></div>
+                {SAMPLE_CONTRIBUTIONS.map((c) => (
+                  <div key={c.id} className="mg-row" style={{ justifyContent: 'space-between', padding: '10px 16px', background: 'var(--surface-sunken)', borderRadius: 'var(--radius-md)' }}>
+                    <span className="mg-code">{c.id} × {c.weight.toFixed(2).replace('.', ',')}</span>
+                    <span className="mg-code" style={{ fontWeight: 800 }}>{c.value.toFixed(3).replace('.', ',')}</span>
+                  </div>
+                ))}
+                <div className="mg-row" style={{ justifyContent: 'space-between', padding: '14px 16px', background: 'var(--brand)', color: 'var(--on-brand)', borderRadius: 'var(--radius-md)' }}>
+                  <strong>Score global</strong><strong>{SAMPLE_GLOBAL_SCORE.toFixed(3).replace('.', ',')}</strong>
+                </div>
               </div>
             </Card>
           </div>
@@ -472,34 +472,6 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
         </Page>
       </section>
 
-      {/* NOTÍCIAS */}
-      <section id="noticias" style={{ paddingBlock: 64 }}>
-        <Page>
-          <Reveal>
-          <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-            <div>
-              <p className="mg-eyebrow">Notícias</p>
-              <h2 className="mg-h2" style={{ marginTop: 12 }}>IA no Brasil e no mundo.</h2>
-            </div>
-            <Button variant="ghost" iconRight={ArrowRight} onClick={() => onChangeTab('mapa')}>Ver todas</Button>
-          </div>
-
-          <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: '1fr', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 32 }}>
-            {NEWS_ITEMS.map((item) => (
-              <Card key={item.title}>
-                <span className="mg-code">{item.tag}</span>
-                <p className="mg-title" style={{ marginTop: 12 }}>{item.title}</p>
-                <div className="mg-row" style={{ justifyContent: 'space-between', marginTop: 16 }}>
-                  <span className="mg-small mg-muted">{item.source}</span>
-                  <span className="mg-small" style={{ color: 'var(--brand)', fontWeight: 700 }}>ler na fonte ↗</span>
-                </div>
-              </Card>
-            ))}
-          </div>
-          </Reveal>
-        </Page>
-      </section>
-
       {/* RODAPÉ */}
       <footer className="mg-footer">
         <div>
@@ -509,7 +481,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
                 <span style={{ display: 'grid', placeItems: 'center', width: 40, height: 40, borderRadius: 'var(--radius-md)', background: 'var(--brand)', color: 'var(--on-brand)', fontWeight: 800 }}>M</span>
                 <span className="mg-logo-word"><b>MMGIA</b></span>
               </a>
-              <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>Ferramenta de código aberto para medir a maturidade em governança de IA no Brasil.</p>
+              <p className="mg-small" style={{ marginTop: 16, color: 'var(--on-ink-muted)' }}>Ferramenta gratuita e anônima para medir a maturidade em governança de IA no Brasil.</p>
             </div>
 
             <div>
@@ -523,7 +495,6 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
             <div>
               <h4>Recursos</h4>
               <a href="#dimensoes">As 5 dimensões</a>
-              <a href="https://github.com" target="_blank" rel="noreferrer">GitHub</a>
               <a href="#como">Como funciona</a>
               <a href="#privacidade">Privacidade</a>
             </div>
@@ -543,12 +514,7 @@ export default function LandingPage({ onStartOnboarding, onChangeTab }: LandingP
           </div>
 
           <div className="mg-footer-bottom">
-            <span>© 2026 MMGIA · Código aberto</span>
-            <div className="mg-row" style={{ gap: 8 }}>
-              <span className="mg-code" style={{ border: '1px solid var(--ink-raised)', padding: '2px 10px', borderRadius: 'var(--radius-sm)' }}>MIT</span>
-              <span className="mg-code" style={{ border: '1px solid var(--ink-raised)', padding: '2px 10px', borderRadius: 'var(--radius-sm)' }}>CC BY 4.0</span>
-              <span className="mg-code" style={{ border: '1px solid var(--ink-raised)', padding: '2px 10px', borderRadius: 'var(--radius-sm)' }}>ENIA 2026</span>
-            </div>
+            <span>© 2026 MMGIA</span>
           </div>
         </div>
       </footer>

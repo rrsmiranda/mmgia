@@ -597,47 +597,49 @@ export const LIST_PRACTICES: Practice[] = [
   },
 ];
 
-// Seed Fake News (Screen 10 & 14)
+// Dados de exemplo para a tela de curadoria de notícias (admin) — fictícios, não
+// atribuídos a nenhuma instituição real. Servem apenas para demonstrar o layout
+// até o agregador real (Fase 8, GET /v1/news) existir.
 export const SEED_NEWS: NewsItem[] = [
   {
     id: 'n1',
-    title: 'ANPD publica novas diretrizes de segurança de dados em modelos fundacionais',
-    excerpt: 'A Autoridade Nacional de Proteção de Dados publicou as orientações prioritárias referentes ao uso do legítimo interesse na coleta automatizada para o treino de LLMs.',
+    title: '[Exemplo] Novas diretrizes setoriais de segurança de dados em modelos de IA',
+    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "regulação" e fonte citada.',
     category: 'regulação',
-    source: 'ANPD Oficial',
+    source: 'Fonte de exemplo',
     date: '08 de Junho de 2026',
     featured: true,
   },
   {
     id: 'n2',
-    title: 'Comissão aprova emenda crucial sobre impacto de IA generativa no PL 2338',
-    excerpt: 'A comissão especial que regula a inteligência artificial no Senado aprovou alteração de texto isentando microempresas de auditorias redundantes no nível 1.',
+    title: '[Exemplo] Comissão debate impacto de IA generativa em projeto de lei',
+    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "regulação".',
     category: 'regulação',
-    source: 'Senado Federal',
+    source: 'Fonte de exemplo',
     date: '05 de Junho de 2026',
   },
   {
     id: 'n3',
-    title: 'Modelo de Governança de IA Brasileiro vence prêmio internacional de inovação',
-    excerpt: 'Plataforma MMGIA foi coroada pelo comitê regional de ética como um modelo exemplar de conscientização e transparência cidadã algorítmica.',
+    title: '[Exemplo] Organizações debatem modelos de governança de IA em fórum setorial',
+    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "governança".',
     category: 'governança',
-    source: 'IberoAI Organização',
+    source: 'Fonte de exemplo',
     date: '02 de Junho de 2026',
   },
   {
     id: 'n4',
-    title: 'Nova biblioteca de MLOps de código aberto otimiza inferência em servidores legados',
-    excerpt: 'Consórcio de universidades lançou um pacote alternativo que reduz em 35% o consumo de energia no recalibramento de previsões estruturadas.',
+    title: '[Exemplo] Biblioteca de MLOps promete otimizar inferência em servidores legados',
+    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "tecnologia".',
     category: 'tecnologia',
-    source: 'GitHub Community',
+    source: 'Fonte de exemplo',
     date: '30 de Maio de 2026',
   },
   {
     id: 'n5',
-    title: 'Corporações aumentam investimento em Red Teaming no primeiro trimestre',
-    excerpt: 'Mapeamento de tendências de cibersegurança aponta alta de 42% na demanda por hackers éticos especialistas em quebrar barreiras de sistemas inteligentes empresariais.',
+    title: '[Exemplo] Empresas aumentam investimento em testes de segurança de IA',
+    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "mercado".',
     category: 'mercado',
-    source: 'CyberSecurity Outlook',
+    source: 'Fonte de exemplo',
     date: '28 de Maio de 2026',
   }
 ];

@@ -202,7 +202,7 @@ export default function Questionnaire({
                   <p>{currentPractice.criterion}</p>
                 </div>
                 <div className="mg-meta">
-                  <span><FileText className="mg-ico mg-ico-sm" aria-hidden="true" />Evidência sugerida: {currentPractice.evidence}</span>
+                  <span><FileText className="mg-ico mg-ico-sm" aria-hidden="true" />Evidência mínima esperada: {currentPractice.evidence}</span>
                 </div>
               </div>
 

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/// <reference types="vite/client" />
+
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import { AssessmentMetadata, ScoreLevel } from '@mmgia/shared/types';
@@ -49,8 +51,9 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
       }
     }
 
-    // Default code simulators so users can test immediately with sample values
-    const staticSampleCodes = ['a3f8-2b91-4c7d', 'exmp-code-2026', 'demo-test-1234'];
+    // Códigos de demonstração só existem em build de desenvolvimento — nunca em produção,
+    // onde seriam uma porta de teste aberta para qualquer usuário real.
+    const staticSampleCodes = import.meta.env.DEV ? ['a3f8-2b91-4c7d', 'exmp-code-2026', 'demo-test-1234'] : [];
 
     if (staticSampleCodes.includes(trimmed.toLowerCase())) {
       // Load mocked completed assessment answers
@@ -110,9 +113,11 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
                 )}
               </Field>
 
-              <p className="mg-small mg-muted" style={{ marginTop: -8 }}>
-                Dica: use o código demo <span className="mg-code">a3f8-2b91-4c7d</span> para carregar testes.
-              </p>
+              {import.meta.env.DEV && (
+                <p className="mg-small mg-muted" style={{ marginTop: -8 }}>
+                  Dica: use o código demo <span className="mg-code">a3f8-2b91-4c7d</span> para carregar testes.
+                </p>
+              )}
 
               {errorText && (
                 <Banner tone="critical" title="Não foi possível localizar a avaliação">

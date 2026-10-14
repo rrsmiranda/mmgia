@@ -85,7 +85,7 @@ export function PracticeCard({ practice, position, headingLevel = 2 }: { practic
         <p>{practice.criterion}</p>
       </div>
       <div className="mg-meta">
-        <span><FileText className="mg-ico mg-ico-sm" aria-hidden="true" />Evidência sugerida: {practice.evidence}</span>
+        <span><FileText className="mg-ico mg-ico-sm" aria-hidden="true" />Evidência mínima esperada: {practice.evidence}</span>
       </div>
     </Card>
   );

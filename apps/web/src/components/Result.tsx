@@ -21,8 +21,9 @@ import {
   getGlobalScore,
   getLevelScores,
   getMaturityLevel,
+  getOfficialPracticeCode,
 } from '@mmgia/shared/scoring';
-import { getGaps, getKeyFindings } from './report/ActionPlan';
+import { getGaps, getKeyFindings, getNextStep } from './report/ActionPlan';
 import DimensionAnalysis from './DimensionAnalysis';
 import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
@@ -105,6 +106,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
   // uma só função de origem, para que os números nunca divirjam entre tela e PDF.
   const gaps = getGaps(answers);
   const findings = getKeyFindings(gaps, currentScores, levelInfo, answers);
+  const nextStep = getNextStep(gaps, answers, levelInfo);
   const topGaps = gaps.slice(0, PRIORITY_GAPS_SHOWN);
 
   return (
@@ -203,10 +205,23 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                         {findings.gapsIniciais} estão em níveis 1 a 3 — sustentam a consolidação do nível {findings.proximoNivel}.
                       </li>
                     )}
-                    <li>
-                      Recomenda-se tratar primeiro <strong>{DIMENSIONS[findings.menorId].name}</strong>: é a dimensão com menor
-                      score e peso de {findings.menorPesoPercent}% no resultado global.
-                    </li>
+                    {nextStep && nextStep.steps.length > 0 ? (
+                      <li>
+                        {nextStep.steps.length === 1 ? 'Uma prática' : `${nextStep.steps.length} práticas`} (
+                        {nextStep.steps.map((s, i) => (
+                          <span key={s.practice.id}>
+                            {i > 0 && (i === nextStep.steps.length - 1 ? ' e ' : ', ')}
+                            <strong>{getOfficialPracticeCode(s.practice)} {DIMENSIONS[s.practice.dimensionId].shortName}</strong>
+                          </span>
+                        ))}
+                        ) {nextStep.steps.length === 1 ? 'leva' : 'levam'} ao nível {findings.proximoNivel} ({formatNumber(nextStep.toScore)}) se passarem para Larga.
+                      </li>
+                    ) : (
+                      <li>
+                        Recomenda-se tratar primeiro <strong>{DIMENSIONS[findings.menorId].name}</strong>: é a dimensão com menor
+                        score e peso de {findings.menorPesoPercent}% no resultado global.
+                      </li>
+                    )}
                   </ul>
                 </CardBody>
               </Card>
@@ -267,7 +282,7 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
                             className="mg-acc-item mg-an-row"
                             style={{ borderBottom: '1px solid var(--surface-deep)' }}
                           >
-                            <span className="mg-code">{practice.id}</span>
+                            <span className="mg-code">{getOfficialPracticeCode(practice)}</span>
                             <div style={{ minWidth: 0 }}>
                               <p className="mg-title" style={{ fontSize: 14 }}>{practice.name}</p>
                               <p className="mg-small mg-muted" style={{ marginTop: 2 }}>{practice.evidence}</p>
