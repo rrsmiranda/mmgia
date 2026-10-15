@@ -1,0 +1,11 @@
+{
+  "name": "@mmgia/pdf",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./src/generate.ts",
+  "dependencies": {
+    "jspdf": "^2.5.2",
+    "jspdf-autotable": "^3.8.4"
+  }
+}

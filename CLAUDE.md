@@ -120,7 +120,7 @@ mmgia/
 │   ├── seeds/dev_seed.sql        ← seed de dev equivalente, versão SQLite
 │   └── supabase/                 ← DIREÇÃO ATIVA DO BACKEND
 │       ├── README.md             ← guia de deploy self-hosted na VPS + por que Supabase
-│       ├── migrations/           ← 001_submissions…006_rls_policies (Postgres + RLS)
+│       ├── migrations/           ← 001_submissions…009_drop_news (Postgres + RLS + RPCs do painel)
 │       ├── seeds/dev_seed.sql    ← seed de dev, versão Postgres/Supabase Auth
 │       └── test/                 ← stub de auth.users + roteiro de testes negativos de RLS
 ├── apps/
@@ -129,11 +129,14 @@ mmgia/
 │   └── admin/                   ← SPA administrativa
 │       └── src/components/      ← telas admin (Login, Dashboard/RBAC/Base legal)
 └── packages/
-    └── shared/                  ← consumido via subpaths do package.json (exports)
-        └── src/
-            ├── types.ts         ← DIMENSIONS, LIST_PRACTICES, seeds (SEED_*)
-            ├── lib/scoring.ts   ← getDimensionScore/getGlobalScore/getMaturityLevel
-            └── design-system/   ← componentes mg-*, tokens.css, theme.css (ds-*)
+    ├── shared/                  ← consumido via subpaths do package.json (exports)
+    │   └── src/
+    │       ├── types.ts         ← DIMENSIONS, LIST_PRACTICES, seeds (SEED_*)
+    │       ├── lib/scoring.ts   ← getDimensionScore/getGlobalScore/getMaturityLevel
+    │       ├── lib/{supabase,submissionsApi,adminApi,painelApi}.ts ← integração Supabase
+    │       └── design-system/   ← componentes mg-*, tokens.css, theme.css (ds-*)
+    ├── pdf/                     ← @mmgia/pdf — generatePdf(colunas, linhas, filtros) → Blob (jsPDF)
+    └── xlsx/                    ← @mmgia/xlsx — generateExcel(colunas, linhas, filtros) → Blob (ExcelJS)
 ```
 
 **As 2 apps são deployadas separadamente** (domínios distintos), o que isola
@@ -188,8 +191,8 @@ Supabase, isoladas por RLS, não por domínio de API separado.
 Fase 0  — Monorepo e ferramentas base
 Fase 1  — Pacote shared (schemas + scoring + base legal)
 Fase 2  — Design system (packages/ui) com tipografia Venus + theme switcher
-Fase 3  — Gerador de PDF (packages/pdf)
-Fase 4  — Gerador de Excel (packages/xlsx)          [NOVO]
+Fase 3  — Gerador de PDF (packages/pdf)             [IMPLEMENTADO]
+Fase 4  — Gerador de Excel (packages/xlsx)          [IMPLEMENTADO]
 Fase 5  — Backend Worker (API pública + API admin)  [EXPANDIDO]
 Fase 6  — Frontend público (apps/web) — 8 telas     [EXPANDIDO]
 Fase 7  — Frontend admin (apps/admin) — 5 telas     [NOVO]

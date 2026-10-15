@@ -40,6 +40,8 @@ import {
 } from '@mmgia/shared/taxonomy';
 import { aggregate, byUf, levelDistribution, monthly } from '@mmgia/shared/observatory';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
+import { generatePdf } from '@mmgia/pdf';
+import { generateExcel } from '@mmgia/xlsx';
 import {
   AdminProfile,
   LegalRefRow,
@@ -136,8 +138,8 @@ function recordsToJson(records: HistoricalRecord[]): string {
   return JSON.stringify(data, null, 2);
 }
 
-function downloadFile(content: string, filename: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
+function downloadFile(content: string | Blob, filename: string, mime: string) {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -249,6 +251,26 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
   const handleExportCsv = () => downloadFile(recordsToCsv(filteredRecords), `mmgia-dados-abertos-${dataIso}.csv`, 'text/csv;charset=utf-8;');
   const handleExportJson = () => downloadFile(recordsToJson(filteredRecords), `mmgia-dados-abertos-${dataIso}.json`, 'application/json');
 
+  // Filtros ativos em "Gestão de dados", em texto — mesmos que exportam em CSV/JSON, agora também em PDF/Excel.
+  const filtrosAtivos: Record<string, string> = {};
+  if (searchCode) filtrosAtivos['Busca'] = searchCode;
+  if (sectorFilter !== 'Todos') filtrosAtivos['Setor'] = SETORES.find((s) => s.id === sectorFilter)?.label ?? sectorFilter;
+  if (revisarFilter !== 'Todos') filtrosAtivos['Classificação'] = 'A revisar';
+
+  const exportRows = filteredRecords as unknown as Record<string, unknown>[];
+
+  const handleExportPdf = () => {
+    // Só no PDF o "id" vem truncado (página tem largura fixa, 13 colunas) — CSV/JSON/Excel continuam com o UUID completo.
+    const pdfRows = exportRows.map((r) => ({ ...r, id: String(r.id).slice(0, 8) + '…' }));
+    const blob = generatePdf(OPEN_DATA_COLUMNS, pdfRows, filtrosAtivos);
+    downloadFile(blob, `mmgia-avaliacoes-${dataIso}.pdf`, 'application/pdf');
+  };
+
+  const handleExportExcel = async () => {
+    const blob = await generateExcel(OPEN_DATA_COLUMNS, exportRows, filtrosAtivos);
+    downloadFile(blob, `mmgia-avaliacoes-${dataIso}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  };
+
   const openReclassify = (rec: HistoricalRecord) => {
     setReclassifyRecord(rec);
     setReclassifySetor(rec.setor);
@@ -355,8 +377,8 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
                   description="Filtragem e exclusão direta de diagnósticos agregados."
                   actions={
                     <div className="mg-row" style={{ gap: 8 }}>
-                      <Button variant="secondary">Exportar PDF</Button>
-                      <Button variant="primary">Exportar Excel</Button>
+                      <Button variant="secondary" icon={Download} onClick={handleExportPdf}>Exportar PDF</Button>
+                      <Button variant="primary" icon={Download} onClick={handleExportExcel}>Exportar Excel</Button>
                     </div>
                   }
                 />
