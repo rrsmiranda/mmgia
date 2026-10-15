@@ -37,7 +37,6 @@ organizações brasileiras avaliar sua maturidade em governança de IA, alinhada
 - k-anonimidade ≥ 5 no painel público
 - Código de avaliação (UUID) para editar sem identificar a organização
 - Área administrativa separada para gestão de dados agregados
-- Página de notícias com curadoria e fontes externas
 - Correlação das 45 práticas com base legal (LGPD, AI Act, ISO 42001, ENIA)
 - Código aberto, licença MIT
 - Custo operacional próximo de zero (Cloudflare + Turso free tiers)
@@ -94,17 +93,22 @@ tabela `submissions` (avaliações anônimas) não têm relação por chave estr
 > **Integração frontend ↔ backend:** `apps/web` (Avaliação grava de
 > verdade, Editar com código busca de verdade, Painel Público lê agregados
 > reais) e `apps/admin` (login via Supabase Auth, Gestão de dados/Mapa/Dados
-> abertos/Base legal/Notícias/Usuários todos lendo e escrevendo de verdade)
-> já estão ligados ao Supabase — não existe mais `apps/worker`/PostgREST
-> "solto": os dois apps chamam a API REST/RPC do Supabase diretamente via
+> abertos/Base legal/Usuários todos lendo e escrevendo de verdade) já estão
+> ligados ao Supabase — não existe mais `apps/worker`/PostgREST "solto": os
+> dois apps chamam a API REST/RPC do Supabase diretamente via
 > `@supabase/supabase-js` (`packages/shared/src/lib/{supabase,submissionsApi,
 > adminApi,painelApi}.ts`). `SEED_HISTORICAL_RECORDS` (único seed estático
 > que sobrou em `packages/shared/src/types.ts`) não é mais usado por nenhuma
-> tela — fica só como dado de exemplo, não removido ainda por inércia. A
-> tela pública de Notícias (`/noticias`, Fase B) não existe — o componente
-> antigo foi removido por mostrar conteúdo fabricado antes do agregador RSS
-> (CLAUDE.md Fase 8) existir; a curadoria no admin já lê/escreve `news_items`
-> de verdade, só não tem de onde vir notícia nova ainda.
+> tela — fica só como dado de exemplo, não removido ainda por inércia.
+>
+> **Notícias foi removida do escopo do produto** (não é mais "pendente",
+> está fora): sem agregador de verdade, a funcionalidade só serviria pra
+> mostrar conteúdo fabricado (como já aconteceu antes — o componente público
+> original foi removido por isso) ou uma fila de curadoria permanentemente
+> vazia. Tabela `news_items`, RLS e todo o código cliente relacionado foram
+> removidos (`infra/supabase/migrations/009_drop_news.sql`). Se a
+> funcionalidade voltar um dia, entra como feature nova, não como retomada
+> de pendência.
 
 ```
 mmgia/
@@ -123,7 +127,7 @@ mmgia/
 │   ├── web/                     ← SPA pública anônima
 │   │   └── src/components/      ← telas públicas (Landing, Onboarding, Avaliação…)
 │   └── admin/                   ← SPA administrativa
-│       └── src/components/      ← telas admin (Login, Dashboard/RBAC/Notícias/Base legal)
+│       └── src/components/      ← telas admin (Login, Dashboard/RBAC/Base legal)
 └── packages/
     └── shared/                  ← consumido via subpaths do package.json (exports)
         └── src/
@@ -141,39 +145,40 @@ Supabase, isoladas por RLS, não por domínio de API separado.
 
 ---
 
-## Mapa completo de telas (15 telas)
+## Mapa completo de telas (13 telas)
 
 > **Mudança de rumo (commit `74b4731`, branch `feat/observatorio-v2`):** a tela
 > de Dados Abertos/Open Data saiu do app público. Microdados agregados são
 > informação operacional da plataforma (não um direito do avaliado individual),
 > então a exportação CSV/JSON vive na área admin, ao lado dos exports PDF/Excel
-> da Tela 11 — não como rota pública própria. O app público passa a ter 9
-> telas, não 10; a tabela abaixo já reflete isso.
+> da Tela 11 — não como rota pública própria.
+>
+> **Notícias removida (Fase B inteira):** sem agregador de verdade, tanto a
+> tela pública quanto a curadoria no admin só serviriam pra conteúdo
+> fabricado ou uma fila vazia — ver nota em "Estrutura do monorepo". O app
+> público tem 8 telas (não 9) e o admin 5 (não 6); a tabela abaixo já
+> reflete isso. Não há mais "Fase B" no roteiro — tudo que resta é Fase A.
 
-### apps/web — público anônimo (9 telas)
-| # | Tela | Rota | Fase |
-|---|------|------|------|
-| 1 | Landing | `/` | A |
-| 2 | Onboarding | `/onboarding` | A |
-| 3 | Avaliação | `/avaliacao` | A |
-| 4 | Revisão | `/avaliacao/revisao` | A |
-| 5 | Resultado | `/resultado` | A |
-| 6 | Painel Público | `/painel` | A |
-| 7 | Metodologia | `/metodologia` | A |
-| 8 | Editar com código | `/editar/:codigo?` | A |
-| 9 | Notícias | `/noticias` | B |
+### apps/web — público anônimo (8 telas)
+| # | Tela | Rota |
+|---|------|------|
+| 1 | Landing | `/` |
+| 2 | Onboarding | `/onboarding` |
+| 3 | Avaliação | `/avaliacao` |
+| 4 | Revisão | `/avaliacao/revisao` |
+| 5 | Resultado | `/resultado` |
+| 6 | Painel Público | `/painel` |
+| 7 | Metodologia | `/metodologia` |
+| 8 | Editar com código | `/editar/:codigo?` |
 
-### apps/admin — administrativo identificado (6 telas)
-| # | Tela | Rota | Fase |
-|---|------|------|------|
-| 10 | Login | `/login` | A |
-| 11 | Dashboard + Gestão de dados | `/admin` | A |
-| 12 | Usuários + Perfis (RBAC) | `/admin/usuarios` | A |
-| 13 | Curadoria de notícias | `/admin/noticias` | B |
-| 14 | Base legal | `/admin/base-legal` | A |
-| 15 | Dados abertos (export CSV/JSON) | `/admin/dados-abertos` | A |
-
-**Fase A** = núcleo (sem mudar custo). **Fase B** = notícias (RSS/API gratuitos).
+### apps/admin — administrativo identificado (5 telas)
+| # | Tela | Rota |
+|---|------|------|
+| 9 | Login | `/login` |
+| 10 | Dashboard + Gestão de dados | `/admin` |
+| 11 | Usuários + Perfis (RBAC) | `/admin/usuarios` |
+| 12 | Base legal | `/admin/base-legal` |
+| 13 | Dados abertos (export CSV/JSON) | `/admin/dados-abertos` |
 
 ---
 
@@ -186,9 +191,8 @@ Fase 2  — Design system (packages/ui) com tipografia Venus + theme switcher
 Fase 3  — Gerador de PDF (packages/pdf)
 Fase 4  — Gerador de Excel (packages/xlsx)          [NOVO]
 Fase 5  — Backend Worker (API pública + API admin)  [EXPANDIDO]
-Fase 6  — Frontend público (apps/web) — 10 telas    [EXPANDIDO]
+Fase 6  — Frontend público (apps/web) — 8 telas     [EXPANDIDO]
 Fase 7  — Frontend admin (apps/admin) — 5 telas     [NOVO]
-Fase 8  — Notícias (Fase B: agregador + curadoria)  [NOVO]
 Fase 9  — CI/CD
 Fase 10 — Verificação final completa
 ```
@@ -395,23 +399,6 @@ CREATE TABLE admin_sessions (
 -- NOTA: admin_sessions referencia admin_users, NUNCA submissions.
 ```
 
-**004_news.sql** — notícias curadas:
-```sql
-CREATE TABLE news_items (
-  id          TEXT PRIMARY KEY,
-  titulo      TEXT NOT NULL,
-  resumo      TEXT NOT NULL,               -- resumo curto, NUNCA texto completo
-  fonte       TEXT NOT NULL,               -- ex: "Agência Senado"
-  url         TEXT NOT NULL,               -- link para a fonte original
-  tags        TEXT,                        -- JSON array de hashtags
-  categoria   TEXT,                        -- regulação, internacional, pesquisa...
-  status      TEXT NOT NULL DEFAULT 'pendente' CHECK(status IN ('pendente','aprovada','rejeitada','destaque')),
-  publicado_em INTEGER,
-  curado_por  TEXT REFERENCES admin_users(id),
-  created_at  INTEGER NOT NULL
-);
-```
-
 **005_legal.sql** — base legal:
 ```sql
 CREATE TABLE legal_refs (
@@ -434,7 +421,6 @@ PÚBLICAS (anônimas):
   POST   /v1/submissions              cria avaliação, retorna edit_code (uma vez)
   GET    /v1/submissions/:codeHash    recupera avaliação por hash do código
   PUT    /v1/submissions/:codeHash    atualiza avaliação existente
-  GET    /v1/news                     lista notícias aprovadas (público)
   GET    /v1/legal/:practiceId        referências legais de uma prática
 
 ADMIN (JWT obrigatório):
@@ -448,9 +434,6 @@ ADMIN (JWT obrigatório):
   GET    /admin/export/xlsx           exporta Excel
   GET    /admin/export/csv            exporta CSV (dados abertos)
   GET    /admin/export/json           exporta JSON (dados abertos, com schema)
-  GET    /admin/news                  lista todas as notícias (incl. pendentes)
-  POST   /admin/news/aggregate        dispara agregador RSS/API
-  PATCH  /admin/news/:id              aprova/rejeita/destaca
   GET    /admin/legal                 lista base legal
   PUT    /admin/legal/:id             edita referência legal
 ```
@@ -462,7 +445,7 @@ ADMIN (JWT obrigatório):
 // Verifica JWT no header Authorization
 // Valida sessão em admin_sessions (não expirada)
 // Anexa user + role ao contexto
-// RBAC: super_admin (tudo), gestor (dados+notícias+legal), leitor (só leitura)
+// RBAC: super_admin (tudo), gestor (dados+legal), leitor (só leitura)
 ```
 
 **✅ Conclusão Fase 5:** rotas públicas e admin separadas; JWT válido; RBAC
@@ -506,17 +489,6 @@ Comportamento:
 - Aviso explícito sobre irrecuperabilidade (decisão registrada)
 - Link de "Editar com meu código" aparece no hero da landing
 
-### Tela 9 [NOVA, Fase B] — Notícias (`/noticias`)
-
-Seguir o mockup validado (estilo Venus). Estrutura:
-- Hero com eyebrow + título + subtítulo
-- Faixa de trending topics (hashtags clicáveis que filtram)
-- Notícia em destaque (card grande) + 3 secundárias
-- Grade de cards das últimas notícias
-- Cada card: tag de categoria, título, resumo curto, fonte, data, link externo
-- **Direitos autorais:** nunca o texto completo; sempre redireciona à fonte
-- Dados de `GET /v1/news` (apenas aprovadas)
-
 ### Código de avaliação no fluxo de Resultado
 
 Ao submeter a avaliação (`POST /v1/submissions`), o Worker gera um UUID,
@@ -532,7 +504,7 @@ exibe com destaque:
 └──────────────────────────────────────────┘
 ```
 
-**✅ Conclusão Fase 6:** 10 telas funcionais; código de avaliação gerado e
+**✅ Conclusão Fase 6:** 8 telas funcionais; código de avaliação gerado e
 exibido; edição por código funciona; nenhuma identidade coletada.
 
 ---
@@ -558,7 +530,7 @@ Rate limit visual após 5 tentativas.
 ### Tela 11 — Dashboard + Gestão de dados (`/admin`)
 Seguir o mockup Gentelella validado:
 - Sidebar: Dashboard, Gestão de dados, Mapa nacional, Relatórios,
-  Curadoria notícias, Base legal, Usuários, Perfis, Configurações
+  Base legal, Usuários, Perfis, Configurações
 - Topbar: breadcrumb, busca por código, notificações, toggle tema
 - 4 KPIs: total avaliações, score médio, no último mês, UFs com dados
 - Tabela de registros: ID truncado, natureza, UF, setor, porte, score, nível,
@@ -573,7 +545,7 @@ Seguir o mockup Gentelella validado:
 - Botão "Novo usuário" abre modal: nome, e-mail, perfil (select), senha inicial
 - 3 perfis com permissões documentadas:
   - `super_admin`: tudo, incluindo gestão de usuários
-  - `gestor`: dados + notícias + base legal (sem gestão de usuários)
+  - `gestor`: dados + base legal (sem gestão de usuários)
   - `leitor`: somente leitura
 - Apenas super_admin acessa esta tela (guard de rota)
 - Editar/desativar usuário (nunca excluir, só desativar — auditoria)
@@ -599,47 +571,12 @@ editável; todos os dados exibidos são anônimos/agregados.
 
 ---
 
-## Fase 8 [NOVA, Fase B] — Notícias (agregador + curadoria)
-
-### 8.1 Agregador no Worker
-
-```typescript
-// apps/worker/src/services/newsAggregator.ts
-// Fontes GRATUITAS:
-//  - Google News RSS (sem chave): https://news.google.com/rss/search?q=...&hl=pt-BR
-//  - GNews API (free tier): 100 req/dia
-//  - NewsData.io (free tier): 200 req/dia
-// Busca por queries: "governança IA", "regulação inteligência artificial",
-//   "AI Act", "ENIA", "LGPD inteligência artificial"
-// Salva como status='pendente' em news_items
-// Deduplicação por URL
-// Cron trigger diário (Cloudflare Cron Triggers — gratuito)
-```
-
-### 8.2 Tela 13 — Curadoria de notícias (`/admin/noticias`)
-- Lista notícias pendentes/aprovadas/rejeitadas (filtro por status)
-- Cada item: título, resumo, fonte, tags, data, preview do link
-- Ações: aprovar, rejeitar, marcar como destaque, editar tags/categoria
-- Botão "Buscar novas" dispara `POST /admin/news/aggregate`
-- Só notícias `aprovada`/`destaque` aparecem no `/noticias` público
-
-### 8.3 Conformidade com direitos autorais
-- Armazenar e exibir apenas título + resumo curto (≤ 2 linhas)
-- NUNCA o texto completo do artigo
-- Sempre creditar a fonte e linkar para a origem
-- Card abre a fonte original em nova aba
-
-**✅ Conclusão Fase 8:** agregador busca de RSS/API gratuitos; curadoria
-funciona; notícias aprovadas aparecem no público; sem reprodução de texto integral.
-
----
-
 ## Fase 10 — Verificação final completa
 
-### Checklist de telas (15)
+### Checklist de telas (13)
 ```
-apps/web (9):
-□ Landing — hero + mapa Brasil + counters + serviços + CTA escuro + notícias preview + footer
+apps/web (8):
+□ Landing — hero + mapa Brasil + counters + serviços + CTA escuro + footer
 □ Onboarding — 3 etapas com validação
 □ Avaliação — 45 práticas, auto-save, sidebar score
 □ Revisão — accordion + radar
@@ -647,13 +584,11 @@ apps/web (9):
 □ Painel Público — mapa UF + filtros + KPIs + insights + heatmap + trend
 □ Metodologia — seções + base legal por prática
 □ Editar com código — busca por hash + aviso de irrecuperabilidade
-□ Notícias — trending + destaque + grade (Fase B)
 
-apps/admin (6):
+apps/admin (5):
 □ Login — JWT + rate limit
 □ Dashboard/Gestão — KPIs + tabela anônima + filtros + export PDF/Excel
 □ Usuários/RBAC — CRUD + 3 perfis
-□ Curadoria notícias — aprovar/rejeitar/destaque (Fase B)
 □ Dados abertos — export CSV/JSON + schema
 □ Base legal — 45 práticas editáveis
 ```
@@ -699,15 +634,14 @@ sqlite3 mmgia.db "SELECT edit_code_hash FROM submissions LIMIT 1" # deve ser has
 1. Ler este arquivo + os 5 complementares antes de começar.
 2. Executar fase por fase (0 → 10), na ordem.
 3. Ao fim de cada fase, rodar a verificação correspondente.
-4. Priorizar Fase A; a Fase B (notícias) pode ser feita por último.
-5. Manter os dois mundos isolados em TODA decisão de código.
-6. Nunca coletar, armazenar ou exibir dados de identidade de organizações.
-7. Três arquivos por componente; TypeScript strict; tokens para cores.
-8. Em caso de dúvida sobre design, consultar os mockups descritos nos
+4. Manter os dois mundos isolados em TODA decisão de código.
+5. Nunca coletar, armazenar ou exibir dados de identidade de organizações.
+6. Três arquivos por componente; TypeScript strict; tokens para cores.
+7. Em caso de dúvida sobre design, consultar os mockups descritos nos
    complementares (Zova para público, Gentelella para admin, Venus para
    interações e tipografia).
 
 ---
 
-*MMGIA CLAUDE.md v2 · roteiro mestre consolidado · 15 telas · 3 apps · MIT*
-*Fase A (núcleo) + Fase B (notícias) · anônimo por design · ENIA 2026–2029*
+*MMGIA CLAUDE.md v2 · roteiro mestre consolidado · 13 telas · 3 apps · MIT*
+*Anônimo por design · ENIA 2026–2029*

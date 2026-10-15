@@ -33,14 +33,6 @@ insert into public.legal_refs (practice_id, norma, artigo, descricao, url) value
   ('1.1', 'LGPD',          'Art. 50',    'Boas práticas e governança no tratamento de dados.', null),
   ('1.1', 'ISO/IEC 42001', 'Cláusula 5', 'Liderança e comprometimento da alta direção.',        null);
 
--- ===== news_items (conteúdo de exemplo, claramente fictício — ver AdminDashboard.tsx) =====
-insert into public.news_items (titulo, resumo, fonte, url, tags, categoria, status, publicado_em, created_at) values
-  ('[Exemplo] Novas diretrizes setoriais de segurança de dados em modelos de IA',     'Conteúdo de demonstração — layout de card de notícia com categoria "regulação" e fonte citada.', 'Fonte de exemplo', 'https://example.org/n1', '{}', 'regulação',  'destaque', to_timestamp(1749340800000/1000.0), to_timestamp(1749340800000/1000.0)),
-  ('[Exemplo] Comissão debate impacto de IA generativa em projeto de lei',            'Conteúdo de demonstração — layout de card de notícia com categoria "regulação".',                 'Fonte de exemplo', 'https://example.org/n2', '{}', 'regulação',  'aprovada', to_timestamp(1749081600000/1000.0), to_timestamp(1749081600000/1000.0)),
-  ('[Exemplo] Organizações debatem modelos de governança de IA em fórum setorial',    'Conteúdo de demonstração — layout de card de notícia com categoria "governança".',                'Fonte de exemplo', 'https://example.org/n3', '{}', 'governança', 'aprovada', to_timestamp(1748822400000/1000.0), to_timestamp(1748822400000/1000.0)),
-  ('[Exemplo] Biblioteca de MLOps promete otimizar inferência em servidores legados', 'Conteúdo de demonstração — layout de card de notícia com categoria "tecnologia".',                'Fonte de exemplo', 'https://example.org/n4', '{}', 'tecnologia', 'pendente', null,                                to_timestamp(1748563200000/1000.0)),
-  ('[Exemplo] Empresas aumentam investimento em testes de segurança de IA',           'Conteúdo de demonstração — layout de card de notícia com categoria "mercado".',                   'Fonte de exemplo', 'https://example.org/n5', '{}', 'mercado',    'pendente', null,                                to_timestamp(1748304000000/1000.0));
-
 -- ===== submissions (20 primeiras linhas de SEED_HISTORICAL_RECORDS) =====
 -- termos_aceitos/revisar: 1/0 (SQLite) -> true/false (Postgres boolean).
 -- created_at: epoch ms (SQLite) -> timestamptz via to_timestamp(ms/1000.0).

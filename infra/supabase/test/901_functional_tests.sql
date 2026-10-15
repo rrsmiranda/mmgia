@@ -77,14 +77,10 @@ set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 select count(*) as super_admin_ve_todos_deve_ser_3 from public.admin_profiles;
 commit;
 
-\echo '--- 12. anon le legal_refs (publico) e noticias so aprovadas/destaque ---'
+\echo '--- 12. anon le legal_refs (publico) ---'
 insert into public.legal_refs (practice_id, norma, artigo, descricao) values ('1.1','LGPD','Art. 50','Boas práticas e governança no tratamento de dados.');
-insert into public.news_items (titulo, resumo, fonte, url, status) values
-  ('Pendente', 'x', 'Fonte', 'https://x.test', 'pendente'),
-  ('Aprovada', 'x', 'Fonte', 'https://x.test', 'aprovada');
 set role anon;
 select count(*) as anon_le_legal_deve_ser_1 from public.legal_refs;
-select count(*) as anon_le_noticias_deve_ser_1_so_aprovada from public.news_items;
 reset role;
 
 \echo '--- 13. UNIQUE edit_code_hash: colisao deve falhar ---'

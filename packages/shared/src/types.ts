@@ -53,16 +53,6 @@ export interface AssessmentMetadata {
   code: string;
 }
 
-export interface NewsItem {
-  id: string;
-  title: string;
-  excerpt: string;
-  category: 'regulação' | 'governança' | 'tecnologia' | 'mercado';
-  source: string;
-  date: string;
-  featured?: boolean;
-}
-
 // Global Static Data
 export const DIMENSIONS: Record<DimensionId, Dimension> = {
   gov: {

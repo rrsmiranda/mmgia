@@ -144,11 +144,12 @@ Rodar em ordem, uma vez cada, nunca editar uma já aplicada:
 | `001_submissions.sql` | Tabela `submissions` |
 | `002_edit_code.sql` | Código de edição (hash, nunca texto puro) |
 | `003_admin_profiles.sql` | `admin_profiles` + trigger em `auth.users` + `current_admin_role()` |
-| `004_news.sql` | `news_items` — curadoria de notícias (Fase B) |
+| `004_news.sql` | `news_items` — curadoria de notícias (Fase B). **Revertida por `009_drop_news.sql`** — ver abaixo. |
 | `005_legal.sql` | `legal_refs` — base legal das 45 práticas |
 | `006_rls_policies.sql` | RLS de todas as tabelas + funções RPC (`find_submission_by_code_hash`, `update_submission_by_code_hash`, `painel_aggregate`) |
 | `007_admin_profiles_email.sql` | Coluna `email` em `admin_profiles` (denormalizada de `auth.users` no momento da criação — a tela "Gestão de usuários" precisa listar e-mail, e `auth.*` não é exposto pela API REST) |
 | `008_painel_functions.sql` | Funções RPC que o Painel Público precisa além de `painel_aggregate`: `painel_byuf`, `painel_byregion` (sempre as 27 UFs/5 regiões, mesmo com n=0), `painel_monthly` (série dos últimos N meses), `painel_compareby` (agrupamento por setor/esfera/área/porte/poder/relação com IA), `painel_level_distribution` (% por nível 0-5), `painel_filter_counts` (contagem por valor de cada filtro, pra desabilitar opção que quebraria k≥5) |
+| `009_drop_news.sql` | Remove `news_items` e suas policies — a funcionalidade de notícias saiu do escopo do produto (sem agregador de verdade, só serviria pra conteúdo fabricado ou uma fila vazia; ver CLAUDE.md). Migrations não se editam depois de aplicadas, por isso isso é uma migration nova desfazendo a 004, não uma edição nela. |
 
 `003_admin_profiles.sql` depende de `auth.users`, que só existe numa
 instância Supabase de verdade (hospedada ou self-hosted) — não roda em
@@ -283,7 +284,7 @@ Supabase (porta publicada localmente pelo compose, tipicamente 5432 em
 
 ```bash
 cd /caminho/do/projeto/mmgia/infra/supabase/migrations
-for f in 001_submissions.sql 002_edit_code.sql 003_admin_profiles.sql 004_news.sql 005_legal.sql 006_rls_policies.sql 007_admin_profiles_email.sql 008_painel_functions.sql; do
+for f in 001_submissions.sql 002_edit_code.sql 003_admin_profiles.sql 004_news.sql 005_legal.sql 006_rls_policies.sql 007_admin_profiles_email.sql 008_painel_functions.sql 009_drop_news.sql; do
   psql "postgresql://postgres:<POSTGRES_PASSWORD>@127.0.0.1:5432/postgres" -v ON_ERROR_STOP=1 -f "$f"
 done
 ```
@@ -325,8 +326,8 @@ Depois disso, promoções seguem pela tela "Usuários + Perfis" do admin
 ### 9. Seed de desenvolvimento (opcional, nunca em produção)
 
 `seeds/dev_seed.sql` segue os mesmos passos 8 (criar os usuários de teste
-antes) e depois promove os papéis + insere `legal_refs`/`news_items`/
-`submissions` de exemplo. Ver o cabeçalho do arquivo.
+antes) e depois promove os papéis + insere `legal_refs`/`submissions` de
+exemplo. Ver o cabeçalho do arquivo.
 
 ### 10. Backups
 

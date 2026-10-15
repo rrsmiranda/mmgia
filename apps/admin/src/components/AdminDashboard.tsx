@@ -13,19 +13,15 @@ import {
   Download,
   LogOut,
   Map as MapIcon,
-  Newspaper,
   Plus,
   Search,
-  Star,
   Trash2,
   UserPlus,
   Users,
-  X,
 } from 'lucide-react';
 import {
   HistoricalRecord,
   LIST_PRACTICES,
-  NewsItem,
   DIMENSIONS,
   DimensionId,
 } from '@mmgia/shared/types';
@@ -52,14 +48,11 @@ import {
   deleteSubmission,
   fetchAdminProfiles,
   fetchLegalRefs,
-  fetchNewsItems,
   fetchSubmissions,
   practiceDimension,
   reclassifySubmission,
-  rejectNewsItem,
   setAdminProfileActive,
   setAdminProfileRole,
-  setNewsFeatured,
 } from '@mmgia/shared/adminApi';
 import {
   Badge,
@@ -80,7 +73,6 @@ import {
   LEVEL_LABELS,
   LevelBadge,
   PageHeader,
-  Segmented,
   Select,
   StatusBadge,
   Textarea,
@@ -93,7 +85,7 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'dados' | 'mapa' | 'abertos' | 'usuarios' | 'noticias' | 'legal';
+type Tab = 'dados' | 'mapa' | 'abertos' | 'usuarios' | 'legal';
 
 const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typeof Database; count?: number }[] }[] = [
   { label: 'Geral', items: [
@@ -102,7 +94,6 @@ const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typ
     { tab: 'abertos', label: 'Dados abertos', icon: Download },
   ] },
   { label: 'Conteúdo', items: [
-    { tab: 'noticias', label: 'Curadoria notícias', icon: Newspaper },
     { tab: 'legal', label: 'Base legal', icon: BookOpen },
   ] },
   { label: 'Administração', items: [{ tab: 'usuarios', label: 'Gestão de usuários', icon: Users }] },
@@ -180,10 +171,6 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
   const [usersList, setUsersList] = useState<AdminProfile[]>([]);
   const [showAddUserInfo, setShowAddUserInfo] = useState(false);
 
-  // Tab 3: Curadoria notícias
-  const [curatedNewsList, setCuratedNewsList] = useState<NewsItem[]>([]);
-  const [activeCurationFilter, setActiveCurationFilter] = useState<'pendentes' | 'aprovadas'>('pendentes');
-
   // Tab 4: Base legal
   const [legalRefs, setLegalRefs] = useState<LegalRefRow[]>([]);
   const [expandedLegalDim, setExpandedLegalDim] = useState<DimensionId | null>('gov');
@@ -193,7 +180,6 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
   useEffect(() => {
     fetchSubmissions().then((rows) => { setHistoricalRecords(rows); setLoadingRecords(false); });
     fetchLegalRefs().then(setLegalRefs);
-    fetchNewsItems().then(setCuratedNewsList);
     if (adminProfile.role === 'super_admin') fetchAdminProfiles().then(setUsersList);
   }, [adminProfile.role]);
 
@@ -206,17 +192,6 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
   const handleChangeUserRole = async (id: string, role: AdminProfile['role']) => {
     const ok = await setAdminProfileRole(id, role);
     if (ok) setUsersList(usersList.map((u) => (u.id === id ? { ...u, role } : u)));
-  };
-
-  const handleApproveNews = async (id: string, approve: boolean) => {
-    if (approve) {
-      const item = curatedNewsList.find((n) => n.id === id);
-      const ok = await setNewsFeatured(id, !item?.featured);
-      if (ok) setCuratedNewsList(curatedNewsList.map((n) => (n.id === id ? { ...n, featured: !n.featured } : n)));
-    } else {
-      const ok = await rejectNewsItem(id);
-      if (ok) setCuratedNewsList(curatedNewsList.filter((n) => n.id !== id));
-    }
   };
 
   const handleAddLegalRef = async (e: FormEvent) => {
@@ -328,9 +303,6 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
                   >
                     <item.icon className="mg-ico mg-ico-sm" aria-hidden="true" />
                     <span>{item.label}</span>
-                    {item.tab === 'noticias' && curatedNewsList.length > 0 && (
-                      <span className="mg-side-count">{curatedNewsList.length}</span>
-                    )}
                   </button>
                 ))}
               </div>
@@ -731,55 +703,6 @@ export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboar
                     </div>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* TAB 3: CURADORIA DE NOTÍCIAS */}
-            {activeTab === 'noticias' && (
-              <div id="tab-noticias-root">
-                <PageHeader
-                  level="h1"
-                  title="Fila de curadoria de notícias"
-                  description="Aprove ou descarte boletins regulatórios levantados por varreduras automáticas em RSS."
-                  actions={
-                    <Segmented<'pendentes' | 'aprovadas'>
-                      label="Filtro de curadoria"
-                      value={activeCurationFilter}
-                      onChange={(v) => setActiveCurationFilter(v)}
-                      options={[
-                        { value: 'pendentes', label: 'Pendentes', count: curatedNewsList.length },
-                        { value: 'aprovadas', label: 'Aprovados' },
-                      ]}
-                    />
-                  }
-                />
-
-                <div className="mg-stack" style={{ gap: 12, marginTop: 24 }} id="curation-queue-list">
-                  {curatedNewsList.map((news) => (
-                    <div key={news.id} className="mg-card" style={{ padding: 20 }}>
-                      <div className="mg-row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-                        <div style={{ flex: 1, minWidth: 240 }}>
-                          <div className="mg-row" style={{ gap: 8 }}>
-                            <Badge>{news.category}</Badge>
-                            <span className="mg-code mg-muted">{news.date} · Fonte: {news.source}</span>
-                          </div>
-                          <p className="mg-title" style={{ marginTop: 8 }}>{news.title}</p>
-                          <p className="mg-small mg-muted" style={{ marginTop: 4 }}>{news.excerpt}</p>
-                        </div>
-                        <div className="mg-row" style={{ gap: 8, flexShrink: 0 }} id={`curator-actions-${news.id}`}>
-                          <Button
-                            variant={news.featured ? 'secondary' : 'ghost'}
-                            iconOnly
-                            icon={Star}
-                            aria-label="Marcar destaque"
-                            onClick={() => handleApproveNews(news.id, true)}
-                          />
-                          <Button variant="danger" icon={X} onClick={() => handleApproveNews(news.id, false)}>Descartar</Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
 

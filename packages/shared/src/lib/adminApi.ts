@@ -5,7 +5,7 @@
 
 import { supabase } from './supabase';
 import { derivarPoder, derivarRegiao } from './taxonomy';
-import { LIST_PRACTICES, type DimensionId, type HistoricalRecord, type NewsItem } from '../types';
+import { LIST_PRACTICES, type DimensionId, type HistoricalRecord } from '../types';
 import type { Area, AreaPrivada, Esfera, Setor } from './taxonomy';
 
 export interface AdminProfile {
@@ -188,54 +188,6 @@ export async function createLegalRef(input: { practiceId: string; norma: string;
 
 export async function deleteLegalRef(id: string): Promise<boolean> {
   const { error } = await supabase.from('legal_refs').delete().eq('id', id);
-  return !error;
-}
-
-// ===== news_items (Curadoria de notícias) =====
-
-interface NewsDbRow {
-  id: string;
-  titulo: string;
-  resumo: string;
-  fonte: string;
-  url: string;
-  categoria: string | null;
-  status: 'pendente' | 'aprovada' | 'rejeitada' | 'destaque';
-  publicado_em: string | null;
-  created_at: string;
-}
-
-function rowToNewsItem(row: NewsDbRow): NewsItem {
-  return {
-    id: row.id,
-    title: row.titulo,
-    excerpt: row.resumo,
-    category: (row.categoria ?? 'tecnologia') as NewsItem['category'],
-    source: row.fonte,
-    date: (row.publicado_em ?? row.created_at).slice(0, 10),
-    featured: row.status === 'destaque',
-  };
-}
-
-/** Lê pendentes + aprovadas + destaque (curadoria vê tudo que ainda não foi rejeitado). */
-export async function fetchNewsItems(): Promise<NewsItem[]> {
-  const { data, error } = await supabase
-    .from('news_items')
-    .select('id, titulo, resumo, fonte, url, categoria, status, publicado_em, created_at')
-    .neq('status', 'rejeitada')
-    .order('created_at', { ascending: false });
-  if (error || !data) return [];
-  return (data as NewsDbRow[]).map(rowToNewsItem);
-}
-
-export async function setNewsFeatured(id: string, featured: boolean): Promise<boolean> {
-  const { error } = await supabase.from('news_items').update({ status: featured ? 'destaque' : 'aprovada' }).eq('id', id);
-  return !error;
-}
-
-/** "Descartar" na fila de curadoria marca como rejeitada — nunca apaga a linha (mantém o histórico de curadoria). */
-export async function rejectNewsItem(id: string): Promise<boolean> {
-  const { error } = await supabase.from('news_items').update({ status: 'rejeitada' }).eq('id', id);
   return !error;
 }
 
