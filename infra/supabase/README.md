@@ -5,6 +5,84 @@ Direção **ativa** do backend do MMGIA: Supabase self-hosted numa VPS própria
 (`../migrations/`, CLAUDE.md Fase 5) fica preservado como referência — ver a
 nota no topo de `../README.md` — mas não recebe mais mudanças.
 
+## Status do deploy atual
+
+Já existe uma instância rodando (VPS Hostinger, `2.25.149.198`,
+`srv1972065.hstgr.cloud`), implantada seguindo exatamente o guia abaixo, com
+duas adaptações por ser uma VPS **compartilhada** com outra aplicação
+(Inji, `verify.beachd.com.br`) que já ocupava portas 80/443/8000:
+
+- **Gateway (`API_GW_HTTP_PORT`/`KONG_HTTP_PORT`) na porta `8001`**, não 8000
+  — a 8000 já era do Portainer (`portainer/portainer-ce`) instalado na VPS.
+- **Sem Caddy próprio**: em vez de `docker-compose.caddy.yml`, o container
+  `supabase-envoy` foi conectado à rede Docker do Caddy que o Inji já roda
+  (`docker network connect inji_web supabase-envoy`), e o domínio do MMGIA
+  foi adicionado como um bloco a mais no `Caddyfile` existente
+  (`/root/inji/Caddyfile` na VPS) — `reverse_proxy supabase-envoy:8000`
+  (porta interna do container, não a 8001 publicada no host). Isso evita
+  rodar dois Caddys/duas escutas em 80/443 na mesma VPS.
+- Domínio: `supabase.governanca.tech` → `2.25.149.198` (registro A).
+- Projeto compose roda com `-p mmgia` em `/root/mmgia-supabase/` (clonado de
+  `supabase/supabase`, não do zero) — `/root/mmgia-supabase/.env` tem todos
+  os segredos gerados (`utils/generate-keys.sh` + `utils/add-new-auth-keys.sh`
+  do próprio repo oficial, não inventados à mão).
+- Havia um Supabase **parcial** pré-existente na VPS (`supabase-db`,
+  `supabase-meta`, `supabase-studio`, sem Auth/PostgREST/Kong — aparentemente
+  de um template de um clique do painel da Hostinger). Foi removido
+  (containers + volume `supabase_supabase_db_data`) antes deste deploy, por
+  não ter Auth nem PostgREST e portanto não servir ao design com RLS.
+
+**Confirmado funcionando de ponta a ponta** (testado pelo domínio público,
+não só localmente na VPS): `https://supabase.governanca.tech` responde com
+certificado real do Let's Encrypt (produção, emissor `C=US, O=Let's Encrypt`,
+não staging); REST API, RPCs (`find_submission_by_code_hash`,
+`painel_aggregate`) e Auth (login por senha) testados via requisição HTTP de
+verdade, não só via `psql` direto. Primeira conta `super_admin` já criada via
+Auth Admin API e promovida em `admin_profiles`.
+
+### Firewall da Hostinger: duas camadas, não só o `ufw` da VPS
+
+A Hostinger tem um firewall **próprio do painel** (hPanel → VPS →
+Segurança → Firewall), separado do `ufw` rodando dentro da VPS — os dois
+precisam liberar a porta para ela funcionar de fora. Isso pegou a gente de
+surpresa duas vezes neste deploy:
+
+1. SSH (22) não conectava de jeito nenhum (timeout total, não "recusado")
+   até ativar o toggle do grupo "SSH" no hPanel — só ter a regra cadastrada
+   não bastava, o **grupo** precisava estar ativo.
+2. Depois do deploy, **as portas 80 e 443 também estavam bloqueadas no
+   hPanel** (nenhum dos grupos ativos cobria essas portas) — isso derrubou
+   o acesso externo tanto do Supabase novo quanto do `verify.beachd.com.br`
+   do Inji (que já estava em produção!) até liberarmos 80/tcp e 443/tcp
+   para "Anywhere" em algum grupo ativo. Vale conferir essa tela sempre que
+   algo "não conecta" nem dando timeout — é a primeira coisa a checar antes
+   de mexer no `ufw`, no Caddy ou no Docker.
+
+Efeito colateral de muitas tentativas de conexão SSH seguidas durante esta
+sessão: o próprio SSH passou a recusar a senha intermitentemente por alguns
+minutos (`Permission denied`, não timeout) — tudo indica alguma proteção
+contra força bruta reagindo ao volume, não uma senha trocada de verdade;
+voltou a funcionar sozinho pouco depois.
+
+### Armadilha real encontrada e corrigida: `Prefer: return=minimal`
+
+Validado contra a instância de verdade (não só no Postgres isolado do
+Docker): um `POST /rest/v1/submissions` anônimo **falha** com
+`"new row violates row-level security policy for table submissions"` se o
+cliente não mandar o header `Prefer: return=minimal` — mesmo a policy de
+INSERT permitindo tudo (`with check (true)`). Causa: por padrão o
+PostgREST/supabase-js tenta devolver a linha inserida (`RETURNING`) para
+montar a resposta, e isso exige visibilidade de `SELECT` sob RLS — que não
+existe para `anon`, de propósito. O `INSERT` em si sempre é aceito; é só o
+`RETURNING` que é recusado, com uma mensagem igual à de um INSERT negado.
+**Qualquer código cliente que crie uma submission precisa usar
+`Prefer: return=minimal`** (supabase-js: `.insert(payload)` sem encadear
+`.select()`) — documentado também em `migrations/006_rls_policies.sql`.
+Isso também significa que o `id`/`created_at` gerados pelo banco nunca
+voltam ao cliente — por isso o desenho já previa o código de edição
+(`edit_code_hash`) sendo gerado e hasheado no cliente, não lido de volta do
+INSERT.
+
 ## Por que Supabase em vez do Worker + D1/Turso do CLAUDE.md original
 
 - **Supabase Auth** substitui as tabelas `admin_users`/`admin_sessions`

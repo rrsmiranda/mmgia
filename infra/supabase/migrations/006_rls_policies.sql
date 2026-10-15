@@ -15,6 +15,19 @@ alter table public.legal_refs      enable row level security;
 -- =====================================================================
 
 -- Qualquer um pode criar uma avaliação — fluxo público, sem login.
+--
+-- ARMADILHA validada contra uma instância Supabase real: como não existe (de
+-- propósito, ver abaixo) policy de SELECT para anon, um POST feito com o
+-- comportamento padrão do PostgREST/supabase-js — que tenta um
+-- "INSERT ... RETURNING ..." para montar o header Location/corpo de resposta
+-- — FALHA com "new row violates row-level security policy for table
+-- submissions", mesmo o INSERT em si sendo permitido. Postgres recusa o
+-- RETURNING, não o INSERT, mas a mensagem de erro é idêntica. O cliente
+-- SEMPRE precisa mandar `Prefer: return=minimal` (supabase-js:
+-- `.insert(payload)` sem encadear `.select()`) ao criar uma submission —
+-- sem isso, todo POST público quebra. Não há nada a corrigir no schema; é um
+-- comportamento esperado de "RETURNING exige visibilidade de SELECT sob
+-- RLS", só não é óbvio até acontecer.
 create policy "anon cria submission"
   on public.submissions for insert
   to anon
