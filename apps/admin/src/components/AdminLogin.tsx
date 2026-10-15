@@ -5,10 +5,11 @@
 
 import { useState, type FormEvent } from 'react';
 import { ArrowLeft, Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
+import { requestAdminPasswordReset, signInAdmin, type AdminProfile } from '@mmgia/shared/adminApi';
 import { Banner, Button, Card, DsRoot, Field, Input, Page } from '@mmgia/shared/design-system';
 
 interface AdminLoginProps {
-  onSuccessLogin: (userEmail: string) => void;
+  onSuccessLogin: (profile: AdminProfile) => void;
   onCancel?: () => void;
 }
 
@@ -17,11 +18,26 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorText, setErrorText] = useState('');
+  const [successText, setSuccessText] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleForgotPassword = async () => {
+    setErrorText('');
+    setSuccessText('');
+    if (!email) {
+      setErrorText('Digite seu e-mail funcional no campo acima para receber o link de redefinição.');
+      return;
+    }
+    const ok = await requestAdminPasswordReset(email);
+    setSuccessText(ok
+      ? 'Se este e-mail tiver uma conta ativa, enviamos um link de redefinição de senha.'
+      : 'Não foi possível solicitar a redefinição agora. Tente novamente em instantes.');
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setErrorText('');
+    setSuccessText('');
 
     if (!email) {
       setErrorText('Por favor, digite seu e-mail funcional.');
@@ -33,12 +49,14 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
     }
 
     setLoading(true);
+    const result = await signInAdmin(email, password);
+    setLoading(false);
 
-    // Simulated verification
-    setTimeout(() => {
-      setLoading(false);
-      onSuccessLogin(email);
-    }, 1200);
+    if ('error' in result) {
+      setErrorText(result.error);
+      return;
+    }
+    onSuccessLogin(result.profile);
   };
 
   return (
@@ -74,7 +92,16 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
                 )}
               </Field>
 
-              <Field label="Senha privada" help={<a href="https://google.com" target="_blank" rel="noreferrer" style={{ float: 'right' }}>Esqueceu?</a>}>
+              <Field label="Senha privada" help={
+                <button
+                  type="button"
+                  className="mg-small"
+                  style={{ float: 'right', background: 'none', border: 0, padding: 0, color: 'var(--brand)', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={handleForgotPassword}
+                >
+                  Esqueceu?
+                </button>
+              }>
                 {({ id }) => (
                   <div style={{ position: 'relative' }}>
                     <Input id={id} type={showPassword ? 'text' : 'password'} required icon={Lock} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••••" style={{ paddingRight: 40 }} />
@@ -94,6 +121,12 @@ export default function AdminLogin({ onSuccessLogin, onCancel }: AdminLoginProps
               {errorText && (
                 <div id="login-error-log">
                   <Banner tone="critical" title="Não foi possível entrar">{errorText}</Banner>
+                </div>
+              )}
+
+              {successText && (
+                <div id="login-success-log">
+                  <Banner tone="good" title="Verifique seu e-mail">{successText}</Banner>
                 </div>
               )}
 

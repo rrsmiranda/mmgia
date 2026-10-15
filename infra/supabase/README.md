@@ -147,6 +147,7 @@ Rodar em ordem, uma vez cada, nunca editar uma já aplicada:
 | `004_news.sql` | `news_items` — curadoria de notícias (Fase B) |
 | `005_legal.sql` | `legal_refs` — base legal das 45 práticas |
 | `006_rls_policies.sql` | RLS de todas as tabelas + funções RPC (`find_submission_by_code_hash`, `update_submission_by_code_hash`, `painel_aggregate`) |
+| `007_admin_profiles_email.sql` | Coluna `email` em `admin_profiles` (denormalizada de `auth.users` no momento da criação — a tela "Gestão de usuários" precisa listar e-mail, e `auth.*` não é exposto pela API REST) |
 
 `003_admin_profiles.sql` depende de `auth.users`, que só existe numa
 instância Supabase de verdade (hospedada ou self-hosted) — não roda em
@@ -281,7 +282,7 @@ Supabase (porta publicada localmente pelo compose, tipicamente 5432 em
 
 ```bash
 cd /caminho/do/projeto/mmgia/infra/supabase/migrations
-for f in 001_submissions.sql 002_edit_code.sql 003_admin_profiles.sql 004_news.sql 005_legal.sql 006_rls_policies.sql; do
+for f in 001_submissions.sql 002_edit_code.sql 003_admin_profiles.sql 004_news.sql 005_legal.sql 006_rls_policies.sql 007_admin_profiles_email.sql; do
   psql "postgresql://postgres:<POSTGRES_PASSWORD>@127.0.0.1:5432/postgres" -v ON_ERROR_STOP=1 -f "$f"
 done
 ```

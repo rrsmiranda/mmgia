@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import {
   Bell,
   BookOpen,
@@ -23,12 +23,9 @@ import {
   X,
 } from 'lucide-react';
 import {
-  AdminUser,
-  SEED_ADMIN_USERS,
   HistoricalRecord,
-  SEED_HISTORICAL_RECORDS,
+  LIST_PRACTICES,
   NewsItem,
-  SEED_NEWS,
   DIMENSIONS,
   DimensionId,
 } from '@mmgia/shared/types';
@@ -48,7 +45,25 @@ import {
 import { aggregate, byUf, levelDistribution, monthly } from '@mmgia/shared/observatory';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
 import {
+  AdminProfile,
+  LegalRefRow,
+  createLegalRef,
+  deleteLegalRef,
+  deleteSubmission,
+  fetchAdminProfiles,
+  fetchLegalRefs,
+  fetchNewsItems,
+  fetchSubmissions,
+  practiceDimension,
+  reclassifySubmission,
+  rejectNewsItem,
+  setAdminProfileActive,
+  setAdminProfileRole,
+  setNewsFeatured,
+} from '@mmgia/shared/adminApi';
+import {
   Badge,
+  Banner,
   BrazilMap,
   Button,
   Card,
@@ -74,7 +89,7 @@ import {
 } from '@mmgia/shared/design-system';
 
 interface AdminDashboardProps {
-  adminEmail: string;
+  adminProfile: AdminProfile;
   onLogout: () => void;
 }
 
@@ -87,7 +102,7 @@ const NAV_SECTIONS: { label: string; items: { tab: Tab; label: string; icon: typ
     { tab: 'abertos', label: 'Dados abertos', icon: Download },
   ] },
   { label: 'Conteúdo', items: [
-    { tab: 'noticias', label: 'Curadoria notícias', icon: Newspaper, count: 12 },
+    { tab: 'noticias', label: 'Curadoria notícias', icon: Newspaper },
     { tab: 'legal', label: 'Base legal', icon: BookOpen },
   ] },
   { label: 'Administração', items: [{ tab: 'usuarios', label: 'Gestão de usuários', icon: Users }] },
@@ -142,17 +157,13 @@ function downloadFile(content: string, filename: string, mime: string) {
   URL.revokeObjectURL(url);
 }
 
-const SAMPLE_LEGAL_REFS = [
-  { code: 'Prática 1.1', name: 'Consciência Regulatória', norm: 'LGPD Art. 50', ex: 'Boas práticas e governança no tratamento de dados.' },
-  { code: 'Prática 1.1', name: 'Consciência Regulatória', norm: 'ISO/IEC 42001 Cláusula 5', ex: 'Liderança e comprometimento da alta direção.' },
-];
-
-export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardProps) {
+export default function AdminDashboard({ adminProfile, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('dados');
-  const [notifications, setNotifications] = useState(3);
+  const [notifications, setNotifications] = useState(0);
 
   // Tab 1: Gestão de dados
-  const [historicalRecords, setHistoricalRecords] = useState<HistoricalRecord[]>(SEED_HISTORICAL_RECORDS);
+  const [historicalRecords, setHistoricalRecords] = useState<HistoricalRecord[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(true);
   const [searchCode, setSearchCode] = useState('');
   const [sectorFilter, setSectorFilter] = useState<Setor | 'Todos'>('Todos');
   const [revisarFilter, setRevisarFilter] = useState<'Todos' | 'Sim'>('Todos');
@@ -165,63 +176,72 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
   // Tab Mapa nacional
   const [selectedMapUf, setSelectedMapUf] = useState<string | null>(null);
 
-  // Tab 2: Gestão de usuários
-  const [usersList, setUsersList] = useState<AdminUser[]>(SEED_ADMIN_USERS);
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [newUserName, setNewUserName] = useState('');
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'super_admin' | 'gestor' | 'leitor'>('gestor');
+  // Tab 2: Gestão de usuários (só super_admin tem RLS pra listar — ver fetchAdminProfiles)
+  const [usersList, setUsersList] = useState<AdminProfile[]>([]);
+  const [showAddUserInfo, setShowAddUserInfo] = useState(false);
 
   // Tab 3: Curadoria notícias
-  const [curatedNewsList, setCuratedNewsList] = useState<NewsItem[]>(SEED_NEWS);
+  const [curatedNewsList, setCuratedNewsList] = useState<NewsItem[]>([]);
   const [activeCurationFilter, setActiveCurationFilter] = useState<'pendentes' | 'aprovadas'>('pendentes');
 
   // Tab 4: Base legal
+  const [legalRefs, setLegalRefs] = useState<LegalRefRow[]>([]);
   const [expandedLegalDim, setExpandedLegalDim] = useState<DimensionId | null>('gov');
   const [showAddRefModal, setShowAddRefModal] = useState(false);
-  const [addRefForm, setAddRefForm] = useState({ practiceId: '1.1', norm: 'LGPD', article: 'Artigo 20', desc: 'Direito à revisão manual de decisões automatizadas.' });
+  const [addRefForm, setAddRefForm] = useState({ practiceId: '1.1', norma: 'LGPD', artigo: 'Artigo 20', desc: 'Direito à revisão manual de decisões automatizadas.' });
 
-  const handleAddUser = (e: FormEvent) => {
-    e.preventDefault();
-    if (!newUserName || !newUserEmail) return;
+  useEffect(() => {
+    fetchSubmissions().then((rows) => { setHistoricalRecords(rows); setLoadingRecords(false); });
+    fetchLegalRefs().then(setLegalRefs);
+    fetchNewsItems().then(setCuratedNewsList);
+    if (adminProfile.role === 'super_admin') fetchAdminProfiles().then(setUsersList);
+  }, [adminProfile.role]);
 
-    const newUser: AdminUser = {
-      id: `u${Date.now()}`,
-      name: newUserName,
-      email: newUserEmail,
-      role: newUserRole,
-      status: 'Ativo',
-      lastLogin: 'Nunca logou',
-    };
-
-    setUsersList([...usersList, newUser]);
-    setNewUserName('');
-    setNewUserEmail('');
-    setShowAddUserModal(false);
+  const handleToggleUserActive = async (profile: AdminProfile) => {
+    const next = !profile.ativo;
+    const ok = await setAdminProfileActive(profile.id, next);
+    if (ok) setUsersList(usersList.map((u) => (u.id === profile.id ? { ...u, ativo: next } : u)));
   };
 
-  const handleDeactivateUser = (id: string) => {
-    setUsersList(usersList.map(u => u.id === id ? { ...u, status: u.status === 'Ativo' ? 'Inativo' : 'Ativo' } : u));
+  const handleChangeUserRole = async (id: string, role: AdminProfile['role']) => {
+    const ok = await setAdminProfileRole(id, role);
+    if (ok) setUsersList(usersList.map((u) => (u.id === id ? { ...u, role } : u)));
   };
 
-  const handleApproveNews = (id: string, approve: boolean) => {
+  const handleApproveNews = async (id: string, approve: boolean) => {
     if (approve) {
-      setCuratedNewsList(curatedNewsList.map(n => n.id === id ? { ...n, featured: !n.featured } : n));
+      const item = curatedNewsList.find((n) => n.id === id);
+      const ok = await setNewsFeatured(id, !item?.featured);
+      if (ok) setCuratedNewsList(curatedNewsList.map((n) => (n.id === id ? { ...n, featured: !n.featured } : n)));
     } else {
-      setCuratedNewsList(curatedNewsList.filter(n => n.id !== id));
+      const ok = await rejectNewsItem(id);
+      if (ok) setCuratedNewsList(curatedNewsList.filter((n) => n.id !== id));
     }
   };
 
-  const handleAddLegalRef = (e: FormEvent) => {
+  const handleAddLegalRef = async (e: FormEvent) => {
     e.preventDefault();
-    setShowAddRefModal(false);
-    alert(`Referência de conformidade integrada com sucesso à prática ${addRefForm.practiceId}!`);
+    const ok = await createLegalRef({
+      practiceId: addRefForm.practiceId,
+      norma: addRefForm.norma,
+      artigo: addRefForm.artigo,
+      descricao: addRefForm.desc,
+    });
+    if (ok) {
+      setLegalRefs(await fetchLegalRefs());
+      setShowAddRefModal(false);
+    }
   };
 
-  const handleDeleteRecord = (id: string) => {
-    if (confirm('Tem certeza de que deseja excluir permanentemente este registro anonimizado do painel nacional?')) {
-      setHistoricalRecords(historicalRecords.filter(r => r.id !== id));
-    }
+  const handleDeleteLegalRef = async (id: string) => {
+    const ok = await deleteLegalRef(id);
+    if (ok) setLegalRefs(legalRefs.filter((r) => r.id !== id));
+  };
+
+  const handleDeleteRecord = async (id: string) => {
+    if (!confirm('Tem certeza de que deseja excluir permanentemente este registro anonimizado do painel nacional?')) return;
+    const ok = await deleteSubmission(id);
+    if (ok) setHistoricalRecords(historicalRecords.filter((r) => r.id !== id));
   };
 
   const filteredRecords = historicalRecords.filter((rec) => {
@@ -262,18 +282,26 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
     setReclassifyAtividade(rec.atividadeEstatal);
   };
 
-  const handleSaveReclassify = (e: FormEvent) => {
+  const handleSaveReclassify = async (e: FormEvent) => {
     e.preventDefault();
     if (!reclassifyRecord || reclassifySetor === '') return;
-    setHistoricalRecords(historicalRecords.map((r) => r.id === reclassifyRecord.id ? {
-      ...r,
+    const ok = await reclassifySubmission(reclassifyRecord.id, reclassifyRecord.estado, {
       setor: reclassifySetor,
       esfera: reclassifySetor === 'publico' ? reclassifyEsfera : undefined,
       area: reclassifyArea,
       atividadeEstatal: reclassifyArea === 'estatal' ? reclassifyAtividade : undefined,
-      revisar: undefined,
-    } : r));
-    setReclassifyRecord(null);
+    });
+    if (ok) {
+      setHistoricalRecords(historicalRecords.map((r) => r.id === reclassifyRecord.id ? {
+        ...r,
+        setor: reclassifySetor,
+        esfera: reclassifySetor === 'publico' ? reclassifyEsfera : undefined,
+        area: reclassifyArea,
+        atividadeEstatal: reclassifyArea === 'estatal' ? reclassifyAtividade : undefined,
+        revisar: false,
+      } : r));
+      setReclassifyRecord(null);
+    }
   };
 
   return (
@@ -300,7 +328,9 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   >
                     <item.icon className="mg-ico mg-ico-sm" aria-hidden="true" />
                     <span>{item.label}</span>
-                    {item.count !== undefined && <span className="mg-side-count">{item.count}</span>}
+                    {item.tab === 'noticias' && curatedNewsList.length > 0 && (
+                      <span className="mg-side-count">{curatedNewsList.length}</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -309,10 +339,12 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
 
           <div className="mg-side-foot">
             <div className="mg-side-user">
-              <span style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 'var(--radius-pill)', background: 'var(--brand-accent)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>JC</span>
+              <span style={{ display: 'grid', placeItems: 'center', width: 32, height: 32, borderRadius: 'var(--radius-pill)', background: 'var(--brand-accent)', color: 'var(--on-accent)', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                {adminProfile.nome.slice(0, 2).toUpperCase()}
+              </span>
               <div className="who">
-                <b>Júlia Costa</b>
-                <span>super_admin</span>
+                <b>{adminProfile.nome}</b>
+                <span>{adminProfile.role}</span>
               </div>
             </div>
             <button type="button" className="mg-side-exit" onClick={onLogout}>
@@ -337,7 +369,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               )}
             </button>
             <span className="mg-small mg-muted" style={{ whiteSpace: 'nowrap' }}>
-              Sessão de e-mail: <strong style={{ color: 'var(--text)' }}>{adminEmail}</strong>
+              Sessão de e-mail: <strong style={{ color: 'var(--text)' }}>{adminProfile.email}</strong>
             </span>
           </header>
 
@@ -356,6 +388,8 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                     </div>
                   }
                 />
+
+                {loadingRecords && <p className="mg-small mg-muted" style={{ marginTop: 16 }}>Carregando registros…</p>}
 
                 <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(4,1fr)', ['--cols-t' as string]: 'repeat(2,1fr)', ['--cols-m' as string]: 'repeat(2,1fr)', gap: 12, marginTop: 24 }} id="dados-kpi-row">
                   <KpiCard label="Avaliados total" value={historicalRecords.length.toLocaleString('pt-BR')} unit="registros" />
@@ -611,41 +645,57 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
               </div>
             )}
 
-            {/* TAB 2: GESTÃO DE USUÁRIOS */}
+            {/* TAB 2: GESTÃO DE USUÁRIOS — só super_admin (RLS: fetchAdminProfiles só devolve linhas pra esse papel) */}
             {activeTab === 'usuarios' && (
               <div id="tab-usuarios-root">
                 <PageHeader
                   level="h1"
                   title="Gestão de usuários administrativos"
                   description="Controle integrado de auditorias baseada em papel funcional (RBAC)."
-                  actions={<Button variant="primary" icon={UserPlus} onClick={() => setShowAddUserModal(true)}>Novo usuário</Button>}
+                  actions={<Button variant="primary" icon={UserPlus} onClick={() => setShowAddUserInfo(true)}>Novo usuário</Button>}
                 />
 
-                <div style={{ marginTop: 24 }} id="users-table-card">
-                  <DataTable<AdminUser>
-                    caption="Usuários administrativos, papel e status"
-                    rowKey={(r) => r.id}
-                    columns={[
-                      { key: 'id', header: 'ID', render: (r) => <span className="mg-code">#{r.id}</span> },
-                      { key: 'name', header: 'Nome do operador', render: (r) => (
-                        <span className="mg-row" style={{ gap: 8 }}>
-                          <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: 'var(--radius-pill)', background: 'var(--surface-sunken)', fontWeight: 700, fontSize: 10, flexShrink: 0 }}>{r.name.charAt(0)}</span>
-                          {r.name}
-                        </span>
-                      ) },
-                      { key: 'email', header: 'E-mail funcional', render: (r) => r.email },
-                      { key: 'role', header: 'Papel (role)', render: (r) => <Badge tone={r.role === 'super_admin' ? 'brand' : 'outline'}>{r.role}</Badge> },
-                      { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.status === 'Ativo' ? 'good' : 'critical'}>{r.status}</StatusBadge> },
-                      { key: 'lastLogin', header: 'Último login', render: (r) => r.lastLogin },
-                      { key: 'acoes', header: 'Ações', render: (r) => (
-                        <Button variant={r.status === 'Ativo' ? 'danger' : 'secondary'} size="sm" onClick={() => handleDeactivateUser(r.id)}>
-                          {r.status === 'Ativo' ? 'Inativar' : 'Reativar'}
-                        </Button>
-                      ) },
-                    ]}
-                    rows={usersList}
-                  />
-                </div>
+                {adminProfile.role !== 'super_admin' ? (
+                  <div style={{ marginTop: 24 }}>
+                    <Banner tone="attention" title="Acesso restrito">
+                      Só contas super_admin podem ver e gerenciar outros usuários administrativos.
+                    </Banner>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 24 }} id="users-table-card">
+                    <DataTable<AdminProfile>
+                      caption="Usuários administrativos, papel e status"
+                      rowKey={(r) => r.id}
+                      columns={[
+                        { key: 'name', header: 'Nome do operador', render: (r) => (
+                          <span className="mg-row" style={{ gap: 8 }}>
+                            <span style={{ display: 'grid', placeItems: 'center', width: 24, height: 24, borderRadius: 'var(--radius-pill)', background: 'var(--surface-sunken)', fontWeight: 700, fontSize: 10, flexShrink: 0 }}>{r.nome.charAt(0)}</span>
+                            {r.nome}
+                          </span>
+                        ) },
+                        { key: 'email', header: 'E-mail funcional', render: (r) => r.email },
+                        { key: 'role', header: 'Papel (role)', render: (r) => (
+                          r.id === adminProfile.id
+                            ? <Badge tone={r.role === 'super_admin' ? 'brand' : 'outline'}>{r.role} (você)</Badge>
+                            : (
+                              <Select value={r.role} onChange={(e) => handleChangeUserRole(r.id, e.target.value as AdminProfile['role'])} className="mg-select--sm">
+                                <option value="super_admin">super_admin</option>
+                                <option value="gestor">gestor</option>
+                                <option value="leitor">leitor</option>
+                              </Select>
+                            )
+                        ) },
+                        { key: 'status', header: 'Status', render: (r) => <StatusBadge status={r.ativo ? 'good' : 'critical'}>{r.ativo ? 'Ativo' : 'Inativo'}</StatusBadge> },
+                        { key: 'acoes', header: 'Ações', render: (r) => (
+                          <Button variant={r.ativo ? 'danger' : 'secondary'} size="sm" disabled={r.id === adminProfile.id} onClick={() => handleToggleUserActive(r)}>
+                            {r.ativo ? 'Inativar' : 'Reativar'}
+                          </Button>
+                        ) },
+                      ]}
+                      rows={usersList}
+                    />
+                  </div>
+                )}
 
                 <div className="mg-grid" style={{ ['--cols-d' as string]: 'repeat(3,1fr)', ['--cols-t' as string]: 'repeat(3,1fr)', ['--cols-m' as string]: '1fr', gap: 16, marginTop: 24 }} id="rbac-matrix-panel">
                   {[
@@ -660,34 +710,25 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                   ))}
                 </div>
 
-                {showAddUserModal && (
-                  <div className="mg-scrim" style={{ position: 'fixed' }} id="add-user-modal">
-                    <form onSubmit={handleAddUser} className="mg-modal" id="new-user-form">
+                {showAddUserInfo && (
+                  <div className="mg-scrim" style={{ position: 'fixed' }} id="add-user-info-modal">
+                    <div className="mg-modal" id="new-user-info">
                       <div className="mg-modal-head">
-                        <p className="mg-title">Registrar novo usuário</p>
+                        <p className="mg-title">Como criar um novo usuário</p>
                       </div>
                       <div className="mg-modal-body">
-                        <Field label="Nome">
-                          {({ id }) => <Input id={id} required value={newUserName} onChange={(e) => setNewUserName(e.target.value)} placeholder="Nome social corporativo" />}
-                        </Field>
-                        <Field label="E-mail corporativo">
-                          {({ id }) => <Input id={id} type="email" required value={newUserEmail} onChange={(e) => setNewUserEmail(e.target.value)} placeholder="operador@instituto.gov.br" />}
-                        </Field>
-                        <Field label="Papel funcional (scope)">
-                          {({ id }) => (
-                            <Select id={id} value={newUserRole} onChange={(e) => setNewUserRole(e.target.value as 'super_admin' | 'gestor' | 'leitor')}>
-                              <option value="super_admin">super_admin</option>
-                              <option value="gestor">gestor</option>
-                              <option value="leitor">leitor</option>
-                            </Select>
-                          )}
-                        </Field>
+                        <p className="mg-small">
+                          Por segurança, a criação de contas administrativas não acontece pelo navegador — exigiria
+                          embutir uma credencial de privilégio máximo no app. Crie a conta pelo Supabase Studio
+                          (Authentication → Add user), com e-mail confirmado. Ela nasce automaticamente como
+                          <span className="mg-code" style={{ marginInline: 4 }}>leitor</span>; promova o papel
+                          aqui mesmo, na tabela acima, depois que a conta existir.
+                        </p>
                       </div>
                       <div className="mg-modal-foot">
-                        <Button type="button" variant="ghost" onClick={() => setShowAddUserModal(false)}>Cancelar</Button>
-                        <Button type="submit" variant="primary">Criar usuário</Button>
+                        <Button type="button" variant="primary" onClick={() => setShowAddUserInfo(false)}>Entendi</Button>
                       </div>
-                    </form>
+                    </div>
                   </div>
                 )}
               </div>
@@ -706,7 +747,7 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                       value={activeCurationFilter}
                       onChange={(v) => setActiveCurationFilter(v)}
                       options={[
-                        { value: 'pendentes', label: 'Pendentes', count: 12 },
+                        { value: 'pendentes', label: 'Pendentes', count: curatedNewsList.length },
                         { value: 'aprovadas', label: 'Aprovados' },
                       ]}
                     />
@@ -753,31 +794,37 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                 />
 
                 <div className="mg-stack" style={{ gap: 12, marginTop: 24 }} id="legal-base-accordions">
-                  {(DIMENSION_ORDER as DimensionId[]).map((key) => (
-                    <details key={key} className="mg-acc" open={key === expandedLegalDim} onToggle={(e) => setExpandedLegalDim(e.currentTarget.open ? key : null)}>
-                      <summary>
-                        <DimensionTag dimension={key} />
-                        {expandedLegalDim === key ? <ChevronUp className="chev mg-ico mg-ico-sm" aria-hidden="true" /> : <ChevronDown className="chev mg-ico mg-ico-sm" aria-hidden="true" />}
-                      </summary>
-                      <div style={{ padding: 20 }} id={`dim-legal-expanded-${key}`}>
-                        <div className="mg-stack" style={{ gap: 12 }}>
-                          {SAMPLE_LEGAL_REFS.map((ref) => (
-                            <div key={`${ref.code}-${ref.norm}`} style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
-                              <div className="mg-row" style={{ justifyContent: 'space-between' }}>
-                                <span className="mg-code" style={{ fontWeight: 700 }}>{ref.code} — {ref.name}</span>
-                                <span className="mg-code" style={{ color: 'var(--brand)' }}>{ref.norm}</span>
-                              </div>
-                              <p className="mg-small" style={{ marginTop: 8 }}>{ref.ex}</p>
-                              <div className="mg-row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-                                <Button variant="ghost" size="sm">Editar</Button>
-                                <Button variant="danger" size="sm">Deletar</Button>
-                              </div>
+                  {(DIMENSION_ORDER as DimensionId[]).map((key) => {
+                    const refsOfDim = legalRefs.filter((ref) => practiceDimension(ref.practice_id) === key);
+                    return (
+                      <details key={key} className="mg-acc" open={key === expandedLegalDim} onToggle={(e) => setExpandedLegalDim(e.currentTarget.open ? key : null)}>
+                        <summary>
+                          <DimensionTag dimension={key} />
+                          {expandedLegalDim === key ? <ChevronUp className="chev mg-ico mg-ico-sm" aria-hidden="true" /> : <ChevronDown className="chev mg-ico mg-ico-sm" aria-hidden="true" />}
+                        </summary>
+                        <div style={{ padding: 20 }} id={`dim-legal-expanded-${key}`}>
+                          {refsOfDim.length === 0 ? (
+                            <p className="mg-small mg-muted">Nenhuma referência legal cadastrada para esta dimensão ainda.</p>
+                          ) : (
+                            <div className="mg-stack" style={{ gap: 12 }}>
+                              {refsOfDim.map((ref) => (
+                                <div key={ref.id} style={{ background: 'var(--surface-sunken)', border: '1px solid var(--surface-deep)', borderRadius: 'var(--radius-lg)', padding: 16 }}>
+                                  <div className="mg-row" style={{ justifyContent: 'space-between' }}>
+                                    <span className="mg-code" style={{ fontWeight: 700 }}>Prática {ref.practice_id}</span>
+                                    <span className="mg-code" style={{ color: 'var(--brand)' }}>{ref.norma} {ref.artigo}</span>
+                                  </div>
+                                  <p className="mg-small" style={{ marginTop: 8 }}>{ref.descricao}</p>
+                                  <div className="mg-row" style={{ justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
+                                    <Button variant="danger" size="sm" onClick={() => handleDeleteLegalRef(ref.id)}>Deletar</Button>
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
+                          )}
                         </div>
-                      </div>
-                    </details>
-                  ))}
+                      </details>
+                    );
+                  })}
                 </div>
 
                 {showAddRefModal && (
@@ -790,18 +837,21 @@ export default function AdminDashboard({ adminEmail, onLogout }: AdminDashboardP
                         <Field label="Prática alvo">
                           {({ id }) => (
                             <Select id={id} value={addRefForm.practiceId} onChange={(e) => setAddRefForm({ ...addRefForm, practiceId: e.target.value })}>
-                              <option value="1.1">Prática 1.1 — Política institucional</option>
-                              <option value="1.2">Prática 1.2 — Comitê governança</option>
-                              <option value="3.1">Prática 3.1 — Proteção à LGPD</option>
+                              {LIST_PRACTICES.map((p) => (
+                                <option key={p.id} value={p.id}>Prática {p.id} · {DIMENSIONS[p.dimensionId].shortName} — {p.name}</option>
+                              ))}
                             </Select>
                           )}
                         </Field>
-                        <Field label="Normativa / lei">
-                          {({ id }) => <Input id={id} required value={addRefForm.norm} onChange={(e) => setAddRefForm({ ...addRefForm, norm: e.target.value })} placeholder="Ex: LGPD Art. 20" />}
+                        <Field label="Normativa">
+                          {({ id }) => <Input id={id} required value={addRefForm.norma} onChange={(e) => setAddRefForm({ ...addRefForm, norma: e.target.value })} placeholder="Ex: LGPD" />}
                         </Field>
-                        <Field label="Resumo de interface de impacto">
+                        <Field label="Artigo / cláusula">
+                          {({ id }) => <Input id={id} required value={addRefForm.artigo} onChange={(e) => setAddRefForm({ ...addRefForm, artigo: e.target.value })} placeholder="Ex: Art. 20" />}
+                        </Field>
+                        <Field label="Descrição da correlação">
                           {({ id }) => (
-                            <Textarea id={id} required rows={2} value={addRefForm.desc} onChange={(e) => setAddRefForm({ ...addRefForm, desc: e.target.value })} placeholder="Quais incisos legais ou parágrafos essa diretriz técnica ajuda a conformar?" />
+                            <Textarea id={id} required rows={2} value={addRefForm.desc} onChange={(e) => setAddRefForm({ ...addRefForm, desc: e.target.value })} placeholder="Como essa prática se correlaciona com a norma." />
                           )}
                         </Field>
                       </div>

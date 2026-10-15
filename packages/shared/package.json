@@ -25,6 +25,7 @@
     "./observatory": "./src/lib/observatory.ts",
     "./supabase": "./src/lib/supabase.ts",
     "./submissionsApi": "./src/lib/submissionsApi.ts",
+    "./adminApi": "./src/lib/adminApi.ts",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./design-system": "./src/design-system/index.ts",
     "./design-system/styles/index.css": "./src/design-system/styles/index.css",

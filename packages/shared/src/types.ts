@@ -63,15 +63,6 @@ export interface NewsItem {
   featured?: boolean;
 }
 
-export interface AdminUser {
-  id: string;
-  name: string;
-  email: string;
-  role: 'super_admin' | 'gestor' | 'leitor';
-  status: 'Ativo' | 'Inativo';
-  lastLogin: string;
-}
-
 // Global Static Data
 export const DIMENSIONS: Record<DimensionId, Dimension> = {
   gov: {
@@ -595,89 +586,6 @@ export const LIST_PRACTICES: Practice[] = [
     level: 5,
     legalReference: 'ENIA Pilar 3'
   },
-];
-
-// Dados de exemplo para a tela de curadoria de notícias (admin) — fictícios, não
-// atribuídos a nenhuma instituição real. Servem apenas para demonstrar o layout
-// até o agregador real (Fase 8, GET /v1/news) existir.
-export const SEED_NEWS: NewsItem[] = [
-  {
-    id: 'n1',
-    title: '[Exemplo] Novas diretrizes setoriais de segurança de dados em modelos de IA',
-    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "regulação" e fonte citada.',
-    category: 'regulação',
-    source: 'Fonte de exemplo',
-    date: '08 de Junho de 2026',
-    featured: true,
-  },
-  {
-    id: 'n2',
-    title: '[Exemplo] Comissão debate impacto de IA generativa em projeto de lei',
-    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "regulação".',
-    category: 'regulação',
-    source: 'Fonte de exemplo',
-    date: '05 de Junho de 2026',
-  },
-  {
-    id: 'n3',
-    title: '[Exemplo] Organizações debatem modelos de governança de IA em fórum setorial',
-    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "governança".',
-    category: 'governança',
-    source: 'Fonte de exemplo',
-    date: '02 de Junho de 2026',
-  },
-  {
-    id: 'n4',
-    title: '[Exemplo] Biblioteca de MLOps promete otimizar inferência em servidores legados',
-    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "tecnologia".',
-    category: 'tecnologia',
-    source: 'Fonte de exemplo',
-    date: '30 de Maio de 2026',
-  },
-  {
-    id: 'n5',
-    title: '[Exemplo] Empresas aumentam investimento em testes de segurança de IA',
-    excerpt: 'Conteúdo de demonstração — layout de card de notícia com categoria "mercado".',
-    category: 'mercado',
-    source: 'Fonte de exemplo',
-    date: '28 de Maio de 2026',
-  }
-];
-
-// Seed Admin Users (Screen 13)
-export const SEED_ADMIN_USERS: AdminUser[] = [
-  {
-    id: 'u1',
-    name: 'Júlia Costa',
-    email: 'julia.costa@ggia.unb.br',
-    role: 'super_admin',
-    status: 'Ativo',
-    lastLogin: '08/06/2026 10:14',
-  },
-  {
-    id: 'u2',
-    name: 'Rafael Almeida',
-    email: 'rafael.almeida@ggia.unb.br',
-    role: 'gestor',
-    status: 'Ativo',
-    lastLogin: '07/06/2026 18:42',
-  },
-  {
-    id: 'u3',
-    name: 'Mateus Azevedo',
-    email: 'mateus.azevedo@ggia.unb.br',
-    role: 'leitor',
-    status: 'Ativo',
-    lastLogin: '05/06/2026 09:30',
-  },
-  {
-    id: 'u4',
-    name: 'Patrícia Rocha',
-    email: 'patricia.rocha@ggia.unb.br',
-    role: 'gestor',
-    status: 'Inativo',
-    lastLogin: '12/05/2026 15:10',
-  }
 ];
 
 // Seed Historical Scores (Screen 6 for Panel)
