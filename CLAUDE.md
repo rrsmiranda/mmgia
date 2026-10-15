@@ -79,16 +79,32 @@ tabela `submissions` (avaliações anônimas) não têm relação por chave estr
 > numa VPS própria** — schema equivalente em `infra/supabase/migrations/`,
 > com Row Level Security fazendo a isolação dos "dois mundos" dentro do
 > próprio banco, Supabase Auth no lugar de `admin_users`/`admin_sessions`
-> customizadas, e guia de deploy em `infra/supabase/README.md`. As 6
-> migrations novas (schema + RLS + funções RPC `find_submission_by_code_hash`,
-> `update_submission_by_code_hash`, `painel_aggregate`) já foram validadas
-> rodando de ponta a ponta contra um Postgres real, com testes negativos de
-> RLS — ver `infra/supabase/test/`. O schema SQLite/D1/Turso original
-> (`infra/migrations/`) fica preservado só como referência, não recebe mais
-> mudanças. Em ambos os casos, `apps/worker/` (ou o equivalente PostgREST já
-> embutido no stack Supabase) ainda não está ligado a nenhum dos dois apps: os
-> dados hoje são seeds estáticos em `packages/shared/src/types.ts`, e o
-> cálculo de score roda inteiramente no browser, sem backend.
+> customizadas, e guia de deploy em `infra/supabase/README.md`. As 8
+> migrations (schema + RLS + funções RPC de escrita/leitura pública
+> (`find_submission_by_code_hash`, `update_submission_by_code_hash`,
+> `painel_aggregate`, `painel_byuf`, `painel_byregion`, `painel_monthly`,
+> `painel_compareby`, `painel_level_distribution`, `painel_filter_counts`) +
+> coluna de e-mail em `admin_profiles`) já foram validadas rodando de ponta a
+> ponta contra a instância real em produção (`https://supabase.governanca.tech`),
+> com testes negativos de RLS — ver `infra/supabase/test/` (roteiro local em
+> Docker) e `infra/supabase/README.md` (status do deploy real). O schema
+> SQLite/D1/Turso original (`infra/migrations/`) fica preservado só como
+> referência, não recebe mais mudanças.
+>
+> **Integração frontend ↔ backend:** `apps/web` (Avaliação grava de
+> verdade, Editar com código busca de verdade, Painel Público lê agregados
+> reais) e `apps/admin` (login via Supabase Auth, Gestão de dados/Mapa/Dados
+> abertos/Base legal/Notícias/Usuários todos lendo e escrevendo de verdade)
+> já estão ligados ao Supabase — não existe mais `apps/worker`/PostgREST
+> "solto": os dois apps chamam a API REST/RPC do Supabase diretamente via
+> `@supabase/supabase-js` (`packages/shared/src/lib/{supabase,submissionsApi,
+> adminApi,painelApi}.ts`). `SEED_HISTORICAL_RECORDS` (único seed estático
+> que sobrou em `packages/shared/src/types.ts`) não é mais usado por nenhuma
+> tela — fica só como dado de exemplo, não removido ainda por inércia. A
+> tela pública de Notícias (`/noticias`, Fase B) não existe — o componente
+> antigo foi removido por mostrar conteúdo fabricado antes do agregador RSS
+> (CLAUDE.md Fase 8) existir; a curadoria no admin já lê/escreve `news_items`
+> de verdade, só não tem de onde vir notícia nova ainda.
 
 ```
 mmgia/
@@ -117,11 +133,11 @@ mmgia/
 ```
 
 **As 2 apps são deployadas separadamente** (domínios distintos), o que isola
-completamente o código administrativo do público. A API (hoje, PostgREST do
-stack Supabase sobre `infra/supabase/`) ainda não está implementada/ligada —
-`apps/web` e `apps/admin` operam sem backend, com dados de exemplo embutidos
-em `packages/shared`. O schema em `infra/supabase/` já reflete o contrato que
-essa integração vai precisar seguir.
+completamente o código administrativo do público. A API é o PostgREST/RPC do
+stack Supabase sobre `infra/supabase/`, já ligada em `apps/web` e
+`apps/admin` (ver nota acima) — nenhum dos dois apps precisou de um backend
+próprio além disso, tanto a API pública quanto a administrativa vêm do mesmo
+Supabase, isoladas por RLS, não por domínio de API separado.
 
 ---
 

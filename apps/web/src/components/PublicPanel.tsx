@@ -6,21 +6,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, Gauge, Info, Lock, X } from 'lucide-react';
 import RadarChart, { type RadarAxis } from './RadarChart';
-import { DimensionId, DIMENSIONS, HistoricalRecord, SEED_HISTORICAL_RECORDS } from '@mmgia/shared/types';
+import { DimensionId, DIMENSIONS } from '@mmgia/shared/types';
 import { getMaturityLevel } from '@mmgia/shared/scoring';
+import { Agg, K_MIN, ObsFilters, insights } from '@mmgia/shared/observatory';
 import {
-  Agg,
-  K_MIN,
-  ObsFilters,
-  applyFilters,
-  byRegion,
-  byUf,
-  compareBy,
-  insights,
-  levelDistribution,
-  monthly,
-  wouldBreakK,
-} from '@mmgia/shared/observatory';
+  fetchAggregate,
+  fetchByRegion,
+  fetchByUf,
+  fetchCompareBy,
+  fetchFilterCounts,
+  fetchLatestPeriodo,
+  fetchLevelDistribution,
+  fetchMonthly,
+} from '@mmgia/shared/painelApi';
 import {
   AREAS_PRIVADAS,
   AREAS_PUBLICAS,
@@ -156,17 +154,54 @@ export default function PublicPanel() {
     writeUrlState({ filters, uf, mapMetric, granularity });
   }, [filters, uf, mapMetric, granularity]);
 
-  // ===== Dados — todo número vem de observatory.ts, nunca calculado aqui =====
+  // ===== Dados — vêm sempre de painelApi.ts (RPCs no banco), nunca agregados aqui =====
 
-  const allRecords = SEED_HISTORICAL_RECORDS;
-  const filteredNoUf = useMemo(() => applyFilters(allRecords, filters), [filters]);
-  const scopedRecords = useMemo(() => (uf ? applyFilters(filteredNoUf, { uf }) : filteredNoUf), [filteredNoUf, uf]);
+  const emptyAgg: Agg = { n: 0, score: null, level: null, dims: null };
+  const [totalNacional, setTotalNacional] = useState(0);
+  const [atualizadoEm, setAtualizadoEm] = useState('—');
+  const [scopedAgg, setScopedAgg] = useState<Agg>(emptyAgg);
+  const [brasilAgg, setBrasilAgg] = useState<Agg>(emptyAgg);
+  const [byUfAgg, setByUfAgg] = useState<Record<string, Agg>>({});
+  const [byRegionAgg, setByRegionAgg] = useState<Record<string, Agg>>({});
+  const [dist, setDist] = useState<number[] | null>(null);
+  const [monthlyData, setMonthlyData] = useState<{ mes: string; n: number; score: number | null }[]>([]);
+  const [filterCounts, setFilterCounts] = useState<Record<string, Record<string, number>>>({});
+  const [compareRows, setCompareRows] = useState<{ grupo: string; agg: Agg; section?: string }[]>([]);
 
-  const scopedAgg = useMemo(() => (uf ? aggregateUfScope(filteredNoUf, uf) : aggregateAll(filteredNoUf)), [filteredNoUf, uf]);
-  const brasilAgg = useMemo(() => aggregateAll(filteredNoUf), [filteredNoUf]);
+  // Constantes do Brasil inteiro (sem filtro nenhum) — buscadas uma única vez.
+  useEffect(() => {
+    fetchAggregate({}).then((a) => setTotalNacional(a.n));
+    fetchLatestPeriodo().then((p) => setAtualizadoEm(p ?? '—'));
+  }, []);
 
-  const byUfAgg = useMemo(() => byUf(filteredNoUf), [filteredNoUf]);
-  const byRegionAgg = useMemo(() => byRegion(filteredNoUf), [filteredNoUf]);
+  // Recorte sem UF (base do mapa, dos filtros desabilitados e do "Brasil" de comparação).
+  useEffect(() => {
+    fetchByUf(filters).then(setByUfAgg);
+    fetchByRegion(filters).then(setByRegionAgg);
+    fetchAggregate(filters).then(setBrasilAgg);
+    fetchFilterCounts(filters).then(setFilterCounts);
+  }, [JSON.stringify(filters)]);
+
+  // Recorte com UF (se houver) — o que o painel lateral do mapa, a distribuição por nível e a evolução mensal mostram.
+  useEffect(() => {
+    const scopeFilters = uf ? { ...filters, uf } : filters;
+    fetchAggregate(scopeFilters).then(setScopedAgg);
+    fetchLevelDistribution(scopeFilters).then(setDist);
+    fetchMonthly(scopeFilters, 12).then(setMonthlyData);
+  }, [JSON.stringify(filters), uf]);
+
+  // Comparativos — depende também de qual aba de agrupamento está selecionada.
+  useEffect(() => {
+    const scopeFilters = uf ? { ...filters, uf } : filters;
+    if (compareTab === 'setor_porte') {
+      Promise.all([
+        fetchCompareBy(scopeFilters, 'setor').then((rows) => rows.map((r) => ({ ...r, section: 'Setor' }))),
+        fetchCompareBy(scopeFilters, 'porte').then((rows) => rows.map((r) => ({ ...r, section: 'Porte' }))),
+      ]).then(([a, b]) => setCompareRows([...a, ...b]));
+    } else {
+      fetchCompareBy(scopeFilters, compareTab).then((rows) => setCompareRows(rows.map((r) => ({ ...r, section: undefined }))));
+    }
+  }, [JSON.stringify(filters), uf, compareTab]);
 
   const mapData = useMemo(() => {
     const out: Record<string, { score: number | null; level: number | null; n: number }> = {};
@@ -195,8 +230,6 @@ export default function PublicPanel() {
     });
   }, [scopedAgg, label, uf, nomeUf, brasilAgg, byUfAgg]);
 
-  const dist = levelDistribution(scopedRecords);
-
   const dimensaoMaisBaixa = useMemo(() => {
     if (!scopedAgg.dims) return null;
     return DIMENSION_ORDER.reduce((a, b) => (scopedAgg.dims![b] < scopedAgg.dims![a] ? b : a));
@@ -205,6 +238,8 @@ export default function PublicPanel() {
   const estadosComDados = Object.values(byUfAgg).filter((a) => a.n > 0).length;
 
   // ===== Filtros =====
+
+  const FILTER_COUNT_FIELD: Record<string, string> = { setor: 'setor', esfera: 'esfera', area: 'area', poder: 'poder', relacaoIA: 'relacao_ia', porte: 'porte' };
 
   const handleFilterChange = (key: keyof ObsFilters, value: string) => {
     setFilters((f) => {
@@ -221,9 +256,8 @@ export default function PublicPanel() {
   };
 
   const optionDisabled = (key: keyof ObsFilters, value: string): boolean => {
-    const base = { ...filters };
-    delete base[key];
-    return wouldBreakK(allRecords, base, key, value);
+    const field = FILTER_COUNT_FIELD[key] ?? key;
+    return (filterCounts[field]?.[value] ?? 0) < K_MIN;
   };
 
   const removeFilter = (key: keyof ObsFilters) => {
@@ -254,10 +288,6 @@ export default function PublicPanel() {
 
   const hasAnyFilter = activeChips.length > 0 || !!uf;
 
-  // ===== Cabeçalho =====
-
-  const atualizadoEm = useMemo(() => latestPeriodo(allRecords), [allRecords]);
-
   return (
     <DsRoot>
       <Page>
@@ -272,7 +302,7 @@ export default function PublicPanel() {
             }
           />
           <p className="mg-obs-meta mg-small mg-muted">
-            <span>{allRecords.length} autoavaliações</span>
+            <span>{totalNacional} autoavaliações</span>
             <span>·</span>
             <span>Atualizado em {atualizadoEm}</span>
             <span>·</span>
@@ -316,7 +346,7 @@ export default function PublicPanel() {
                   )}
                   <button type="button" className="mg-obs-count" style={{ background: 'none', border: 0, cursor: 'pointer', textDecoration: 'underline', color: 'var(--brand)' }} onClick={clearAll}>Limpar filtros</button>
                   <span className="mg-spacer" />
-                  <span className="mg-obs-count"><b>{scopedRecords.length}</b> {scopedRecords.length === 1 ? 'avaliação' : 'avaliações'} neste recorte</span>
+                  <span className="mg-obs-count"><b>{scopedAgg.n}</b> {scopedAgg.n === 1 ? 'avaliação' : 'avaliações'} neste recorte</span>
                 </>
               ) : (
                 <span className="mg-small mg-muted">Nenhum filtro aplicado. Clique num estado do mapa para filtrar a página.</span>
@@ -435,7 +465,7 @@ export default function PublicPanel() {
             <Card>
               <CardHeader title={`Evolução do score médio · ${uf ? nomeUf : label}`} />
               <CardBody>
-                <TrendChart records={scopedRecords} />
+                <TrendChart data={monthlyData} />
               </CardBody>
             </Card>
 
@@ -463,20 +493,10 @@ export default function PublicPanel() {
               />
             } />
             <CardBody>
-              {scopedRecords.length < K_MIN ? (
+              {scopedAgg.n < K_MIN ? (
                 <p className="mg-small mg-muted">Este recorte tem menos de 5 avaliações. Amplie os filtros para ver os dados.</p>
               ) : (
-                <CompareRadarPanel
-                  key={compareTab}
-                  rows={
-                    compareTab === 'setor_porte'
-                      ? [
-                          ...compareBy(scopedRecords, 'setor').map((r) => ({ ...r, section: 'Setor' })),
-                          ...compareBy(scopedRecords, 'porte').map((r) => ({ ...r, section: 'Porte' })),
-                        ]
-                      : compareBy(scopedRecords, compareTab).map((r) => ({ ...r, section: undefined }))
-                  }
-                />
+                <CompareRadarPanel key={compareTab} rows={compareRows} />
               )}
             </CardBody>
           </Card>
@@ -667,9 +687,8 @@ function RadarGroupCard({ label, agg }: { label: string; agg: Agg }) {
   );
 }
 
-function TrendChart({ records }: { records: HistoricalRecord[] }) {
-  const data = monthly(records, 12);
-  if (data.every((d) => d.n === 0)) {
+function TrendChart({ data }: { data: { mes: string; n: number; score: number | null }[] }) {
+  if (data.length === 0 || data.every((d) => d.n === 0)) {
     return <p className="mg-small mg-muted">Sem avaliações nos últimos 12 meses para este recorte.</p>;
   }
 
@@ -736,48 +755,6 @@ function TrendChart({ records }: { records: HistoricalRecord[] }) {
 }
 
 // ===== Funções auxiliares locais =====
-
-function aggregateAll(records: HistoricalRecord[]): Agg {
-  return aggregateRecords(records);
-}
-
-function aggregateUfScope(filteredNoUf: HistoricalRecord[], uf: string): Agg {
-  return aggregateRecords(applyFilters(filteredNoUf, { uf }));
-}
-
-function aggregateRecords(records: HistoricalRecord[]): Agg {
-  const n = records.length;
-  if (n < K_MIN) return { n, score: null, level: null, dims: null };
-  const score = records.reduce((acc, r) => acc + r.score_global, 0) / n;
-  const dims = DIMENSION_ORDER.reduce((acc, id) => {
-    acc[id] = records.reduce((sum, r) => sum + dimScoreOf(r, id), 0) / n;
-    return acc;
-  }, {} as Record<DimensionId, number>);
-  return { n, score, level: getMaturityLevel(score).num, dims };
-}
-
-function dimScoreOf(r: HistoricalRecord, id: DimensionId): number {
-  switch (id) {
-    case 'gov': return r.score_gov;
-    case 'tec': return r.score_tec;
-    case 'seg': return r.score_seg;
-    case 'edu': return r.score_edu;
-    case 'eco': return r.score_eco;
-  }
-}
-
-function latestPeriodo(records: HistoricalRecord[]): string {
-  const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-  let best: { mes: number; ano: number; label: string } | null = null;
-  for (const r of records) {
-    const [mesStr, anoStr] = r.periodo.split('/');
-    const mes = MESES.indexOf(mesStr);
-    const ano = Number(anoStr);
-    if (mes < 0 || !Number.isFinite(ano)) continue;
-    if (!best || ano * 12 + mes > best.ano * 12 + best.mes) best = { mes, ano, label: r.periodo };
-  }
-  return best?.label ?? '—';
-}
 
 function levelRangeLabel(lvl: Level): string {
   const ranges: Record<Level, string> = { 0: '< 0,50', 1: '0,50–0,99', 2: '1,00–1,49', 3: '1,50–1,99', 4: '2,00–2,49', 5: '≥ 2,50' };
