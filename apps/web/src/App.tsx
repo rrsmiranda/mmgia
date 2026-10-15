@@ -7,6 +7,7 @@ import { lazy, Suspense, useState, useEffect } from 'react';
 import Header from './components/Header';
 import LandingPage from './components/LandingPage';
 import { ScoreLevel, AssessmentMetadata, DimensionId } from '@mmgia/shared/types';
+import { submitAssessment, updateAssessmentByCode } from '@mmgia/shared/submissionsApi';
 
 const Onboarding = lazy(() => import('./components/Onboarding'));
 const Questionnaire = lazy(() => import('./components/Questionnaire'));
@@ -43,6 +44,10 @@ export default function App() {
   const [reviewFocusDim, setReviewFocusDim] = useState<DimensionId | null>(null);
   // Abrir o relatório já no diálogo de impressão (botão "Imprimir relatório" do Resultado).
   const [reportAutoPrint, setReportAutoPrint] = useState(false);
+  // true depois do 1º salvamento bem-sucedido (ou ao carregar via código existente):
+  // a próxima confirmação da Revisão deve ATUALIZAR a submission, não criar outra.
+  const [isEditingExisting, setIsEditingExisting] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
 
   const generateSessionCode = () => {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -83,6 +88,8 @@ export default function App() {
       code: newCode,
     });
     setReviewFocusDim(null);
+    setIsEditingExisting(false);
+    setSaveStatus('idle');
     setAssessStep('onboarding');
     setCurrentTab('diagnostico');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -111,11 +118,22 @@ export default function App() {
     setAnswers(finalAnswers);
     setAssessStep('result');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    setSaveStatus('saving');
+    const save = isEditingExisting
+      ? updateAssessmentByCode(metadata.code, finalAnswers, metadata)
+      : submitAssessment(finalAnswers, metadata);
+    save.then((result) => {
+      setSaveStatus(result.ok ? 'saved' : 'error');
+      if (result.ok) setIsEditingExisting(true);
+    });
   };
 
   const handleLoadAssessment = (code: string, restoredAnswers: Record<string, ScoreLevel>, restoredMeta: AssessmentMetadata) => {
     setMetadata(restoredMeta);
     setAnswers(restoredAnswers);
+    setIsEditingExisting(true);
+    setSaveStatus('idle');
     setAssessStep('result');
     setCurrentTab('diagnostico');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -204,6 +222,7 @@ export default function App() {
                   setCurrentTab('relatorio-viewer');
                 }}
                 onEditPractice={handleEditFromResult}
+                saveStatus={saveStatus}
                 theme={theme}
               />
             )}

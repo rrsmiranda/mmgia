@@ -3,12 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/// <reference types="vite/client" />
-
 import { useState, type FormEvent } from 'react';
 import { ArrowRight, Search } from 'lucide-react';
 import { AssessmentMetadata, ScoreLevel } from '@mmgia/shared/types';
-import { migrarMetadataV1 } from '@mmgia/shared/taxonomy';
+import { findAssessmentByCode } from '@mmgia/shared/submissionsApi';
 import { Banner, Button, Card, DsRoot, Field, Input, Page } from '@mmgia/shared/design-system';
 
 interface EditAssessmentProps {
@@ -20,8 +18,9 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
   const [sessionCode, setSessionCode] = useState('');
   const [errorText, setErrorText] = useState('');
   const [successText, setSuccessText] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSearchCode = (e: FormEvent) => {
+  const handleSearchCode = async (e: FormEvent) => {
     e.preventDefault();
     setErrorText('');
     setSuccessText('');
@@ -32,57 +31,21 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
       return;
     }
 
-    // A valid simulated session loader, plus fallback checks on local storage
-    const stored = localStorage.getItem(`mmgia_session_${trimmed}`);
+    setLoading(true);
+    const found = await findAssessmentByCode(trimmed);
+    setLoading(false);
 
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        const metadata: AssessmentMetadata = parsed.metadata?.taxonomiaVersao === 2
-          ? parsed.metadata
-          : migrarMetadataV1(parsed.metadata);
-        setSuccessText('Avaliação integrada com sucesso! Redirecionando...');
-        setTimeout(() => {
-          onLoadAssessment(trimmed, parsed.answers, metadata);
-        }, 1200);
-        return;
-      } catch {
-        // fail silently or fallback
-      }
+    if (!found) {
+      // Mensagem propositalmente genérica — não dá pra diferenciar "código não existe"
+      // de "erro de rede" sem vazar informação sobre a existência do código.
+      setErrorText('Código de avaliação não identificado. Certifique-se de que digitou corretamente.');
+      return;
     }
 
-    // Códigos de demonstração só existem em build de desenvolvimento — nunca em produção,
-    // onde seriam uma porta de teste aberta para qualquer usuário real.
-    const staticSampleCodes = import.meta.env.DEV ? ['a3f8-2b91-4c7d', 'exmp-code-2026', 'demo-test-1234'] : [];
-
-    if (staticSampleCodes.includes(trimmed.toLowerCase())) {
-      // Load mocked completed assessment answers
-      const mockAnswers: Record<string, ScoreLevel> = {
-        '1.1': 'F', '1.2': 'L', '1.3': 'P', '1.4': 'N', '1.5': 'P', '1.6': 'N',
-        '2.1': 'F', '2.2': 'L', '2.3': 'L', '2.4': 'P',
-        '3.1': 'F', '3.2': 'P', '3.3': 'L', '3.4': 'N',
-        '4.1': 'P', '4.2': 'P', '4.3': 'N',
-        '5.1': 'L', '5.2': 'N',
-      };
-
-      const mockMeta: AssessmentMetadata = {
-        taxonomiaVersao: 2,
-        setor: 'publico',
-        esfera: 'estadual',
-        area: 'saude',
-        estado: 'SP',
-        porte: 'Grande',
-        termosAceitos: true,
-        code: trimmed,
-      };
-
-      setSuccessText('Sessão de demonstração identificada! Carregando respostas...');
-      setTimeout(() => {
-        onLoadAssessment(trimmed, mockAnswers, mockMeta);
-      }, 1200);
-    } else {
-      setErrorText('Código de avaliação não identificado localmente no navegador. Certifique-se de que digitou corretamente.');
-    }
+    setSuccessText('Avaliação encontrada! Carregando respostas...');
+    setTimeout(() => {
+      onLoadAssessment(trimmed, found.answers, found.metadata);
+    }, 800);
   };
 
   return (
@@ -109,15 +72,10 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
                     value={sessionCode}
                     onChange={(e) => setSessionCode(e.target.value)}
                     placeholder="xxxx-xxxx-xxxx"
+                    disabled={loading}
                   />
                 )}
               </Field>
-
-              {import.meta.env.DEV && (
-                <p className="mg-small mg-muted" style={{ marginTop: -8 }}>
-                  Dica: use o código demo <span className="mg-code">a3f8-2b91-4c7d</span> para carregar testes.
-                </p>
-              )}
 
               {errorText && (
                 <Banner tone="critical" title="Não foi possível localizar a avaliação">
@@ -131,7 +89,9 @@ export default function EditAssessment({ onLoadAssessment, onGoToOnboarding }: E
                 </Banner>
               )}
 
-              <Button type="submit" variant="primary" fullWidth>Buscar e restaurar respostas</Button>
+              <Button type="submit" variant="primary" fullWidth disabled={loading}>
+                {loading ? 'Buscando…' : 'Buscar e restaurar respostas'}
+              </Button>
             </form>
 
             <div style={{ marginTop: 24 }} id="recovery-code-warning">

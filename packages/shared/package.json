@@ -7,6 +7,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
     "@svg-maps/brazil": "^2.0.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
@@ -22,6 +23,8 @@
     "./taxonomy": "./src/lib/taxonomy.ts",
     "./privacy": "./src/lib/privacy.ts",
     "./observatory": "./src/lib/observatory.ts",
+    "./supabase": "./src/lib/supabase.ts",
+    "./submissionsApi": "./src/lib/submissionsApi.ts",
     "./styles/tokens.css": "./src/styles/tokens.css",
     "./design-system": "./src/design-system/index.ts",
     "./design-system/styles/index.css": "./src/design-system/styles/index.css",

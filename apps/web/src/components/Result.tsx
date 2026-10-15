@@ -29,6 +29,7 @@ import PlexusBackground from './PlexusBackground';
 import CountUp from './CountUp';
 import {
   ActionBar,
+  Banner,
   Button,
   Card,
   CardBody,
@@ -54,6 +55,8 @@ interface ResultProps {
   onViewReport: (options?: { print?: boolean }) => void;
   /** "Editar" numa prática: volta para a Revisão com a dimensão já aberta. */
   onEditPractice: (dim: DimensionId) => void;
+  /** Status do salvamento da avaliação no backend — o resultado em si nunca depende disso (score é sempre calculado no navegador). */
+  saveStatus?: 'idle' | 'saving' | 'saved' | 'error';
   theme?: 'light' | 'dark';
 }
 
@@ -73,7 +76,7 @@ const TABS: { id: ResultTab; label: string }[] = [
 const PRACTICE_LEVELS = [1, 2, 3, 4, 5] as const;
 const PRIORITY_GAPS_SHOWN = 8;
 
-export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice }: ResultProps) {
+export default function Result({ answers, metadata, onRestart, onChangeTab, onViewReport, onEditPractice, saveStatus }: ResultProps) {
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<ResultTab>('overview');
   const prefersReducedMotion = useReducedMotion();
@@ -182,6 +185,16 @@ export default function Result({ answers, metadata, onRestart, onChangeTab, onVi
               <Button variant="secondary" iconOnly icon={copied ? Check : Copy} aria-label="Copiar código" onClick={handleCopyCode} />
             </div>
           </div>
+          {saveStatus === 'saving' && (
+            <p className="mg-small mg-muted" style={{ marginTop: 12 }} role="status">Salvando avaliação…</p>
+          )}
+          {saveStatus === 'error' && (
+            <div style={{ marginTop: 16 }}>
+              <Banner tone="critical" title="Não foi possível salvar sua avaliação no servidor">
+                O resultado acima continua válido (calculado no seu navegador), mas sem salvar, o código de recuperação não vai funcionar depois. Verifique sua conexão e tente confirmar novamente pela Revisão.
+              </Banner>
+            </div>
+          )}
         </Card>
 
         <div ref={tabPanelRef} style={{ scrollMarginTop: 96, marginBottom: 24 }}>
